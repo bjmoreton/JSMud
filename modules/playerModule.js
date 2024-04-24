@@ -14,6 +14,10 @@ const playerModule = {
             Player: 'Player'
         }
 
+        addPermissions(perms) {
+            return this.permissions.push(perms);
+        }
+
         constructor(socket, username) {
             this.socket = socket;
             this.username = username;
@@ -112,6 +116,14 @@ const playerModule = {
             playerModule.ms.mudEmitter.emit('playerDisconnected', player);
         });
     },
+    hotBootAfterCB: () => {
+        playerModule.ms.players.forEach(p => {
+            if (p.connectionStatus != loginModule.ConnectionStatus.LoggedIn) {
+                p.disconnect(false);
+            }
+            p.save();
+        });        
+    },
     hotBootBeforeCB: () => {
         playerModule.ms.players.forEach(p => {
             if (p.connectionStatus != loginModule.ConnectionStatus.LoggedIn) {
@@ -120,6 +132,7 @@ const playerModule = {
             p.save();
         });
         playerModule.ms.mudEmitter.removeListener('playerConnected', playerModule.playerConnectedCB);
+        playerModule.ms.mudEmitter.removeListener('after_hotboot', playerModule.hotBootAfterCB);
         playerModule.ms.mudEmitter.removeListener('before_hotboot', playerModule.hotBootBeforeCB);
     },
     init: function (mudServer) {
@@ -146,6 +159,7 @@ const playerModule = {
         });
 
         this.ms.mudEmitter.on('playerConnected', this.playerConnectedCB);
+        this.ms.mudEmitter.on('after_hotboot', this.hotBootAfterCB);
         this.ms.mudEmitter.on('before_hotboot', this.hotBootBeforeCB);
     }
 };

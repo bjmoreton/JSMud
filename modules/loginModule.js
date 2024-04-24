@@ -13,7 +13,7 @@ const loginModule = {
         if(player != undefined && player.connectionStatus == undefined) {
             player.connectionStatus = this.ConnectionStatus.EnterUsername;
         
-            player.send("\r\nPlease enter character name, or new: \r\n");
+            player.send("\r\nPlease enter character name, or new: ");
             return;
         }
 
@@ -24,16 +24,16 @@ const loginModule = {
                     this.handleLogin(player, "");
                 } else {
                     player.connectionStatus = this.ConnectionStatus.EnterPassword;
-                    player.send("Passwords do not match!\r\n");
+                    player.send("Passwords do not match!");
                     player.send("Please enter a password: ");
                 }
                 break;
             case this.ConnectionStatus.CreatePlayer:
                 if (data.indexOf(" ") > -1 || data == null) {
-                    player.send("Invalid character name!\r\n");
+                    player.send("Invalid character name!");
                     player.send("Enter a Character name: ");
                 } else if (player.exist(data)) {
-                    player.send("Character name taken!\r\n");
+                    player.send("Character name taken!");
                     player.send("Enter a Character name: ");
                 } else {
                     player.username = data;
@@ -43,19 +43,25 @@ const loginModule = {
                 break;
             case this.ConnectionStatus.EnterUsername:
                 if (data.indexOf(" ") > -1 || data == null) {
-                    player.send("Invalid character name!\r\n");
-                    player.send("Please enter character name, or new: \r\n");
+                    player.send("Invalid character name!");
+                    player.send("Please enter character name, or new: ");
                 } else {
                     if (player.exist(data)) {
                         player.load(data);
+                        if(loginModule.ms.isBanned(player)){
+                            player.send("This account hass been banned!");
+                            console.log(`Banned player ${player.username} tried to connect.`);
+                            player.disconnect(false);
+                            return;
+                        }
                         player.connectionStatus = this.ConnectionStatus.EnterPassword;
                         player.send("Please enter your password: ");
                     } else if (data.toLowerCase() === "new") {
                         player.connectionStatus = this.ConnectionStatus.CreatePlayer;
                         player.send("Enter a Character name: ");
                     } else {
-                        player.send("Character doesn't exist!\r\n");
-                        player.send("Please enter character name, or new: \r\n");
+                        player.send("Character doesn't exist!");
+                        player.send("Please enter character name, or new: ");
                     }
                 }
                 break;

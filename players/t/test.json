@@ -1,4 +1,6 @@
 {
   "username": "Test",
+  "permissions": [],
+  "perm_group": "Player",
   "password": "test"
 }

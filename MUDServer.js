@@ -1,39 +1,50 @@
 const { parseColors } = require('./Color.js');
-const StoppableTimeout = require('./Utils/StoppableInterval.js');
 const EventEmitter = require('events');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
-const StoppableInterval = require('./Utils/StoppableInterval.js');
 
 // Custom event emitter
 class MUDEmitter extends EventEmitter { }
 
 // Core MUD logic
 class MUDServer {
+    BANS_LIST_PATH = path.join(__dirname, 'system', 'bans.json');
     CONFIG_PATH = path.join(__dirname, 'system', 'config.json');
     MUD_TITLE_PATH = path.join(__dirname, 'system', 'mudtitle.txt');
     MODULES_PATH = path.join(__dirname, 'modules');
 
-    addPermissions(...permission) {
-        this.permissions.push(permission);
+    banPlayer(player) {
+        const socket = player.socket;
+
+        this.banList.set(player.username, socket.remoteAddress);
+        this.players.forEach(p => {
+            if(p.username == player.username) return;
+            if(p.socket.remoteAddress == socket.remoteAddress)
+            {
+                p.socket.end();
+                p.destroy();
+            }
+        });
+        socket.end();
+        player.destroy();
+        this.saveBansList();
     }
 
-    permissionExist(permission) {
-        return this.permissions.includes(permission);
-    }
+    commandExist(command) { return this.commands.includes(command); }
 
     constructor() {
+        this.banList = new Map();
         this.commands = new Map();
+        this.modules = [];
         this.mudEmitter = new MUDEmitter();
         this.players = new Map();
-        this.modules = [];
-        this.permissions = [];
         this.server = net.createServer();
+        
         this.loadConfig();
         this.loadModules();
+        this.loadBanList();
         this.loadTitle();
-        this.addPermissions('hotboot', 'reloadtitle');
 
         // Handle player commands
         this.mudEmitter.on('handleCommand', (player, command) => { this.handleCommand(player, command); });
@@ -44,6 +55,12 @@ class MUDServer {
         });
         // Handle incoming connections
         this.server.on('connection', socket => {
+            if(this.isBanned(socket)) {
+                console.log(`Banned address tried to connect: ${socket.remoteAddress}`);
+                socket.end();
+                socket.destroy();
+                return;
+            }
             // Send MUD Title
             socket.write(parseColors(this.mudTitle));
             // Player connected, let modules know
@@ -67,10 +84,58 @@ class MUDServer {
     }
 
     hotBoot(cb) {
+        this.players.forEach(p => {
+            p.send('Performing hotboot...');
+        });
         this.mudEmitter.emit('before_hotboot');
         cb.loadModules();
         cb.loadTitle();
+        this.players.forEach(p => {
+            p.send('Hotboot finished');
+        });
         this.mudEmitter.emit('after_hotboot');
+    }
+
+    isBanned(arg) {
+        console.log(this.banList);
+        return [...this.banList].some(([k, v]) => {
+            return arg?.username === k || arg?.socket?.remoteAddress === v || arg?.remoteAddress === v;
+        });
+    }
+
+    kickPlayer(player) {
+        const socket = player.socket;
+        player.save();
+        this.players.forEach(p => {
+            if(p.username == player.username) return;
+
+            if(p.socket.remoteAddress == socket.remoteAddress)
+            {
+                p.save();
+                p.socket.end();
+                p.destroy();
+            }
+        });
+        socket.end();
+        player.destroy();
+    }
+
+    loadBanList() {
+        try {
+            // Read the JSON file synchronously
+            const data = fs.readFileSync(this.BANS_LIST_PATH, 'utf-8');
+
+            // Parse the JSON data
+            const banListEntries = JSON.parse(data);
+            // Check if the array is empty
+            if (Array.isArray(banListEntries) && banListEntries.length > 0) {
+                // Assign the ban data to the current bans list
+                this.banList = new Map(banListEntries);
+            }
+            console.log('Bans list loaded');
+        } catch (err) {
+            console.error('Error reading or parsing JSON file:', err);
+        }
     }
 
     loadConfig() {
@@ -128,6 +193,16 @@ class MUDServer {
         aliases?.forEach(alias => {
             this.commands.set(alias, handler);
         });
+    }
+
+    saveBansList() {
+        try {
+        // Write player data to file in JSON format
+        fs.writeFileSync(this.BANS_LIST_PATH, JSON.stringify(Array.from(this.banList.entries()), null, 2));
+        console.log('Bans list saved!');
+        } catch (err) {
+            console.error('Error writing bans file synchronously:', err);
+        }
     }
 
     start() {
