@@ -1,4 +1,4 @@
-// HelpFiles module
+// login module
 const loginModule = {
     name: "Login",
     ConnectionStatus: {
@@ -47,6 +47,12 @@ const loginModule = {
                     player.send("Please enter character name, or new: ");
                 } else {
                     if (player.exist(data)) {
+                        if(loginModule.ms.loggedIn(data))
+                        {
+                            player.send('Account is already logged in!');
+                            player.disconnect(false);
+                            return;
+                        }
                         player.load(data);
                         if(loginModule.ms.isBanned(player)){
                             player.send("This account hass been banned!");
@@ -82,6 +88,7 @@ const loginModule = {
                 break;
             case this.ConnectionStatus.WelcomeScreen:
                 player.connectionStatus = this.ConnectionStatus.LoggedIn;
+                player.loggedIn = true;
                 player.send("Welcome Blah blah...\r\n\r\n");
                 loginModule.ms.players.forEach(p => {
                     if(p.username == player.username || p?.connectionStatus != this.ConnectionStatus.LoggedIn) return;

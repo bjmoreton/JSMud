@@ -19,9 +19,9 @@ class MUDServer {
 
         this.banList.set(player.username, socket.remoteAddress);
         this.players.forEach(p => {
-            if(p.username == player.username) return;
-            if(p.socket.remoteAddress == socket.remoteAddress)
-            {
+            if (p.username == player.username) return;
+            if (p.socket.remoteAddress == socket.remoteAddress) {
+                this.banList.set(p.username, p.socket.remoteAddress)
                 p.socket.end();
                 p.destroy();
             }
@@ -40,7 +40,7 @@ class MUDServer {
         this.mudEmitter = new MUDEmitter();
         this.players = new Map();
         this.server = net.createServer();
-        
+
         this.loadConfig();
         this.loadModules();
         this.loadBanList();
@@ -50,12 +50,25 @@ class MUDServer {
         this.mudEmitter.on('handleCommand', (player, command) => { this.handleCommand(player, command); });
         // Handle player disconnects
         this.mudEmitter.on('playerDisconnected', (player) => {
+            const playerName = player.username;
+            const wasLoggedIn = player.loggedIn;
             this.players.delete(player.socket);
             player.destroy();
+            if (wasLoggedIn) {
+                this.players.forEach(p => {
+                    p.send(`Player ${playerName} has logged out.`);
+                });
+            }
         });
         // Handle incoming connections
         this.server.on('connection', socket => {
-            if(this.isBanned(socket)) {
+            if (this.isConnected(socket.remoteAddress) && !this.multiplay) {
+                socket.write('MUD doesn\'t allow multiplaying!');
+                socket.end();
+                socket.destroy();
+                return;
+            }
+            if (this.isBanned(socket)) {
                 console.log(`Banned address tried to connect: ${socket.remoteAddress}`);
                 socket.end();
                 socket.destroy();
@@ -72,12 +85,27 @@ class MUDServer {
         });
     }
 
+    findCommand(command) {
+        for (const [key, cmd] of this.commands) {
+            if (cmd.aliases.includes(command.toLowerCase()) || cmd.command === command.toLowerCase()) {
+                return cmd;
+            }
+        }
+        return null; // Command not found
+    }
+
     handleCommand(player, command) {
-        const [cmdName, ...args] = command.split(' ');
-        const handler = this.commands.get(cmdName);
+        if (command == undefined || command == "") return;
+
+        // Split string by spaces, leaving spaces inside quotes alone
+        const commandParts = command.match(/(?:[^\s"]+|"[^"]*")+/g);
+        // Remove quotes from each part
+        const cleanedParts = commandParts.map(part => part.replace(/^"|"$/g, ''));
+        const [cmdName, ...args] = cleanedParts;
+        const handler = this.findCommand(cmdName);
 
         if (handler) {
-            handler(player, args);
+            handler.execute(player, args);
         } else {
             player.send('Unknown command!');
         }
@@ -97,9 +125,14 @@ class MUDServer {
     }
 
     isBanned(arg) {
-        console.log(this.banList);
         return [...this.banList].some(([k, v]) => {
             return arg?.username === k || arg?.socket?.remoteAddress === v || arg?.remoteAddress === v;
+        });
+    }
+
+    isConnected(address) {
+        return [...this.players].some(([k]) => {
+            return k.remoteAddress == address;
         });
     }
 
@@ -107,10 +140,9 @@ class MUDServer {
         const socket = player.socket;
         player.save();
         this.players.forEach(p => {
-            if(p.username == player.username) return;
+            if (p.username == player.username) return;
 
-            if(p.socket.remoteAddress == socket.remoteAddress)
-            {
+            if (p.socket.remoteAddress == socket.remoteAddress) {
                 p.save();
                 p.socket.end();
                 p.destroy();
@@ -118,6 +150,12 @@ class MUDServer {
         });
         socket.end();
         player.destroy();
+    }
+
+    loggedIn(player) {
+        return [...this.players].some(([k, v]) => {
+            return player.toLowerCase() == v?.username?.toLowerCase();
+        });
     }
 
     loadBanList() {
@@ -188,18 +226,15 @@ class MUDServer {
         }
     }
 
-    registerCommand(name, handler, aliases) {
-        this.commands.set(name, handler);
-        aliases?.forEach(alias => {
-            this.commands.set(alias, handler);
-        });
+    registerCommand(name, handler) {
+        this.commands.set(name.toLowerCase(), handler);
     }
 
     saveBansList() {
         try {
-        // Write player data to file in JSON format
-        fs.writeFileSync(this.BANS_LIST_PATH, JSON.stringify(Array.from(this.banList.entries()), null, 2));
-        console.log('Bans list saved!');
+            // Write player data to file in JSON format
+            fs.writeFileSync(this.BANS_LIST_PATH, JSON.stringify(Array.from(this.banList.entries()), null, 2));
+            console.log('Bans list saved!');
         } catch (err) {
             console.error('Error writing bans file synchronously:', err);
         }

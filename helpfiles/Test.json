@@ -1,6 +1,10 @@
 {
-	"title": "Test",
-	"titleDisplay": "&rT&Re&rs&Rt",
-	"keywordString": "rawr,omfg",
-	"description": "&GThis is just a test help file!"
+  "title": "test",
+  "titleDisplay": "test3",
+  "keywords": [
+    "testing"
+  ],
+  "author": "Jaquio",
+  "lastUpdate": "04/25/2024 21:09:28",
+  "description": "testing123\r\ntesting 111111\r\ntesting 11"
 }

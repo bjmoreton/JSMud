@@ -1,6 +1,8 @@
 {
-  "username": "Test",
-  "permissions": [],
-  "perm_group": "Player",
+  "username": "test",
+  "commands": [],
+  "canBuild": false,
+  "modLevel": 0,
+  "statuses": 0,
   "password": "test"
 }

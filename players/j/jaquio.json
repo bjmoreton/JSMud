@@ -1,6 +1,8 @@
 {
   "username": "Jaquio",
-  "permissions": [],
-  "perm_group": "SuperAdmin",
+  "commands": [],
+  "canBuild": false,
+  "modLevel": 100,
+  "statuses": 0,
   "password": "test"
 }

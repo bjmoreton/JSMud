@@ -2,27 +2,36 @@ const fs = require('fs');
 const path = require('path');
 const { parseColors } = require('../Color.js');
 const loginModule = require('./loginModule.js');
+const { formatDate, formatTime } = require('./../Utils/helpers.js');
+const serverCommandsModule = require('./serverCommandsModule.js');
+const textEditorModule = require('./textEditorModule.js');
 
 const playerModule = {
     name: "Players",
     Player: class Player {
-        Permission_Groups = {
-            SuperAdmin: 'SuperAdmin',
-            Admin: 'Admin',
-            Moderator: 'Moderator',
-            Builder: 'Builder',
-            Player: 'Player'
+        Statuses = {
+            None: 0,
+            Editing: 1 << 0
         }
 
-        addPermissions(perms) {
-            return this.permissions.push(perms);
+        textEditor = new textEditorModule.TextEditor(this);
+
+        addCommands(cmds) {
+            return this.commands.push(cmds);
+        }
+
+        addStatus(status) {
+            this.statuses |= status;
         }
 
         constructor(socket, username) {
             this.socket = socket;
             this.username = username;
-            this.permissions = [];
-            this.perm_group = this.Permission_Groups.Player;
+            this.commands = [];
+            this.canBuild = false;
+            this.loggedIn = false;
+            this.modLevel = 0;
+            this.statuses = this.Statuses.None;
         }
 
         destroy() {
@@ -32,14 +41,19 @@ const playerModule = {
         disconnect(save) {
             if (save === true) this.save();
             this.socket.end();
+            playerModule.ms.mudEmitter.emit('playerDisconnected', this);
         }
 
         getFilePath(username) {
             return path.join(__dirname, '../players', username.charAt(0).toLowerCase(), `${username.toLowerCase()}.json`);
         }
 
-        hasPermission(perm) {
-            return this.permissions.includes(perm);
+        hasCommand(cmd) {
+            return this.commands.includes(cmd);
+        }
+
+        hasStatus(status) {
+            return this.statuses && status;
         }
 
         exist(username) {
@@ -51,14 +65,6 @@ const playerModule = {
                 return false; // File does not exist
             }
         }
-
-        isAdmin() {
-            return this.perm_group == this.Permission_Groups.SuperAdmin || this.perm_group == this.Permission_Groups.Admin;
-        }
-
-        isBuilder() { return this.perm_group == this.Permission_Groups.Builder || this.perm_group == this.Permission_Groups.SuperAdmin || this.perm_group == this.Permission_Groups.Admin }
-
-        isModerator() { return this.perm_group == this.Permission_Groups.Moderator || this.perm_group == this.Permission_Groups.SuperAdmin || this.perm_group == this.Permission_Groups.Admin }
 
         load(username) {
             try {
@@ -76,9 +82,15 @@ const playerModule = {
             }
         }
 
+        removeStatus(status) {
+            this.statuses &= ~status;
+        }
+
         save() {
+            if(!this.loggedIn) return;
+
             // Exclude the properties you want to ignore
-            const { socket, send, connectionStatus, Permission_Groups, ...playerData } = this;
+            const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, ...playerData } = this;
             const filePath = this.getFilePath(this.username);
 
             // Generate the directory path
@@ -96,7 +108,19 @@ const playerModule = {
         }
 
         send(message) {
-            this.socket.write(`${parseColors(message)}\r\n`);
+            try {
+                if(!this.hasStatus(this.Statuses.Editing)) this.socket.write(`${parseColors(message)}\r\n`);
+            } catch (error) {
+                console.log(`${this.username} failed to receive ${message}`);
+            }
+        }
+
+        sendRAW(message) {
+            try {
+                this.socket.write(`${message}\r\n`);
+            } catch (error) {
+                console.log(`${this.username} failed to receive ${message}`);
+            }
         }
     },
     playerConnectedCB: (socket) => {
@@ -108,13 +132,21 @@ const playerModule = {
         player.socket.on('data', data => {
             data = data.toString().replace("\r\n", "");
             const command = data.toString().trim();
-            if (player.connectionStatus == loginModule.ConnectionStatus.LoggedIn) playerModule.ms.mudEmitter.emit('handleCommand', player, command);
-            else playerModule.ms.mudEmitter.emit('handleLogin', player, command);
+            if (player.connectionStatus == loginModule.ConnectionStatus.LoggedIn)
+            {
+                if(!player.hasStatus(player.Statuses.Editing)) playerModule.ms.mudEmitter.emit('handleCommand', player, command);
+                else player.textEditor.processInput(command);
+            } else playerModule.ms.mudEmitter.emit('handleLogin', player, command);
+        });
+
+        player.socket.on('error', error => {
+            console.error('Socket error:', error);
         });
 
         player.socket.on('end', () => {
             playerModule.ms.mudEmitter.emit('playerDisconnected', player);
         });
+
     },
     hotBootAfterCB: () => {
         playerModule.ms.players.forEach(p => {
@@ -138,24 +170,27 @@ const playerModule = {
     init: function (mudServer) {
         this.ms = mudServer;
 
-        this.ms.registerCommand('quit', (player, args) => {
-            player.disconnect(true);
-        });
-        this.ms.registerCommand('save', (player, args) => {
-            player.save();
-        });
-        this.ms.registerCommand('say', (player, args) => {
+        this.ms.registerCommand('globalchat', serverCommandsModule.createCommand('globalchat', ['chat', 'gc', 'global'], 0, (player, args) => {
             const message = args.join(' ');
+            const currentDate = new Date();
             this.ms.players.forEach(p => {
-                if (p.username != player.username) p.send(`${player.username} says: ${message}`);
-                else p.send(`You say: ${message}`);
+                p.send(`[${formatTime(currentDate)}] ${player.username}: ${message}`);
             });
-        });
+        }));
+        this.ms.registerCommand('quit', serverCommandsModule.createCommand('quit', [], 0, (player, args) => {
+            player.disconnect(true);
+        }));
+        this.ms.registerCommand('save', serverCommandsModule.createCommand('save', [], 0, (player, args) => {
+            player.save();
+        }));
 
         this.ms.players.forEach(p => {
+            updatedTextEditor = new textEditorModule.TextEditor(this);
             updatedPlayer = new this.Player(p.socket, p.username, p.connectionStatus);
             updatedPlayer.load(updatedPlayer.username);
+            updatedPlayer.loggedIn = true;
             Object.setPrototypeOf(p, updatedPlayer.__proto__);
+            Object.setPrototypeOf(p.textEditor, updatedTextEditor.__proto__);
         });
 
         this.ms.mudEmitter.on('playerConnected', this.playerConnectedCB);
