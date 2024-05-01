@@ -1,0 +1,211 @@
+[
+  {
+    "aliases": [],
+    "action": "Command.addCommand",
+    "command": "addcommand",
+    "modLevel": 80
+  },
+  {
+    "aliases": [
+      ""
+    ],
+    "action": "MUDServer.banPlayer",
+    "command": "banplayer",
+    "modLevel": 60
+  },
+  {
+    "aliases": [
+      ""
+    ],
+    "action": "MUDServer.kickPlayer",
+    "command": "kickplayer",
+    "modLevel": 55
+  },
+  {
+    "aliases": [
+      "hb"
+    ],
+    "action": "MUDServer.hotBoot",
+    "command": "hotboot",
+    "modLevel": 60
+  },
+  {
+    "aliases": [],
+    "action": "Player.playerSave",
+    "command": "save",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "disconnect",
+      "logout"
+    ],
+    "action": "Player.playerQuit",
+    "command": "quit",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "sc"
+    ],
+    "action": "Command.saveCommands",
+    "command": "savecommands",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "lc"
+    ],
+    "action": "Command.loadCommands",
+    "command": "loadcommands",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "rc"
+    ],
+    "action": "MUDServer.reloadConfig",
+    "command": "reloadconfig",
+    "modLevel": 60
+  },
+  {
+    "aliases": [
+      "rt"
+    ],
+    "action": "MUDServer.reloadTitle",
+    "command": "reloadtitle",
+    "modLevel": 60
+  },
+  {
+    "aliases": [],
+    "action": "Helpfile.executeHelp",
+    "command": "help",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "hf"
+    ],
+    "action": "Helpfile.executeEdit",
+    "command": "helpfile",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "rlhfs"
+    ],
+    "action": "Helpfile.executeReloadHelpfiles",
+    "command": "reloadhelpfiles",
+    "modLevel": 60
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeLook",
+    "command": "look",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeRoom",
+    "command": "room",
+    "modLevel": 65
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeSection",
+    "command": "section",
+    "modLevel": 65
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeArea",
+    "command": "area",
+    "modLevel": 65
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeGoto",
+    "command": "goto",
+    "modLevel": 60
+  },
+  {
+    "aliases": [
+      "d"
+    ],
+    "action": "Area.executeDown",
+    "command": "down",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "u"
+    ],
+    "action": "Area.executeUp",
+    "command": "up",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "e"
+    ],
+    "action": "Area.executeEast",
+    "command": "east",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "n"
+    ],
+    "action": "Area.executeNorth",
+    "command": "north",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "ne"
+    ],
+    "action": "Area.executeNorthEast",
+    "command": "northeast",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "nw"
+    ],
+    "action": "Area.executeNorthWest",
+    "command": "northwest",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "s"
+    ],
+    "action": "Area.executeSouth",
+    "command": "south",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "se"
+    ],
+    "action": "Area.executeSouthEast",
+    "command": "southeast",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "sw"
+    ],
+    "action": "Area.executeSouthWest",
+    "command": "southwest",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "w"
+    ],
+    "action": "Area.executeWest",
+    "command": "west",
+    "modLevel": 0
+  }
+]

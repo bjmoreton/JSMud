@@ -4,5 +4,14 @@
   "canBuild": false,
   "modLevel": 100,
   "statuses": 0,
-  "password": "test"
+  "workingArea": "Start",
+  "workingSection": "Start",
+  "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
+  "currentArea": "Start",
+  "currentSection": "Start",
+  "currentX": "0",
+  "currentY": "0",
+  "currentZ": "0",
+  "workSection": "start",
+  "ConnectionStatus": null
 }

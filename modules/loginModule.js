@@ -1,5 +1,8 @@
+const { hashPassword, verifyPassword } = require("../Utils/helpers");
+const PlayerModule = require("./PlayerModule");
+
 // login module
-const loginModule = {
+const LoginModule = {
     name: "Login",
     ConnectionStatus: {
         ConfirmPassword: 'ConfirmPassword',
@@ -9,106 +12,105 @@ const loginModule = {
         LoggedIn: 'LoggedIn',
         WelcomeScreen: 'WelcomeScreen'
     },
-    handleLogin: function(player, data) {
-        if(player != undefined && player.connectionStatus == undefined) {
+    handleLogin: async function (player) {
+        if (player != undefined && player.connectionStatus == null) {
             player.connectionStatus = this.ConnectionStatus.EnterUsername;
-        
-            player.send("\r\nPlease enter character name, or new: ");
-            return;
         }
-
-        switch(player.connectionStatus) {
-            case this.ConnectionStatus.ConfirmPassword:
-                if (data === player.password) {
-                    player.connectionStatus = this.ConnectionStatus.WelcomeScreen;
-                    this.handleLogin(player, "");
-                } else {
-                    player.connectionStatus = this.ConnectionStatus.EnterPassword;
-                    player.send("Passwords do not match!");
-                    player.send("Please enter a password: ");
-                }
-                break;
+        switch (player.connectionStatus) {
             case this.ConnectionStatus.CreatePlayer:
-                if (data.indexOf(" ") > -1 || data == null) {
+                const newUsername = await player.textEditor.showPrompt('Please enter a character name: ');
+                if (newUsername.indexOf(" ") > -1 || newUsername == null || newUsername.toLowerCase() == 'new') {
                     player.send("Invalid character name!");
-                    player.send("Enter a Character name: ");
-                } else if (player.exist(data)) {
-                    player.send("Character name taken!");
-                    player.send("Enter a Character name: ");
+                } else if (PlayerModule.playerExist(newUsername)) {
+                    player.send("Character name already exist!");
                 } else {
-                    player.username = data;
+                    player.username = newUsername;
                     player.connectionStatus = this.ConnectionStatus.EnterPassword;
-                    player.send("Please enter a password: ");
                 }
                 break;
-            case this.ConnectionStatus.EnterUsername:
-                if (data.indexOf(" ") > -1 || data == null) {
-                    player.send("Invalid character name!");
-                    player.send("Please enter character name, or new: ");
+            case this.ConnectionStatus.ConfirmPassword:
+                const confirmPassword = await player.textEditor.showPrompt('Confirm password: ');
+                if (confirmPassword === player.password) {
+                    player.password = await hashPassword(player.password);
+                    LoginModule.mudServer.mudEmitter.emit('playerCreated', player);
+                    player.save();
+                    player.connectionStatus = this.ConnectionStatus.WelcomeScreen;
                 } else {
-                    if (player.exist(data)) {
-                        if(loginModule.ms.loggedIn(data))
-                        {
-                            player.send('Account is already logged in!');
-                            player.disconnect(false);
-                            return;
-                        }
-                        player.load(data);
-                        if(loginModule.ms.isBanned(player)){
-                            player.send("This account hass been banned!");
-                            console.log(`Banned player ${player.username} tried to connect.`);
-                            player.disconnect(false);
-                            return;
-                        }
-                        player.connectionStatus = this.ConnectionStatus.EnterPassword;
-                        player.send("Please enter your password: ");
-                    } else if (data.toLowerCase() === "new") {
-                        player.connectionStatus = this.ConnectionStatus.CreatePlayer;
-                        player.send("Enter a Character name: ");
-                    } else {
-                        player.send("Character doesn't exist!");
-                        player.send("Please enter character name, or new: ");
-                    }
+                    player.send("Passwords did not match!");
+                    player.connectionStatus = this.ConnectionStatus.EnterPassword;
                 }
                 break;
             case this.ConnectionStatus.EnterPassword:
-                if (player.exist(player.username)) {
-                    if (data === player.password) {
+                const password = await player.textEditor.showPrompt('Enter password: ');
+                if (PlayerModule.playerExist(player)) {
+                    player.load();
+
+                    if (await verifyPassword(password, player.password)) {
                         player.connectionStatus = this.ConnectionStatus.WelcomeScreen;
-                        this.handleLogin(player, "");
                     } else {
                         player.send("Invalid password!");
-                        player.disconnect(false);
+                        player.username = 'Guest';
+                        player.connectionStatus = this.ConnectionStatus.EnterUsername;
                     }
                 } else {
-                    player.password = data;
+                    player.password = password;
                     player.connectionStatus = this.ConnectionStatus.ConfirmPassword;
-                    player.send("Please confirm password: ");
+                }
+                break;
+            case this.ConnectionStatus.EnterUsername:
+                const username = await player.textEditor.showPrompt('Please enter a character name or type new: ');
+                player.username = username;
+                if (username.indexOf(" ") > -1 || username == null) {
+                    player.send("Invalid character name!");
+                    player.username = 'Guest';
+                    player.connectionStatus = this.ConnectionStatus.EnterUsername;
+                    return;
+                } else if (username.toLowerCase() == 'new') {
+                    player.connectionStatus = this.ConnectionStatus.CreatePlayer;
+                } else if (!PlayerModule.playerExist(player)) {
+                    player.send("Character doesn't exist!");
+                    player.username = 'Guest';
+                    player.connectionStatus = this.ConnectionStatus.EnterUsername;
+                } else {
+                    player.username = username;
+                    if (this.mudServer.loggedIn(player)) {
+                        player.send('Character is already logged in!');
+                        player.username = 'Guest';
+                        player.connectionStatus = this.ConnectionStatus.EnterUsername;
+                    } else if (this.mudServer.isBanned(player)) {
+                        player.send("This account has been banned!");
+                        console.log(`Banned player ${player.username} tried to connect.`);
+                        player.username = 'Guest';
+                        player.connectionStatus = this.ConnectionStatus.EnterUsername;
+
+                    } else player.connectionStatus = this.ConnectionStatus.EnterPassword;
                 }
                 break;
             case this.ConnectionStatus.WelcomeScreen:
                 player.connectionStatus = this.ConnectionStatus.LoggedIn;
                 player.loggedIn = true;
-                player.send("Welcome Blah blah...\r\n\r\n");
-                loginModule.ms.players.forEach(p => {
-                    if(p.username == player.username || p?.connectionStatus != this.ConnectionStatus.LoggedIn) return;
+                LoginModule.mudServer.players.forEach(p => {
+                    if (p.username == player.username || p?.connectionStatus != this.ConnectionStatus.LoggedIn) return;
                     p.send(`Player ${player.username} has logged in.`);
                 });
+                LoginModule.mudServer.mudEmitter.emit('playerLoggedIn', player);
                 break;
         }
+
+        if (!player.loggedIn) await this.handleLogin(player);
     },
-    handleLoginCB:  function(player, data) {
-        loginModule.handleLogin(player, data);
+    handleLoginCB: async function (player, data) {
+        await LoginModule.handleLogin(player, data);
     },
-    handleHotbootBefore: function() {
-        loginModule.ms.mudEmitter.removeListener('handleLogin', loginModule.handleLoginCB);
-        loginModule.ms.mudEmitter.removeListener('before_hotboot', loginModule.handleHotbootBefore);
+    handleHotbootBefore: function () {
+        LoginModule.mudServer.mudEmitter.removeListener('handleLogin', LoginModule.handleLoginCB);
+        LoginModule.mudServer.mudEmitter.removeListener('hotBootBefore', LoginModule.handleHotbootBefore);
     },
-    init: function(mudServer) {
-        this.ms = mudServer;
-        this.ms.mudEmitter.on('handleLogin', this.handleLoginCB);
-        this.ms.mudEmitter.on('before_hotboot', this.handleHotbootBefore);
+    init: function (mudServer) {
+        this.mudServer = mudServer;
+        this.mudServer.mudEmitter.on('handleLogin', this.handleLoginCB);
+        this.mudServer.mudEmitter.on('hotBootBefore', this.handleHotbootBefore);
     }
 };
 
-module.exports = loginModule;
+module.exports = LoginModule;

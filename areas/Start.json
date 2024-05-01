@@ -1,0 +1,80 @@
+{
+  "name": "Start",
+  "nameDisplay": "Start",
+  "description": "",
+  "lastUpdate": "04/29/2024 23:36:00",
+  "sections": {
+    "Start": {
+      "area": "Start",
+      "description": "",
+      "vSize": 10,
+      "rooms": [
+        {
+          "area": "Start",
+          "section": "Start",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": "0",
+          "y": "0",
+          "z": "0",
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "North",
+              "x": "0",
+              "y": 1,
+              "z": "0"
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Start",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": "0",
+          "y": 1,
+          "z": "0",
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "South",
+              "x": "0",
+              "y": "0",
+              "z": "0"
+            },
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "East",
+              "x": 1,
+              "y": 1,
+              "z": "0"
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Start",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": 1,
+          "y": 1,
+          "z": "0",
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "West",
+              "x": "0",
+              "y": 1,
+              "z": "0"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

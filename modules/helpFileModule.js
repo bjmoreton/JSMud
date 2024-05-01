@@ -1,58 +1,16 @@
 // Importing necessary modules
 const fs = require('fs');
 const path = require('path');
-const serverCommandsModule = require('./serverCommandsModule.js');
-const { formatDate, formatTime } = require('./../Utils/helpers.js');
+const Helpfile = require('./HelpfileModule/Helpfile.js');
 
 // Define the directory where help files are stored
 const HELP_FILES_DIR = path.join(__dirname, '../helpfiles');
-const HELP_FILES_TEMPLATE = path.join(__dirname, '../templates', 'help.template');
+const HELP_FILES_TEMPLATE = path.join(__dirname, '../system', 'templates', 'help.template');
+
 // HelpFiles module
-const helpFileModule = {
+const HelpfileModule = {
     // Module name
-    name: "HelpFiles",
-
-    // HelpFile class definition
-    HelpFile: class HelpFile {
-        constructor(title) {
-            this.title = title;
-            this.titleDisplay = title;
-            this.keywords = [];
-        }
-
-        // Method to delete a help file
-        delete(player, dir, showOutput = true) {
-            const filePath = path.join(dir, this.title + '.json');
-            fs.unlink(filePath, (err) => {
-                if (showOutput) {
-                    if (err) {
-                        player?.send(`Error deleting helpfile ${this.title}: ${err}`);
-                        console.error(`Error deleting helpfile ${this.title}:`, err);
-                    } else {
-                        player?.send(`Helpfile ${this.title} deleted successfully`);
-                    }
-                }
-            });
-        }
-
-        // Method to save a help file
-        save(player, dir, showOutput = true) {
-            // Set author and last update timestamp
-            this.author = player.username;
-            const currentDate = new Date();
-            this.lastUpdate = formatDate(currentDate) + ' ' + formatTime(currentDate);
-            const filePath = path.join(dir, this.title + '.json');
-
-            try {
-                // Write player data to file in JSON format
-                fs.writeFileSync(filePath, JSON.stringify(this, null, 2));
-                if (showOutput) player.send(`Helpfile ${this.title} saved!`);
-            } catch (error) {
-                player.send(`Error saving helpfile ${this.title}!`);
-                console.log(`Error saving helpfile ${this.title}!`);
-            }
-        }
-    },
+    name: "Helpfile",
 
     // Method to create a new help file
     createHelpfile(player, helpfileTitle) {
@@ -67,6 +25,7 @@ const helpFileModule = {
         }
     },
 
+    // Method to retrieve helpfile property by string
     helpfilePropertyByString: (property, foundHelpfile) => {
         switch (property.toLowerCase()) {
             case "description":
@@ -91,7 +50,7 @@ const helpFileModule = {
             if (editCmd !== undefined && editCmd != "") {
                 const textValue = await player.textEditor.startEditing(this.helpfilePropertyByString(editCmd, foundHelpfile));
                 if (textValue != null) {
-                    switch (editCmd.toLowerCase()) {
+                    switch (editCmd?.toLowerCase()) {
                         case "description":
                             foundHelpfile.description = textValue;
                             break;
@@ -108,15 +67,18 @@ const helpFileModule = {
                             };
                             break;
                         case "title":
-                            foundHelpfile.delete(player, HELP_FILES_DIR, false);
-                            foundHelpfile.title = textValue;
+                            if (!HelpfileModule.HelpfileList.has(textValue.toLowerCase())) {
+                                foundHelpfile.delete(player, HELP_FILES_DIR, false);
+                                foundHelpfile.title = textValue;
+                                HelpfileModule.HelpfileList.delete(oldTitle);
+                                HelpfileModule.HelpfileList.set(foundHelpfile.title.toLowerCase(), foundHelpfile);
+                            }
                             break;
                         case "titledisplay":
                             foundHelpfile.titleDisplay = textValue;
                             break;
                     }
                     foundHelpfile.save(player, HELP_FILES_DIR);
-                    helpFileModule.HelpfileList.set(oldTitle, foundHelpfile);
                 } else {
                     player.send(`Edit canceled!`);
                     return;
@@ -131,11 +93,40 @@ const helpFileModule = {
 
     // Method to find a help file by title
     findHelpfile(helpfileTitle) {
-        return this.HelpfileList.get(helpfileTitle);
+        return HelpfileModule.HelpfileList.get(helpfileTitle.toLowerCase());
+    },
+
+    // Method to display edit prompt
+    executeEdit: async (player, args) => {
+        const [cmdName, editHelpfile, ...data] = args;
+        switch (cmdName?.toLowerCase()) {
+            case 'create':
+                HelpfileModule.createHelpfile(player, editHelpfile);
+                break;
+            case 'delete':
+                if (player.hasCommand('helpfile delete') || player.modLevel >= 60) {
+                    const helpfile = HelpfileModule.findHelpfile(editHelpfile);
+
+                    if (helpfile != null) {
+                        helpfile.delete(player, HELP_FILES_DIR);
+                    } else {
+                        player.send(`Helpfile ${editHelpfile} doesn't exist!`);
+                    }
+                }
+                break;
+            case 'edit':
+                await this.editHelpfile(player, data);
+                break;
+            default:
+                player.send(`Usage: helpfile <create | delete | edit> helpfileTitle`);
+                break;
+        }
     },
 
     // Method to display help information
-    doHelp: (player, entry) => {
+    executeHelp: (player, args) => {
+        const [entry] = args;
+
         if (entry == "" || entry == null) {
             player.send("Specify a search term");
         } else {
@@ -143,7 +134,7 @@ const helpFileModule = {
             const foundHelpFiles = [];
 
             // Iterate over the HelpfileList map
-            helpFileModule.HelpfileList.forEach(helpfile => {
+            HelpfileModule.HelpfileList.forEach(helpfile => {
                 if (helpfile.title.toLowerCase() === _helpFile || helpfile.keywords.some(keyword => keyword.toLowerCase() === _helpFile)) {
                     foundHelpFiles.push(helpfile);
                 }
@@ -151,9 +142,9 @@ const helpFileModule = {
 
             if (foundHelpFiles.length === 1) {
                 const foundHelpfile = foundHelpFiles[0];
-                
-                helpFileModule.Template.forEach(line => {
-                    player.send(helpFileModule.replaceTemplateData(line, foundHelpfile));
+
+                HelpfileModule.Template.forEach(line => {
+                    player.send(HelpfileModule.replaceTemplateData(line, foundHelpfile));
                 });
             } else if (foundHelpFiles.length === 0) {
                 console.log(`No helpfiles found for ${entry}!`);
@@ -166,13 +157,19 @@ const helpFileModule = {
         }
     },
 
+    executeReloadHelpfiles: (player) => {
+        HelpfileModule.loadHelpfiles();
+        player.send('Helpfiles reloaded');
+    },
+
+    // Method to replace template data with helpfile information
     replaceTemplateData: (data, helpfile) => {
         const parsedData = data.replace('%titledisplay', helpfile.titleDisplay)
-                                .replace('%title', helpfile.title)
-                                .replace('%description', helpfile.description)
-                                .replace('%author', helpfile.author)
-                                .replace('%updatedate', helpfile.lastUpdate)
-                                .replace('%keywords', helpfile.keywords?.join(','));
+            .replace('%title', helpfile.title)
+            .replace('%description', helpfile.description)
+            .replace('%author', helpfile.author)
+            .replace('%updatedate', helpfile.lastUpdate)
+            .replace('%keywords', helpfile.keywords?.join(','));
         return parsedData;
     },
 
@@ -180,45 +177,7 @@ const helpFileModule = {
     init: function (mudServer) {
         // Load help files
         this.loadHelpfiles();
-        this.ms = mudServer;
-
-        // Register commands
-        this.ms.registerCommand('helpfile', serverCommandsModule.createCommand('helpfile', ['hf'], 50, async (player, args) => {
-            const [cmdName, ...data] = args;
-            switch (cmdName.toLowerCase()) {
-                case 'create':
-                    this.createHelpfile(player, data[0]);
-                    break;
-                case 'delete':
-                    if (player.hasCommand('helpfile delete') || player.modLevel >= 60) {
-                        const helpfile = this.findHelpfile(data[0]);
-
-                        if (helpfile != null) {
-                            helpfile.delete(player, HELP_FILES_DIR);
-                        } else {
-                            player.send(`Helpfile ${data[0]} not found!`);
-                        }
-                    }
-                    break;
-                case 'edit':
-                    await this.editHelpfile(player, data);
-                    break;
-                default:
-                    player.send(`Usage: helpfile <create | delete | edit> helpfileTitle`);
-                    break;
-            }
-        }));
-
-        // Register help command
-        this.ms.registerCommand('help', serverCommandsModule.createCommand('help', [], 0, (player, args) => {
-            this.doHelp(player, args[0]);
-        }));
-
-        // Register reload help files command
-        this.ms.registerCommand('reloadhelpfiles', serverCommandsModule.createCommand('reloadhelpfiles', ['rlhfs'], 50, (player, args) => {
-            this.loadHelpfiles();
-            player.send('Helpfiles reloaded');
-        }));
+        this.mudServer = mudServer;
     },
 
     // Map to store help files
@@ -229,22 +188,22 @@ const helpFileModule = {
     loadHelpfiles: function () {
         try {
             const dataSync = fs.readFileSync(HELP_FILES_TEMPLATE, 'utf8');
-            this.Template = dataSync?.split('\r\n');
+            HelpfileModule.Template = dataSync?.split('\r\n');
         } catch (err) {
             console.error('Error reading file synchronously:', err);
         }
 
         fs.readdirSync(HELP_FILES_DIR).forEach(file => {
             const filePath = path.join(HELP_FILES_DIR, file);
-            console.log(`Loading ${filePath}`);
+            console.log(`Loading helpfile ${filePath}`);
 
             try {
                 const jsonData = fs.readFileSync(filePath, 'utf-8');
                 const helpFileData = JSON.parse(jsonData);
-                const helpfile = new this.HelpFile();
+                const helpfile = new Helpfile();
 
                 Object.assign(helpfile, helpFileData);
-                this.HelpfileList.set(helpfile.title.toLowerCase(), helpfile);
+                HelpfileModule.HelpfileList.set(helpfile.title.toLowerCase(), helpfile);
             } catch (err) {
                 console.error(`Error reading or parsing JSON file ${filePath}: ${err.message}`);
             }
@@ -252,5 +211,5 @@ const helpFileModule = {
     }
 };
 
-// Export the helpFileModule
-module.exports = helpFileModule;
+// Export the HelpfileModule
+module.exports = HelpfileModule;
