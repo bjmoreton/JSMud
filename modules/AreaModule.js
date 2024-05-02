@@ -278,7 +278,7 @@ const AreaModule = {
 
     async executeArea(player, args) {
         const [cmdName, ...data] = args;
-        const foundArea = player.getWorkingArea();
+        const foundArea = AreaModule.getAreaByName(player.workingArea);
 
         if (foundArea != null || cmdName.toLowerCase() == 'create' || cmdName.toLowerCase() == 'work') {
             switch (cmdName?.toLowerCase()) {
@@ -386,9 +386,9 @@ const AreaModule = {
 
     async executeRoom(player, args) {
         const [cmdName, ...data] = args;
-        const foundArea = player.getWorkingArea();
+        const foundArea = AreaModule.getAreaByName(player.workingArea);
         if (foundArea != null) {
-            const foundSection = player.getWorkingSection();
+            const foundSection = foundArea.getSectionByName(player.workingSection);
             if (foundSection != null) {
                 switch (cmdName?.toLowerCase()) {
                     case 'addexit':
@@ -434,14 +434,14 @@ const AreaModule = {
                         let room;
                         if (data.length == 1) {
                             room = foundSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
-                            await this.editRoom(player, room, data);
+                            await AreaModule.editRoom(player, room, data);
                         } else {
                             const [editCmd, rX, rY, rZ, ...values] = data;
                             room = foundSection.getRoomByCoordinates(rX, rY, rZ);
 
                             if (room != null) {
                                 const newData = [editCmd, ...values];
-                                await this.editRoom(player, room, newData);
+                                await AreaModule.editRoom(player, room, newData);
                             } else {
                                 player.send(`Room doesn't exist!`);
                             }
@@ -473,10 +473,9 @@ const AreaModule = {
 
     async executeSection(player, args) {
         const [cmdName, ...data] = args;
-        const foundArea = player.getWorkingArea();
-
+        const foundArea = AreaModule.getAreaByName(player.workingArea);
         if (foundArea != null) {
-            const foundSection = player.getWorkingSection();
+            const foundSection = foundArea.getSectionByName(player.workingSection);
 
             if (foundSection != null || cmdName?.toLowerCase() == "create" || cmdName.toLowerCase() == "work") {
                 switch (cmdName?.toLowerCase()) {

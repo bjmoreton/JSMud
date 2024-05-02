@@ -207,5 +207,23 @@
     "action": "Area.executeWest",
     "command": "west",
     "modLevel": 0
+  },
+  {
+    "aliases": [
+      "ecommand",
+      "ecmd"
+    ],
+    "action": "Command.editCommand",
+    "command": "editcommand",
+    "modLevel": 80
+  },
+  {
+    "aliases": [
+      "remcmd",
+      "rcmd"
+    ],
+    "action": "Command.removeCommand",
+    "command": "removecommand",
+    "modLevel": 85
   }
 ]

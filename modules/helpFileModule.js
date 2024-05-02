@@ -115,7 +115,7 @@ const HelpfileModule = {
                 }
                 break;
             case 'edit':
-                await this.editHelpfile(player, data);
+                await HelpfileModule.editHelpfile(player, data);
                 break;
             default:
                 player.send(`Usage: helpfile <create | delete | edit> helpfileTitle`);

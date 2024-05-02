@@ -1,3 +1,4 @@
+const { formatDate, formatTime } = require("../../Utils/helpers");
 const Section = require("./Section");
 
 class Area {

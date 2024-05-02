@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseColors } = require('../../Utils/Color.js');
-const areaModule = require('../areaModule.js');
+const AreaModule = require('../areaModule.js');
 const TextEditor = require('./TextEditor.js');
 
 class Player {
@@ -43,14 +43,6 @@ class Player {
 
     getFilePath() {
         return path.join(__dirname, '../../players', this.username.charAt(0).toLowerCase(), `${this.username.toLowerCase()}.json`);
-    }
-
-    getWorkingArea() {
-        return areaModule.getAreaByName(this.workingArea);
-    }
-
-    getWorkingSection() {
-        return this.getWorkingArea()?.getSectionByName(this.workingSection);
     }
 
     hasCommand(cmd) {

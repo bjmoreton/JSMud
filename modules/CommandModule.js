@@ -21,22 +21,117 @@ const CommandModule = {
             return;
         }
 
-        if(!isNumber(parseInt(cmdLevel))){
+        if (!isNumber(parseInt(cmdLevel))) {
             player.send(`modLevel invalid!`);
-        }
-
-        const [moduleName, methodName] = cmdAction.split('.');
-        const module = CommandModule.mudServer.modules[moduleName];
-        const action = (module && module[methodName]) || CommandModule.mudServer[methodName];
-
-        if (!action) {
-            player.send(`Method '${methodName}' not found in module '${moduleName}'`);
             return;
         }
+
+        if(parseInt(cmdLevel) > player.modLevel) {
+            player.send(`Level cannot be higher than your own(${player.modLevel})`);
+            return;
+        }
+
+        const action = CommandModule.findAction(player, cmdAction);
 
         const serverCommand = new ServerCommand(cmdName, cmdAliases, cmdAction, parseInt(cmdLevel), action);
         CommandModule.registerCommand(cmdName, serverCommand);
         player.send(`Added command ${cmdName} successfully.`);
+    },
+
+    editCommand(player, args) {
+        const [cmdName, cmdAction, ...cmdData] = args;
+        let updated = false;
+
+        if (!cmdName || !cmdAction) {
+            player.send(`Usage: editcommand commandName <action | aliases | level | name>`);
+            return;
+        }
+
+        const cmd = CommandModule.findCommand(cmdName);
+        if (!cmd) {
+            player.send(`Command ${cmd} doesn't exist!`);
+            return;
+        }
+        const oldCMD = cmd.command;
+        if (cmd.level <= player.modLevel) {
+            switch (cmdAction.toLowerCase()) {
+                case 'action':
+                    const [newActionName] = cmdData;
+                    const newAction = CommandModule.findAction(player, newActionName);
+
+                    if (newAction) {
+                        cmd.action = newActionName;
+                        cmd.handler = newAction;
+                        updated = true;
+                    }
+                    break;
+                case 'aliases':
+                    const [aliasAction, ...aliases] = cmdData;
+                    switch (aliasAction.toLowerCase()) {
+                        case 'add':
+                            aliases.forEach(alias => {
+                                const existingAlias = cmd.aliases.find(a => a === alias);
+                                if (!existingAlias) cmd.aliases.push(alias);
+                            });
+                            updated = true;
+                            break;
+                        case 'remove':
+                            aliases.forEach(alias => {
+                                const index = cmd.aliases.findIndex(a => a === alias);
+                                if (index !== -1) {
+                                    cmd.aliases.splice(index, 1); // Remove Alias at the found index
+                                }
+                            });
+                            updated = true;
+                            break;
+                        default:
+                            player.send(`Usage: editcommand commandnamee aliases <add | remove> aliases`);
+                            break;
+                    }
+                    break;
+                case 'level':
+                    const [newLevel] = cmdData;
+                    if (!isNumber(newLevel) || parseInt(newLevel) > player.modLevel) {
+                        player.send(`Level needs to be a number <= ${player.modLevel}!`);
+                        return;
+                    }
+
+                    cmd.modLevel = parseInt(newLevel);
+                    updated = true;
+                    break;
+                case 'name':
+                    const [newName] = cmdData;
+                    const exists = CommandModule.findCommand(newName);
+
+                    if (!exists) {
+                        cmd.command = newName;
+                        CommandModule.commands.delete(oldCMD);
+                        CommandModule.commands.set(newName, cmd.handler);
+                        updated = true;
+                    } else {
+                        player.send(`Command ${newName} already exists!`);
+                    }
+                    break;
+                default:
+                    player.send(`Usage: editcommand commandName <action | aliases | level | name>`);
+                    break;
+            }
+
+            if (updated) player.send(`Editted command ${oldCMD} successfully.`);
+        } else {
+            player.send(`modLevel to low to change this command!`);
+        }
+    },
+
+    findAction(player, cmdAction) {
+        const [moduleName, methodName] = cmdAction.split('.');
+        const module = CommandModule.mudServer.modules[moduleName];
+        const action = (module && module[methodName]) || CommandModule.mudServer[methodName];
+        if (!action) {
+            player.send(`Method '${methodName}' not found in module '${moduleName}'`);
+            return;
+        }
+        return action;
     },
 
     findCommand(command) {
@@ -96,6 +191,24 @@ const CommandModule = {
 
     onHotBootBefore() {
         CommandModule.removeEvents();
+    },
+
+    removeCommand(player, args) {
+        const [cmdName] = args;
+
+        if (!cmdName) {
+            player.send(`Usage: removecommand commandName`);
+            return;
+        }
+
+        const cmd = CommandModule.findCommand(cmdName);
+        if (!cmd) {
+            player.send(`Command ${cmd} doesn't exist!`);
+            return;
+        }
+
+        CommandModule.commands.delete(cmdName.toLowerCase());
+        player.send(`Command ${cmdName} removed successfully.`);
     },
 
     removeEvents() {
