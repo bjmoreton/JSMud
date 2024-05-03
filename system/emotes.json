@@ -1,0 +1,23 @@
+{
+  "wave": [
+    "You wave.",
+    "You wave at %t.",
+    "%p waves at you.",
+    "You see %p wave at %t.",
+    "You see %p waving"
+  ],
+  "dance": [
+    "You bust out into a dance.",
+    "You dance with %t.",
+    "%p dances with you.",
+    "%p dances with %t.",
+    "You see %p start dancing"
+  ],
+  "fart": [
+    "Farts loudly!",
+    "You brush up against %t and fart!",
+    "%p brushes up against you and farts!",
+    "%p brushes up against %t and farts!",
+    "%p farts loudly!"
+  ]
+}

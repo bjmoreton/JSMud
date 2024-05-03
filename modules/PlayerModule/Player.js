@@ -76,6 +76,12 @@ class Player {
         this.statuses &= ~status;
     }
 
+    sameRoomAs(player) {
+        return parseInt(this.currentX) === parseInt(player?.currentX) &&
+            parseInt(this.currentY) == parseInt(player?.currentY) &&
+            parseInt(this.currentZ) == parseInt(player?.currentZ);
+    }
+
     save() {
         // Exclude the properties you want to ignore
         const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, ...playerData } = this;

@@ -19,12 +19,16 @@ const LoginModule = {
         switch (player.connectionStatus) {
             case this.ConnectionStatus.CreatePlayer:
                 const newUsername = await player.textEditor.showPrompt('Please enter a character name: ');
+                player.username = newUsername;
                 if (newUsername.indexOf(" ") > -1 || newUsername == null || newUsername.toLowerCase() == 'new') {
                     player.send("Invalid character name!");
-                } else if (PlayerModule.playerExist(newUsername)) {
+                    player.username = 'Guest';
+                    player.connectionStatus = this.ConnectionStatus.CreatePlayer;
+                } else if (PlayerModule.playerExist(player)) {
                     player.send("Character name already exist!");
+                    player.username = 'Guest';
+                    player.connectionStatus = this.ConnectionStatus.CreatePlayer;
                 } else {
-                    player.username = newUsername;
                     player.connectionStatus = this.ConnectionStatus.EnterPassword;
                 }
                 break;
@@ -64,7 +68,6 @@ const LoginModule = {
                     player.send("Invalid character name!");
                     player.username = 'Guest';
                     player.connectionStatus = this.ConnectionStatus.EnterUsername;
-                    return;
                 } else if (username.toLowerCase() == 'new') {
                     player.connectionStatus = this.ConnectionStatus.CreatePlayer;
                 } else if (!PlayerModule.playerExist(player)) {

@@ -225,5 +225,44 @@
     "action": "Command.removeCommand",
     "command": "removecommand",
     "modLevel": 85
+  },
+  {
+    "aliases": [
+      "gc",
+      "global",
+      "chat",
+      "gchat"
+    ],
+    "action": "Player.executeGlobalChat",
+    "command": "globalchat",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Emote.loadEmotes",
+    "command": "loademotes",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "aemote"
+    ],
+    "action": "Emote.addEmote",
+    "command": "addemote",
+    "modLevel": 70
+  },
+  {
+    "aliases": [],
+    "action": "Emote.saveEmotes",
+    "command": "saveemotes",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "eemote"
+    ],
+    "action": "Emote.editEmote",
+    "command": "editemote",
+    "modLevel": 70
   }
 ]
