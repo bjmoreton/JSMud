@@ -159,6 +159,7 @@ class Exit {
     }
 
     static stringToExit(string) {
+        console.log(string);
         switch (string?.toLowerCase()) {
             case 'd':
             case 'down': return Exit.ExitDirections.Down;

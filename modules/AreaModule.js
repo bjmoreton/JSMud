@@ -515,7 +515,7 @@ const AreaModule = {
                         const [dX, dY, dZ] = data;
                         if (dX != undefined && dY != undefined && dZ != undefined) {
                             if (player.hasCommand('room delete') || player.modLevel >= 80) {
-                                const reallyDelete = await player.textEditor.showPrompt(`Really delete room ${dX}, ${dY}, ${dZ}? yes/no `);
+                                const reallyDelete = await player.textEditor.showPrompt(`Really delete room ${dX}, ${dY}, ${dZ} in ${foundArea.name}:${foundSection.name}? yes/no `);
 
                                 if (reallyDelete.toLowerCase() == 'y' || reallyDelete.toLowerCase() == 'yes') {
                                     foundSection.deleteRoom(player, dX, dY, dZ);

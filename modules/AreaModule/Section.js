@@ -34,8 +34,8 @@ class Section {
                 // const toArea = AreaModule.getAreaByName(exit.area);
                 // const toSection = toArea?.getSectionByName(exit.section);
                 // const toRoom = toSection?.getRoomByCoordinates(exit.x, exit.y, exit.z);
-
-                room.removeExit(player, this.area, this, Exit.oppositeExit(exit.direction.toString()));
+                console.log('test', this);
+                room.removeExit(player, this, Exit.oppositeExit(exit.direction.toString()));
             });
             this.rooms.delete(`${x},${y},${z}`);
         } else {

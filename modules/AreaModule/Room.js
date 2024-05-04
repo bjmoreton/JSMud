@@ -111,7 +111,7 @@ class Room {
         let rY = this.y;
         let rZ = this.z;
 
-        const strToExit = Exit.stringToExit(direction);
+        const strToExit = Exit.oppositeExit(Exit.stringToExit(direction));
 
         switch (strToExit) {
             case Exit.ExitDirections.Down:
@@ -164,7 +164,7 @@ class Room {
 
         if (toRoom != null) {
             this.exits.delete(strToExit);
-            toRoom.exits.delete(Exit.oppositeExit(direction));
+            toRoom.exits.delete(Exit.oppositeExit(strToExit));
 
             player.send(`Exit removed successfully!`);
         } else {

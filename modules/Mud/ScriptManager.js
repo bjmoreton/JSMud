@@ -28,7 +28,7 @@ class ScriptManager {
                     $0.applySync(undefined, [message]);
                 }`, [logFunction], { arguments: { copy: true }, result: { promise: true, copy: true } });
 
-        // Expose log function
+        // Expose sendToRoom function
         const sendToRoomFunction = new ivm.Reference(function (message) {
             global.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
         });
@@ -58,7 +58,7 @@ class ScriptManager {
                 objContext.exit.removeState(state);
             });
 
-            // Define addState globally within the isolated VM
+            // Define removeState globally within the isolated VM
             await context.evalClosure(`
                         global.removeState = function(state) {
                             $0.applySync(undefined, [state]);
@@ -70,7 +70,7 @@ class ScriptManager {
         if (player && typeof player.send === 'function') {
             const addSendFunction = new ivm.Reference(player.send.bind(player));
 
-            // Define addState globally within the isolated VM
+            // Define sendToPlayer globally within the isolated VM
             await context.evalClosure(`
                         global.sendToPlayer = function(message) {
                             $0.applySync(null, [message]);
