@@ -28,7 +28,7 @@
               "y": 1,
               "z": "0",
               "progs": {
-                "onmessage": "try {\r\nif(player.message.toLowerCase() === 'test123') {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')}\r\n} catch (error) {\r\nlog(error)\r\n}"
+                "onmessage": "try {\r\nif(player.message.toLowerCase() === 'test123') {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToAll(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}\r\n} catch (error) {\r\nlog(error)\r\n}"
               }
             }
           ]

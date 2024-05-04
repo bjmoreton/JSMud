@@ -28,6 +28,16 @@ class ScriptManager {
                     $0.applySync(undefined, [message]);
                 }`, [logFunction], { arguments: { copy: true }, result: { promise: true, copy: true } });
 
+        // Expose log function
+        const sendToAllFunction = new ivm.Reference(function (message) {
+            global.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
+        });
+
+        await context.evalClosure(`
+                global.sendToAll = function(message) {
+                    $0.applySync(undefined, [message]);
+                }`, [sendToAllFunction], { arguments: { copy: true }, result: { promise: true, copy: true } });
+
         // Handle methods explicitly
         if (objContext.exit && typeof objContext.exit.addState === 'function') {
             const addStateFunction = new ivm.Reference(function (state) {
