@@ -154,7 +154,7 @@ const AreaModule = {
                 if (roomMap.has(x) && roomMap.get(x).has(y)) {
                     mapString += roomMap.get(x).get(y);
                 } else {
-                    mapString += "~"; // Empty space for unmapped area
+                    mapString += area.blankSymbol + '&~'; // Empty space for unmapped area
                 }
             }
             mapString += "\r\n"; // Move to the next row
@@ -284,11 +284,15 @@ const AreaModule = {
             switch (cmdName?.toLowerCase()) {
                 case 'create':
                     const [areaName] = data;
-                    if (foundArea == null && !this.areaList.has(areaName.toLowerCase())) {
-                        this.areaList.set(areaName.toLowerCase(), new AreaModule.Area(areaName));
-                        player.send(`Area ${areaName} added!`);
+                    if (areaName !== undefined) {
+                        if (foundArea == null && !this.areaList.has(areaName.toLowerCase())) {
+                            this.areaList.set(areaName.toLowerCase(), new AreaModule.Area(areaName));
+                            player.send(`Area ${areaName} added!`);
+                        } else {
+                            player.send(`Area ${areaName} already exist!`);
+                        }
                     } else {
-                        player.send(`Area ${areaName} already exist!`);
+                        player.send(`Usage: area create areaname`);
                     }
                     break;
                 case 'delete':
@@ -319,6 +323,9 @@ const AreaModule = {
                 case 'save':
                     foundArea.save(player, AREAS_DIR);
                     break;
+                case 'setsymbol':
+                    foundArea.blankSymbol = data.join(' ');
+                    break;
                 case 'work':
                     const [workAreaName] = data;
                     if (AreaModule.areaList.has(workAreaName.toLowerCase())) {
@@ -337,6 +344,34 @@ const AreaModule = {
         }
     },
 
+    async executeClose(player, args) {
+        const [exitDirection] = args;
+        const area = AreaModule.getAreaByName(player.currentArea);
+        if (!area) {
+            player.send("Error Current area not found!");
+            return
+        }
+        const section = area.getSectionByName(player.currentSection);
+        if (!section) {
+            player.send("Error Current section not found!");
+            return
+        }
+        const currentRoom = section.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+
+        if (!currentRoom) {
+            player.send("Error: Current room not found!");
+            return;
+        }
+        const exit = currentRoom.getExitByDirection(Exit.stringToExit(exitDirection));
+
+        if (!exit) {
+            player.send(`Exit ${exitDirection} not found.`);
+            return;
+        }
+
+        await exit.close(player, args);
+    },
+
     executeDown(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.Down);
     },
@@ -349,7 +384,7 @@ const AreaModule = {
         const [areaName, sectionName, x, y, z] = args;
 
         if (AreaModule.areaList.has(areaName?.toLowerCase())) {
-            const foundArea = this.getAreaByName(areaName);
+            const foundArea = AreaModule.getAreaByName(areaName);
             if (foundArea.sections.has(sectionName?.toLowerCase())) {
                 const foundSection = foundArea.getSectionByName(sectionName);
                 const room = foundSection?.getRoomByCoordinates(x, y, z);
@@ -401,6 +436,68 @@ const AreaModule = {
                             player.send(`Usage: room addexit direction`);
                         }
                         break;
+                    case 'addtexit':
+                        const [toArea, toSection, toX, toY, toZ, toDirection] = data;
+                        const fromRoom = foundSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+
+                        if (toArea !== undefined && toSection !== undefined && toX !== undefined && toY !== undefined && toZ !== undefined &&
+                            toDirection !== undefined) {
+                            if (!isNumber(parseInt(toX)) || !isNumber(parseInt(toY)) || !isNumber(parseInt(toZ))) {
+                                player.send(`Invalid x, y, or z!`);
+                                return;
+                            }
+
+                            const areaTo = AreaModule.getAreaByName(toArea);
+                            if (!areaTo) {
+                                player.send(`Area ${toArea} doesn't exist!`);
+                                return;
+                            }
+
+                            const sectionTo = areaTo.getSectionByName(toSection);
+                            if (!sectionTo) {
+                                player.send(`Section ${toSection} doesn't exist!`);
+                                return;
+                            } else if (sectionTo.name.toLowerCase() !== player.workingSection.toLowerCase()) {
+                                player.send(`Section ${sectionTo.name} not set as current work section!`);
+                                return;
+                            }
+
+                            let exitFound = false;
+                            for (const exit of fromRoom?.exits?.values()) {
+                                if (exit.isAt(areaTo?.name, sectionTo?.name, toX, toY, toZ)) {
+                                    player.send(`Exit already exists for that room`);
+                                    exitFound = true;
+                                    break;
+                                }
+                            }
+
+                            let exitDeleted = false;
+                            for (const area of AreaModule?.areaList?.values()) {
+                                for (const section of area?.sections?.values()) {
+                                    for (const room of section?.rooms?.values()) {
+                                        for (const exit of room?.exits?.values()) {
+                                            if (exit.isAt(areaTo?.name, sectionTo?.name, toX, toY, toZ)) {
+                                                room.removeExit(player, section, exit?.direction, areaTo, sectionTo, toX, toY, toZ);
+                                                exitDeleted = true;
+                                            }
+                                        }
+                                        if (exitDeleted) break;
+                                    }
+                                    if (exitDeleted) break;
+                                }
+                                if (exitDeleted) break;
+                            }
+
+                            if (fromRoom.isAt(areaTo?.name, sectionTo?.name, toX, toY, toZ)) {
+                                player.send(`Cannot place exit!`);
+                                return;
+                            }
+
+                            if (!exitFound) fromRoom.addExit(player, areaTo, sectionTo, toDirection, parseInt(toX), parseInt(toY), parseInt(toZ));
+                        } else {
+                            player.send(`Usage: room addtexit area section x y z direction`);
+                        }
+                        break;
                     case 'create':
                         const [x, y, z] = data;
                         const foundRoom = foundSection.getRoomByCoordinates(x, y, z);
@@ -447,12 +544,131 @@ const AreaModule = {
                             }
                         }
                         break;
+                    case 'editexit':
+                        const [editDirection, editOption, ...editValues] = data;
+                        if (editDirection !== undefined && editOption !== undefined) {
+                            const strToExit = Exit.stringToExit(editDirection);
+                            if (strToExit != null) {
+                                const fromRoom = foundSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+                                const editExit = fromRoom.getExitByDirection(strToExit);
+                                if (editExit != null) {
+                                    switch (editOption?.toLowerCase()) {
+                                        case 'script':
+                                            const [command, onEvent] = editValues;
+                                            if (command !== undefined && onEvent !== undefined) {
+                                                // Ensure progs object exists
+                                                if (editExit.progs === undefined) editExit.progs = {};
+
+                                                switch (command.toLowerCase()) {
+                                                    case 'add':
+                                                        // Check if the script already exists for the event
+                                                        if (editExit.progs[onEvent.toLowerCase()]) {
+                                                            player.send(`${onEvent} already exists!`);
+                                                        } else {
+                                                            // Start editing session to create a new script
+                                                            const script = await player.textEditor.startEditing('');
+                                                            if (script.trim() !== '') { // Ensure the script is not empty
+                                                                editExit.progs[onEvent.toLowerCase()] = script;
+                                                                player.send(`${onEvent} added successfully.`);
+                                                            } else {
+                                                                player.send(`Script creation canceled or empty script provided.`);
+                                                            }
+                                                        }
+                                                        break;
+
+                                                    case 'edit':
+                                                        // Check if the script exists for editing
+                                                        if (editExit.progs[onEvent.toLowerCase()]) {
+                                                            const updatedScript = await player.textEditor.startEditing(editExit.progs[onEvent.toLowerCase()]);
+                                                            if (updatedScript.trim() !== '') {
+                                                                editExit.progs[onEvent.toLowerCase()] = updatedScript;
+                                                                player.send(`${onEvent} edited successfully.`);
+                                                            } else {
+                                                                player.send(`Script editing canceled or empty script provided.`);
+                                                            }
+                                                        } else {
+                                                            player.send(`No existing script for ${onEvent} to edit.`);
+                                                        }
+                                                        break;
+
+                                                    case 'remove':
+                                                        // Check if the script exists to remove
+                                                        if (editExit.progs[onEvent.toLowerCase()]) {
+                                                            delete editExit.progs[onEvent.toLowerCase()];
+                                                            player.send(`${onEvent} removed successfully.`);
+                                                        } else {
+                                                            player.send(`No existing script for ${onEvent} to remove.`);
+                                                        }
+                                                        break;
+
+                                                    default:
+                                                        player.send(`Usage: room editexit script <add | edit | remove> <event>`);
+                                                        break;
+                                                }
+                                            } else {
+                                                player.send(`Usage: room editexit script <add | edit | remove> <event>`);
+                                            }
+                                            break;
+                                        case 'state':
+                                            const [action, ...states] = editValues;
+                                            if (action !== undefined) {
+                                                switch (action.toLowerCase()) {
+                                                    case 'add':
+                                                        states.forEach(state => {
+                                                            const actualState = Exit.stringToExitState(state);
+                                                            if (actualState != null) editExit.addState(actualState);
+                                                        });
+                                                        player.send(`State(s) added successfully.`);
+                                                        break;
+                                                    case 'remove':
+                                                        states.forEach(state => {
+                                                            const actualState = Exit.stringToExitState(state);
+                                                            if (actualState != null) editExit.removeState(actualState);
+                                                        });
+                                                        player.send(`State(s) removed successfully.`);
+                                                        break;
+                                                    case 'save':
+                                                        editExit.saveState();
+                                                        player.send(`State saved successfully.`);
+                                                        break;
+                                                    case 'showstate':
+                                                        player.send(Exit.exitStateToString(editExit.currentState));
+                                                        break;
+                                                    case 'showdefaultstate':
+                                                        player.send(Exit.exitStateToString(editExit.initialState));
+                                                        break;
+                                                    default:
+                                                        player.send(`Usage: room editexit state <add | remove | save | show>`)
+                                                        break;
+                                                }
+                                            } else {
+                                                player.send(`Usage: room editexit state <add | remove | save | show>`)
+                                            }
+                                            break;
+                                    }
+                                } else {
+                                    player.send(`Exit doesn't exist!`);
+                                }
+                            } else {
+                                player.send('Invalid direction!');
+                            }
+                        } else {
+                            player.send(`Usage: room edittexit direction <script | state>`);
+                        }
+                        break;
                     case 'removeexit':
                         const [removeDirection] = data;
                         const removeFromRoom = foundSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
 
                         if (removeDirection !== undefined) {
-                            removeFromRoom.removeExit(player, foundArea, foundSection, removeDirection);
+                            if (removeFromRoom != null) {
+                                const exit = removeFromRoom.getExitByDirection(Exit.stringToExit(removeDirection));
+                                const exitArea = AreaModule.getAreaByName(exit.area);
+                                const exitSection = exitArea.getSectionByName(exit.section);
+                                removeFromRoom.removeExit(player, foundSection, removeDirection, exitArea, exitSection, exit.x, exit.y, exit.z);
+                            } else {
+                                player.send(`Unable to delete room, exists in another section!`);
+                            }
                         } else {
                             player.send(`Usage: room removeexit direction`);
                         }
@@ -460,7 +676,7 @@ const AreaModule = {
                     default:
                         player.send(`Usage: room <addexit direction | create x y z | delete | edit>`);
                         player.send(`Usage: room <addtexit area section x y z direction> - Teleport`);
-                        player.send(`Usage: room <removeexit direction> - Teleport`);
+                        player.send(`Usage: room <removeexit direction>`);
                         break;
                 }
             } else {
@@ -501,13 +717,56 @@ const AreaModule = {
                                 const reallyDelete = await player.textEditor.showPrompt(`Really delete section ${sectionToDelete}? yes/no `);
 
                                 if (reallyDelete.toLowerCase() == 'y' || reallyDelete.toLowerCase() == 'yes') {
-                                    area.sections.delete(sectionToDelete);
+                                    AreaModule.sections.delete(sectionToDelete);
                                 } else {
                                     player.send(`Section ${areaToDelete} wasn't deleted.`);
                                 }
                             }
                         } else {
                             player.send(`Usage: section delete sectionname`);
+                        }
+                        break;
+                    case 'edit':
+                        const [editWhat, ...newValue] = data;
+
+                        if (editWhat !== undefined && newValue !== undefined) {
+                            if (foundSection) {
+                                if (foundSection[editWhat] != null) {
+                                    const newName = newValue.join(' ');
+
+                                    if (editWhat.toLowerCase() === 'name' && newName != '') {
+                                        const sectionExist = foundArea.getSectionByName(newName);
+
+                                        if (!sectionExist) {
+                                            const oldName = foundSection.name;
+                                            foundSection[editWhat] = newName;
+                                            foundSection.rooms.forEach(room => {
+                                                room.section = newName;
+                                                room.exits.forEach(exit => {
+                                                    if (exit.section.toLowerCase() == oldName.toLowerCase() &&
+                                                        exit.area.toLowerCase() == foundArea.name.toLowerCase()) {
+                                                        exit.section = newName;
+                                                    }
+                                                });
+                                            });
+                                            foundArea.sections.delete(oldName);
+                                            foundArea.sections.set(newName, foundSection);
+
+                                            player.send(`Section renamed successfully.`);
+                                        } else {
+                                            player.send(`Section ${newName} already exist!`);
+                                        }
+                                    } else {
+                                        player.send(`Name cannot be blank!`);
+                                    }
+                                } else {
+                                    player.send(`Property ${editWhat} doesns't exist!`);
+                                }
+                            } else {
+                                player.send(`Section ${editSection} doesn't exist!`);
+                            }
+                        } else {
+                            player.send(`Usage: section edit <name> value`);
                         }
                         break;
                     case "work":
@@ -566,12 +825,40 @@ const AreaModule = {
     },
 
     init: function (mudServer) {
-        this.ms = mudServer;
+        this.mudServer = mudServer;
 
         this.loadAreas();
-        this.ms.mudEmitter.on('hotBootAfter', AreaModule.onAfterHotboot);
-        this.ms.mudEmitter.on('hotBootBefore', AreaModule.onBeforeHotboot);
-        this.ms.mudEmitter.on('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+        this.mudServer.mudEmitter.on('hotBootAfter', AreaModule.onAfterHotboot);
+        this.mudServer.mudEmitter.on('hotBootBefore', AreaModule.onBeforeHotboot);
+        this.mudServer.mudEmitter.on('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+    },
+
+    async executeOpen(player, args) {
+        const [exitDirection] = args;
+        const area = AreaModule.getAreaByName(player.currentArea);
+        if (!area) {
+            player.send("Error Current area not found!");
+            return
+        }
+        const section = area.getSectionByName(player.currentSection);
+        if (!section) {
+            player.send("Error Current section not found!");
+            return
+        }
+        const currentRoom = section.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+
+        if (!currentRoom) {
+            player.send("Error: Current room not found!");
+            return;
+        }
+        const exit = currentRoom.getExitByDirection(Exit.stringToExit(exitDirection));
+
+        if (!exit) {
+            player.send(`Exit ${exitDirection} not found.`);
+            return;
+        }
+
+        await exit.open(player, args);
     },
 
     movePlayer: (player, exitDirection) => {
@@ -592,17 +879,28 @@ const AreaModule = {
             return;
         }
 
-        const exit = currentRoom.getExitByDirection(exitDirection);
+        const exit = currentRoom.getExitByDirection(Exit.stringToExit(exitDirection));
 
         if (!exit) {
             player.send(`Exit ${exitDirection} not found.`);
             return;
         }
 
+        if (!exit.isOpened()) {
+            player.send(`The door is shut!`);
+            return;
+        }
+
         const { area: newArea, section: newSection, x: newX, y: newY, z: newZ } = exit;
+        let toRoom;
 
-        const toRoom = section.getRoomByCoordinates(newX, newY, newZ);
-
+        if (section.name.toLowerCase() === newSection.toLowerCase()) {
+            toRoom = section.getRoomByCoordinates(newX, newY, newZ);
+        } else {
+            const toArea = AreaModule.getAreaByName(newArea);
+            const toSection = toArea?.getSectionByName(newSection);
+            toRoom = toSection?.getRoomByCoordinates(newX, newY, newZ);
+        }
         if (!toRoom) {
             player.send(`Error: Destination room not found.`);
             return;
@@ -610,10 +908,11 @@ const AreaModule = {
 
         player.currentArea = newArea;
         player.currentSection = newSection;
-        player.currentX = newX;
-        player.currentY = newY;
-        player.currentZ = newZ;
-
+        player.currentX = parseInt(newX);
+        player.currentY = parseInt(newY);
+        player.currentZ = parseInt(newZ);
+        const message = `${player.username} entered from the ${Exit.oppositeExit(exitDirection)}.`;
+        AreaModule.mudServer.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
         AreaModule.executeLook(player);
     },
 
@@ -622,7 +921,7 @@ const AreaModule = {
             updatedArea = new Area();
             updatedSection = new Section();
             updatedRoom = new Room();
-            updatedExit = new Exit;
+            updatedExit = new Exit();
             Object.setPrototypeOf(area, updatedArea.__proto__);
             area.section?.forEach(section => {
                 Object.setPrototypeOf(section, updatedSection.__proto__);
@@ -634,7 +933,6 @@ const AreaModule = {
                 });
             });
         });
-
     },
 
     onBeforeHotboot: () => {
@@ -642,10 +940,10 @@ const AreaModule = {
         //     area.save(player, AREAS_DIR, false);
         // });
 
-        AreaModule.ms.mudEmitter.removeListener('hotBootAfter', AreaModule.onAfterHotboot);
-        AreaModule.ms.mudEmitter.removeListener('hotBootBefore', AreaModule.onBeforeHotboot);
+        AreaModule.mudServer.mudEmitter.removeListener('hotBootAfter', AreaModule.onAfterHotboot);
+        AreaModule.mudServer.mudEmitter.removeListener('hotBootBefore', AreaModule.onBeforeHotboot);
         // Remove 'playerLoggedIn' event listener
-        AreaModule.ms.mudEmitter.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+        AreaModule.mudServer.mudEmitter.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
     },
 
     onPlayerLoggedIn: (player) => {
@@ -654,6 +952,8 @@ const AreaModule = {
         if (player.currentX == undefined || player.currentX == null) player.currentX = AreaModule.startX;
         if (player.currentY == undefined || player.currentY == null) player.currentY = AreaModule.startY;
         if (player.currentZ == undefined || player.currentZ == null) player.currentZ = AreaModule.startZ;
+
+        AreaModule.mudServer.mudEmitter.emit('sendToRoom', player, `${player.username} entered the room.`, [player.username], `${player.username} entered the room.`);
         AreaModule.executeLook(player);
     },
 
@@ -689,7 +989,7 @@ const AreaModule = {
 
                             // Restore exits
                             for (const exitData of roomData.exits) {
-                                const exit = new Exit(exitData.area, exitData.section, exitData.x, exitData.y, exitData.z, exitData.direction);
+                                const exit = new Exit(exitData.area, exitData.section, exitData.x, exitData.y, exitData.z, exitData.direction, exitData.initialState, exitData.progs);
                                 room.exits.set(Exit.stringToExit(exit.direction), exit);
                             }
 

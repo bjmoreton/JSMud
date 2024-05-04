@@ -3,6 +3,7 @@ const EventEmitter = require('events');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
+const { generateRandomString } = require('./Utils/helpers.js');
 
 // Custom event emitter
 class MUDEmitter extends EventEmitter { }
@@ -55,10 +56,12 @@ const MUDServer = {
     commandExist(command) { return MUDServer.commands.includes(command); },
 
     initialize() {
+        global.mudEmitter = MUDServer.mudEmitter;
         MUDServer.loadConfig();
         MUDServer.loadModules();
         MUDServer.loadBanList();
         MUDServer.loadTitle();
+
 
         // Handle player disconnects
         MUDServer.mudEmitter.on('playerDisconnected', (player) => {
@@ -111,13 +114,16 @@ const MUDServer = {
         return null; // Command not found
     },
 
+    // Function to find a player by their username
     findPlayerByUsername(username) {
-        for (const [key, p] of MUDServer.players) {
-            if (p.username.toLowerCase() === username.toLowerCase()) {
-                return p;
+        if (username != null && username != '') {
+            for (let [key, player] of MUDServer.players) {
+                if (player.username.toLowerCase() === username.toLowerCase()) {
+                    return player; // Return the player object if found
+                }
             }
         }
-        return null; // Command not found
+        return null; // Return null if no player is found with the given username
     },
 
     handleCommand(player, command) {
@@ -267,7 +273,7 @@ const MUDServer = {
             // Require the module
             const module = require(modulePath);
             // Store it
-            MUDServer.modules[module.name] = module;
+            MUDServer.modules[module.name === undefined ? generateRandomString(10) : module.name] = module;
             // Initialize the module if an init function is found
             if (typeof module.init === 'function') {
                 module.init(this);
@@ -285,6 +291,16 @@ const MUDServer = {
             MUDServer.mudTitle = dataSync + '\r\n';
         } catch (err) {
             console.error('Error reading file synchronously:', err);
+        }
+    },
+
+    playerExist: (player) => {
+        const filePath = player.getFilePath();
+        try {
+            fs.accessSync(filePath, fs.constants.F_OK);
+            return true; // File exists
+        } catch (err) {
+            return false; // File does not exist
         }
     },
 

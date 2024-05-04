@@ -2,7 +2,6 @@
 const fs = require('fs');
 const path = require('path');
 const Emote = require('./EmoteModule/Emote');
-const PlayerModule = require('./PlayerModule');
 
 // Emote module
 const EmoteModule = {
@@ -68,7 +67,7 @@ const EmoteModule = {
 
         if (emoteAction) {
             const [target] = args;
-            const targetPlayer = PlayerModule.findPlayerByUsername(target);
+            const targetPlayer = EmoteModule.mudServer.findPlayerByUsername(target);
             if (targetPlayer && targetPlayer.sameRoomAs(player)) {
                 player.send(EmoteModule.formatEmote(player, targetPlayer, emoteAction.you));
                 targetPlayer.send(EmoteModule.formatEmote(player, targetPlayer, emoteAction.target));

@@ -1,5 +1,4 @@
 const { hashPassword, verifyPassword } = require("../Utils/helpers");
-const PlayerModule = require("./PlayerModule");
 
 // login module
 const LoginModule = {
@@ -24,7 +23,7 @@ const LoginModule = {
                     player.send("Invalid character name!");
                     player.username = 'Guest';
                     player.connectionStatus = this.ConnectionStatus.CreatePlayer;
-                } else if (PlayerModule.playerExist(player)) {
+                } else if (LoginModule.mudServer.playerExist(player)) {
                     player.send("Character name already exist!");
                     player.username = 'Guest';
                     player.connectionStatus = this.ConnectionStatus.CreatePlayer;
@@ -46,7 +45,7 @@ const LoginModule = {
                 break;
             case this.ConnectionStatus.EnterPassword:
                 const password = await player.textEditor.showPrompt('Enter password: ');
-                if (PlayerModule.playerExist(player)) {
+                if (LoginModule.mudServer.playerExist(player)) {
                     player.load();
 
                     if (await verifyPassword(password, player.password)) {
@@ -70,7 +69,7 @@ const LoginModule = {
                     player.connectionStatus = this.ConnectionStatus.EnterUsername;
                 } else if (username.toLowerCase() == 'new') {
                     player.connectionStatus = this.ConnectionStatus.CreatePlayer;
-                } else if (!PlayerModule.playerExist(player)) {
+                } else if (!LoginModule.mudServer.playerExist(player)) {
                     player.send("Character doesn't exist!");
                     player.username = 'Guest';
                     player.connectionStatus = this.ConnectionStatus.EnterUsername;

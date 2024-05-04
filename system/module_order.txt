@@ -1,6 +1,15 @@
+AreaModule/Area
+AreaModule/Exit
+AreaModule/Room
+AreaModule/Section
 AreaModule
+HelpfileModule/Helpfile
 HelpfileModule
+PlayerModule/TextEditor
+PlayerModule/Player
 PlayerModule
 LoginModule
+EmoteModule/Emote
 EmoteModule
+Mud/ServerCommand
 CommandModule

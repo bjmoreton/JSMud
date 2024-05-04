@@ -1,8 +1,9 @@
 {
+  "blankSymbol": "&B~",
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "04/29/2024 23:36:00",
+  "lastUpdate": "05/03/2024 20:28:55",
   "sections": {
     "Start": {
       "area": "Start",
@@ -22,9 +23,13 @@
               "area": "Start",
               "section": "Start",
               "direction": "North",
+              "initialState": 17,
               "x": "0",
               "y": 1,
-              "z": "0"
+              "z": "0",
+              "progs": {
+                "onmessage": "try {\r\nif(player.message.toLowerCase() === 'test123') {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')}\r\n} catch (error) {\r\nlog(error)\r\n}"
+              }
             }
           ]
         },
@@ -41,6 +46,7 @@
               "area": "Start",
               "section": "Start",
               "direction": "South",
+              "initialState": 16,
               "x": "0",
               "y": "0",
               "z": "0"
@@ -49,9 +55,28 @@
               "area": "Start",
               "section": "Start",
               "direction": "East",
+              "initialState": 16,
               "x": 1,
               "y": 1,
               "z": "0"
+            },
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "NorthWest",
+              "initialState": 16,
+              "x": -1,
+              "y": 2,
+              "z": "0"
+            },
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "North",
+              "initialState": 16,
+              "x": 4,
+              "y": 4,
+              "z": 0
             }
           ]
         },
@@ -68,6 +93,54 @@
               "area": "Start",
               "section": "Start",
               "direction": "West",
+              "initialState": 16,
+              "x": "0",
+              "y": 1,
+              "z": "0"
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Start",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": -1,
+          "y": 2,
+          "z": "0",
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "SouthEast",
+              "initialState": 16,
+              "x": "0",
+              "y": 1,
+              "z": "0"
+            }
+          ]
+        }
+      ]
+    },
+    "Test": {
+      "area": "Start",
+      "description": "",
+      "vSize": 5,
+      "rooms": [
+        {
+          "area": "Start",
+          "section": "Test",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": 4,
+          "y": 4,
+          "z": 0,
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "South",
+              "initialState": 16,
               "x": "0",
               "y": 1,
               "z": "0"

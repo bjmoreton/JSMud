@@ -1,8 +1,11 @@
 const { formatDate, formatTime } = require("../../Utils/helpers");
+const fs = require('fs');
+const path = require('path');
 const Section = require("./Section");
 
 class Area {
     constructor(jsonData) {
+        this.blankSymbol = '&B~'
         this.description = '';
         this.lastUpdate = '';
         this.name = jsonData;
@@ -78,9 +81,11 @@ class Area {
                             area: exit.area,
                             section: exit.section,
                             direction: exit.direction.toString(),
+                            initialState: exit.initialState,
                             x: exit.x,
                             y: exit.y,
-                            z: exit.z
+                            z: exit.z,
+                            progs: exit.progs
                         }))
                     }))
                 };
@@ -88,6 +93,7 @@ class Area {
 
             // Write data to file in JSON format
             const data = {
+                blankSymbol: this.blankSymbol,
                 name: this.name,
                 nameDisplay: this.nameDisplay,
                 description: this.description,

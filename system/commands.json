@@ -264,5 +264,23 @@
     "action": "Emote.editEmote",
     "command": "editemote",
     "modLevel": 70
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeOpen",
+    "command": "open",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeClose",
+    "command": "close",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Player.executeSay",
+    "command": "say",
+    "modLevel": 0
   }
 ]

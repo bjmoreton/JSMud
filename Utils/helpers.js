@@ -14,6 +14,16 @@ function formatTime(date) {
     return `${hours}:${minutes}:${seconds}`;
 }
 
+function generateRandomString(length) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+}
+
 async function hashPassword(password) {
     try {
         const hashedPassword = await bcrypt.hash(password, 10); // 10 is the number of salt rounds
@@ -42,4 +52,4 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { formatTime, formatDate, hashPassword, inRange, isNumber, verifyPassword };
+module.exports = { formatTime, formatDate, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };

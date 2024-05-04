@@ -1,5 +1,3 @@
-const fs = require('fs');
-const LoginModule = require('./LoginModule.js');
 const { formatDate, formatTime } = require('../Utils/helpers.js');
 const Player = require('./PlayerModule/Player.js');
 const TextEditor = require('./PlayerModule/TextEditor.js');
@@ -14,16 +12,11 @@ const PlayerModule = {
         PlayerModule.mudServer.mudEmitter.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${message}`);
     },
 
-    // Function to find a player by their username
-    findPlayerByUsername(username) {
-        if (username != null && username != '') {
-            for (let [key, player] of PlayerModule.mudServer.players) {
-                if (player.username.toLowerCase() === username.toLowerCase()) {
-                    return player; // Return the player object if found
-                }
-            }
-        }
-        return null; // Return null if no player is found with the given username
+    executeSay(player, args) {
+        const message = args.join(' ');
+
+        player.send(`You say "${message}"`);
+        PlayerModule.mudServer.mudEmitter.emit('sendToRoom', player, `${player.username} says ${message}`, [player.username], message);
     },
 
     onPlayerConnected: (socket) => {
@@ -36,7 +29,7 @@ const PlayerModule = {
             data = data.toString().replace("\r\n", "");
             const cleanedData = data.toString().trim();
             if (!player.hasStatus(player.Statuses.Editing)) {
-                if (player.connectionStatus == LoginModule.ConnectionStatus.LoggedIn) {
+                if (player.loggedIn) {
                     if (!cleanedData.startsWith('/')) PlayerModule.mudServer.mudEmitter.emit('handleCommand', player, cleanedData);
                     else {
                         const emoteData = cleanedData.startsWith('/') ? cleanedData.replace('/', '') : cleanedData;
@@ -66,6 +59,7 @@ const PlayerModule = {
             Object.setPrototypeOf(p.textEditor, updatedTextEditor.__proto__);
         });
     },
+    
     onHotBootBefore: () => {
         PlayerModule.saveAllPlayers();
         PlayerModule.mudServer.mudEmitter.removeListener('hotBootAfter', PlayerModule.onHotBootAfter);
@@ -97,18 +91,8 @@ const PlayerModule = {
         this.mudServer.mudEmitter.on('hotBootAfter', this.onHotBootAfter);
         this.mudServer.mudEmitter.on('hotBootBefore', this.onHotBootBefore);
         this.mudServer.mudEmitter.on('playerConnected', this.onPlayerConnected);
-        this.mudServer.mudEmitter.on('sendToAll', PlayerModule.onSendToAll);
+        this.mudServer.mudEmitter.on('sendToAll', this.onSendToAll);
         this.mudServer.mudEmitter.on('sendToRoom', this.onSendToRoom);
-    },
-
-    playerExist: (player) => {
-        const filePath = player.getFilePath();
-        try {
-            fs.accessSync(filePath, fs.constants.F_OK);
-            return true; // File exists
-        } catch (err) {
-            return false; // File does not exist
-        }
     },
 
     playerQuit(player) {
@@ -121,7 +105,7 @@ const PlayerModule = {
 
     saveAllPlayers() {
         PlayerModule.mudServer.players.forEach(p => {
-            if (p.connectionStatus != LoginModule.ConnectionStatus.LoggedIn) {
+            if (!p.loggedIn) {
                 p.disconnect(false);
                 return;
             }

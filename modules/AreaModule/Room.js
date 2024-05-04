@@ -1,3 +1,4 @@
+const { isNumber } = require("../../Utils/helpers");
 const Exit = require("./Exit");
 
 class Room {
@@ -11,14 +12,18 @@ class Room {
         this.z = z;
 
         this.exits = new Map();
+
+        global.mudEmitter.on('hotBootBefore', this.onHotBootBefore.bind(this));
+        global.mudEmitter.on('sendToRoom', this.onSendToRoom.bind(this));
     }
 
-    addExit(player, area, section, direction) {
+    addExit(player, area, section, direction, x, y, z) {
         let rX = this.x;
         let rY = this.y;
         let rZ = this.z;
 
-        switch (Exit.stringToExit(direction)) {
+        const strToExit = Exit.stringToExit(direction);
+        switch (strToExit) {
             case Exit.ExitDirections.Down:
                 rZ--;
                 break;
@@ -53,21 +58,28 @@ class Room {
             case Exit.ExitDirections.West:
                 rX--;
                 break;
+            default:
+                player.send('Invalid exit direction!');
+                return;
+        }
+
+        if (isNumber(x) && isNumber(y) && isNumber(z)) {
+            rX = x;
+            rY = y;
+            rZ = z;
         }
 
         let toRoom = section.getRoomByCoordinates(rX, rY, rZ);
         if (toRoom == null) {
             toRoom = section.addRoom(player, area, section, rX, rY, rZ);
-            if (toRoom == null) return;
+            if (toRoom == null) {
+                player.send(`Room doesn't exist!`);
+                return;
+            }
         }
-        const strToExit = Exit.stringToExit(direction);
-        if (strToExit != null) {
-            this.exits.set(strToExit, new Exit(area.name, section.name, rX, rY, rZ, direction));
-            toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString()));
-        } else {
-            player.send(`Invalid exit direction!`);
-            return;
-        }
+
+        this.exits.set(strToExit, new Exit(area.name, section.name, rX, rY, rZ, direction));
+        toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString()));
 
         player.send(`Exit added successfully!`);
     }
@@ -77,18 +89,39 @@ class Room {
         return this.exits.get(exitDirection);
     }
 
+    isAt(area, section, x, y, z) {
+        return area === this.area &&
+            section === this.section &&
+            parseInt(x) === parseInt(this.x) &&
+            parseInt(y) === parseInt(this.y) &&
+            parseInt(z) === parseInt(this.z);
+    }
+
+    onHotBootBefore(player, args) {
+        global.mudEmitter.removeListener('hotBootBefore', this.onHotBootBefore.bind(this));
+        global.mudEmitter.removeListener('sendToRoom', this.onSendToRoom.bind(this));
+    }
+
+    onSendToRoom(player, message, execludedPlayers, messagePlain) {
+        this.exits?.forEach(exit => {
+            exit.onSendToRoom(player, messagePlain);
+        });
+    }
+
     // Method to retrieve area property by string
     propertyByString(property) {
         const propertyToLower = property.toLowerCase();
         return this[propertyToLower] || "Property not found";
     }
 
-    removeExit(player, area, section, direction) {
+    removeExit(player, section, direction, toArea, toSection, x, y, z) {
         let rX = this.x;
         let rY = this.y;
         let rZ = this.z;
 
-        switch (Exit.stringToExit(direction)) {
+        const strToExit = Exit.stringToExit(direction);
+
+        switch (strToExit) {
             case Exit.ExitDirections.Down:
                 rZ--;
                 break;
@@ -123,22 +156,28 @@ class Room {
             case Exit.ExitDirections.West:
                 rX--;
                 break;
+            default:
+                player.send(`Invalid exit direction!`);
+                return;
         }
 
-        let toRoom = section.getRoomByCoordinates(rX, rY, rZ);
-        if (toRoom == null) {
-            return;
-        }
-        const strToExit = Exit.stringToExit(direction);
-        if (strToExit != null) {
+        let toRoom;
+        if (toArea !== undefined && toSection !== undefined && x !== undefined &&
+            y !== undefined && z !== undefined) {
+            rX = x;
+            rY = y;
+            rZ = z;
+            toRoom = toSection.getRoomByCoordinates(rX, rY, rZ);
+        } else toRoom = section.getRoomByCoordinates(rX, rY, rZ);
+
+        if (toRoom != null) {
             this.exits.delete(strToExit);
             toRoom.exits.delete(Exit.oppositeExit(direction));
-        } else {
-            player.send(`Invalid exit direction!`);
-            return;
-        }
 
-        player.send(`Exit removed successfully!`);
+            player.send(`Exit removed successfully!`);
+        } else {
+            player.send(`Room doesn't exist!`);
+        }
     }
 }
 
