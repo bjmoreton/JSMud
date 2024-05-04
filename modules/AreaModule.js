@@ -824,13 +824,36 @@ const AreaModule = {
         return AreaModule.areaList.get(area?.toLowerCase());
     },
 
+    getRoomAt(atArea, atSection, atX, atY, atZ) {
+        const area = AreaModule.getAreaByName(atArea);
+        if (!area) {
+            player.send("Error Current area not found!");
+            return;
+        }
+        const section = area.getSectionByName(atSection);
+        if (!section) {
+            player.send("Error Current section not found!");
+            return;
+        }
+        const room = section.getRoomByCoordinates(atX, atY, atZ);
+
+        if (!room) {
+            player.send("Error: Current room not found!");
+            return;
+        }
+
+        return room;
+    },
+
     init: function (mudServer) {
         this.mudServer = mudServer;
 
         this.loadAreas();
+        this.mudServer.mudEmitter.on('enteredRoom', AreaModule.onEnteredRoom);
         this.mudServer.mudEmitter.on('hotBootAfter', AreaModule.onAfterHotboot);
         this.mudServer.mudEmitter.on('hotBootBefore', AreaModule.onBeforeHotboot);
         this.mudServer.mudEmitter.on('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+        this.mudServer.mudEmitter.on('sendToRoom', AreaModule.onSendToRoom);
     },
 
     async executeOpen(player, args) {
@@ -838,12 +861,12 @@ const AreaModule = {
         const area = AreaModule.getAreaByName(player.currentArea);
         if (!area) {
             player.send("Error Current area not found!");
-            return
+            return;
         }
         const section = area.getSectionByName(player.currentSection);
         if (!section) {
             player.send("Error Current section not found!");
-            return
+            return;
         }
         const currentRoom = section.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
 
@@ -911,8 +934,7 @@ const AreaModule = {
         player.currentX = parseInt(newX);
         player.currentY = parseInt(newY);
         player.currentZ = parseInt(newZ);
-        const message = `${player.username} entered from the ${Exit.oppositeExit(exitDirection)}.`;
-        AreaModule.mudServer.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
+        AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.oppositeExit(exitDirection), toRoom);
         AreaModule.executeLook(player);
     },
 
@@ -940,10 +962,22 @@ const AreaModule = {
         //     area.save(player, AREAS_DIR, false);
         // });
 
+        AreaModule.mudServer.mudEmitter.removeListener('enteredRoom', AreaModule.onEnteredRoom);
         AreaModule.mudServer.mudEmitter.removeListener('hotBootAfter', AreaModule.onAfterHotboot);
         AreaModule.mudServer.mudEmitter.removeListener('hotBootBefore', AreaModule.onBeforeHotboot);
         // Remove 'playerLoggedIn' event listener
         AreaModule.mudServer.mudEmitter.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+        AreaModule.mudServer.mudEmitter.removeListener('sendToRoom', AreaModule.onSendToRoom);
+    },
+
+    onEnteredRoom(player, enterDirection, room) {
+        let message = '';
+        if (player.inRoom(room)) {
+            if (enterDirection != Exit.ExitDirections.None) message = `${player.username} entered the room from the ${enterDirection}.`;
+            else message = `${player.username} entered the room.`;
+
+            global.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
+        }
     },
 
     onPlayerLoggedIn: (player) => {
@@ -953,8 +987,18 @@ const AreaModule = {
         if (player.currentY == undefined || player.currentY == null) player.currentY = AreaModule.startY;
         if (player.currentZ == undefined || player.currentZ == null) player.currentZ = AreaModule.startZ;
 
-        AreaModule.mudServer.mudEmitter.emit('sendToRoom', player, `${player.username} entered the room.`, [player.username], `${player.username} entered the room.`);
+        AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.ExitDirections.None, AreaModule.getRoomAt(player.currentArea, player.currentSection, 
+                                                                                                                    player.currentX, player.currentY, player.currentZ));
         AreaModule.executeLook(player);
+    },
+
+    onSendToRoom(player, message, excludedPlayers = [], messagePlain) {
+        AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ)?.sendToRoom(player, messagePlain);
+        AreaModule.mudServer.players.forEach(p => {
+            if (p.sameRoomAs(player) && !excludedPlayers?.includes(p.username)) {
+                p.send(message);
+            }
+        });
     },
 
     // Method to load help files from directory

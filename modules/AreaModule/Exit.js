@@ -1,9 +1,10 @@
-const ScriptManager = require("../../Utils/ScriptManager");
+const ScriptManager = require("../Mud/ScriptManager");
 
 class Exit {
     static ExitDirections = {
         Down: "Down",
         East: "East",
+        None: "None",
         North: "North",
         NorthEast: "NorthEast",
         NorthWest: "NorthWest",
@@ -28,9 +29,13 @@ class Exit {
         this.currentState |= state;
     }
 
+    canCose() {
+        return this.currentState & Exit.ExitStates.CanClose;
+    }
+
     async close(player, args) {
-        if (this.currentState & Exit.ExitStates.CanClose) {
-            if (this.currentState & Exit.ExitStates.Closed) {
+        if (this.canCose()) {
+            if (this.isClosed()) {
                 player.send(`The door is already closed!`);
                 return;
             } else if (this.progs !== undefined && this.progs['onclose']) {
@@ -38,12 +43,7 @@ class Exit {
             } else {
                 this.addState(Exit.ExitStates.Closed);
                 this.removeState(Exit.ExitStates.Opened);
-            }
-
-            if (this.currentState & Exit.ExitStates.Closed) {
                 player.send(`You close the door.`);
-            } else {
-                player.send(`You couldn't seem to closse the door!`);
             }
         } else {
             player.send(`You cannot close this door!`);
@@ -88,6 +88,10 @@ class Exit {
             parseInt(z) === parseInt(this.z);
     }
 
+    isClosed() {
+        return this.currentState & Exit.ExitStates.Closed;
+    }
+
     isLocked() {
         return this.currentState & Exit.ExitStates.Locked;
     }
@@ -96,21 +100,21 @@ class Exit {
         return this.currentState & Exit.ExitStates.Opened;
     }
 
-    async onSendToRoom(player, message) {
+    async sendToExit(player, message) {
         if (this.progs !== undefined && this.progs['onmessage']) {
             await this.scriptManager.executeExitScript(this.progs['onmessage'], { player: { obj: player, username: player.username, message: message }, exit: this, exitStates: Exit.ExitStates });
         }
     }
 
-    async onSendToRoomEmote(player, emote) {
+    async sendToExitEmote(player, emote) {
         if (this.progs !== undefined && this.progs['onemote']) {
             await this.scriptManager.executeExitScript(this.progs['onemote'], { player: { obj: player, emote: emote, username: player.username }, exit: this, exitStates: Exit.ExitStates });
         }
     }
 
     async open(player, args) {
-        if (!(this.currentState & Exit.ExitStates.Locked)) {
-            if (this.currentState & Exit.ExitStates.Opened) {
+        if (!(this.isLocked())) {
+            if (this.isOpened()) {
                 player.send(`The door is already opened!`);
                 return;
             } else if (this.progs !== undefined && this.progs['onopen']) {
@@ -118,12 +122,7 @@ class Exit {
             } else {
                 this.addState(Exit.ExitStates.Opened);
                 this.removeState(Exit.ExitStates.Closed);
-            }
-
-            if (this.currentState & Exit.ExitStates.Opened) {
                 player.send(`You open the door.`);
-            } else {
-                player.send(`The door remained shut!`);
             }
         } else {
             player.send(`The door is locked!`);
@@ -143,10 +142,16 @@ class Exit {
             case Exit.ExitDirections.Up: return Exit.ExitDirections.Down;
             case Exit.ExitDirections.West: return Exit.ExitDirections.East;
         }
+
+        return Exit.ExitDirections.None;
     }
 
     removeState(state) {
         this.currentState &= ~state;
+    }
+
+    reset() {
+        this.currentState = this.initialState;
     }
 
     saveState() {
@@ -175,7 +180,7 @@ class Exit {
             case 'up': return Exit.ExitDirections.Up;
             case 'w':
             case 'west': return Exit.ExitDirections.West;
-            default: return null;
+            default: return Exit.ExitDirections.None;
         }
     }
 

@@ -16,7 +16,7 @@ const PlayerModule = {
         const message = args.join(' ');
 
         player.send(`You say "${message}"`);
-        PlayerModule.mudServer.mudEmitter.emit('sendToRoom', player, `${player.username} says ${message}`, [player.username], message);
+        PlayerModule.mudServer.mudEmitter.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
     },
 
     onPlayerConnected: (socket) => {
@@ -66,20 +66,11 @@ const PlayerModule = {
         PlayerModule.mudServer.mudEmitter.removeListener('hotBootBefore', PlayerModule.onHotBootBefore);
         PlayerModule.mudServer.mudEmitter.removeListener('playerConnected', PlayerModule.onPlayerConnected);
         PlayerModule.mudServer.mudEmitter.removeListener('sendToAll', PlayerModule.onSendToAll);
-        PlayerModule.mudServer.mudEmitter.removeListener('sendToRoom', PlayerModule.onSendToRoom);
     },
 
     onSendToAll(player, message, excludedPlayers = []) {
         PlayerModule.mudServer.players.forEach(p => {
             if (!excludedPlayers.includes(p.username)) {
-                p.send(message);
-            }
-        });
-    },
-
-    onSendToRoom(player, message, excludedPlayers = []) {
-        PlayerModule.mudServer.players.forEach(p => {
-            if (p.sameRoomAs(player) && !excludedPlayers?.includes(p.username)) {
                 p.send(message);
             }
         });
@@ -92,7 +83,6 @@ const PlayerModule = {
         this.mudServer.mudEmitter.on('hotBootBefore', this.onHotBootBefore);
         this.mudServer.mudEmitter.on('playerConnected', this.onPlayerConnected);
         this.mudServer.mudEmitter.on('sendToAll', this.onSendToAll);
-        this.mudServer.mudEmitter.on('sendToRoom', this.onSendToRoom);
     },
 
     playerQuit(player) {

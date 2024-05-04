@@ -282,5 +282,11 @@
     "action": "Player.executeSay",
     "command": "say",
     "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Area.loadAreas",
+    "command": "loadareas",
+    "modLevel": 80
   }
 ]

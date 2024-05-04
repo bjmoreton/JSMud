@@ -1,3 +1,4 @@
+Mud/ScriptManager
 AreaModule/Area
 AreaModule/Exit
 AreaModule/Room

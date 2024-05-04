@@ -12,9 +12,6 @@ class Room {
         this.z = z;
 
         this.exits = new Map();
-
-        global.mudEmitter.on('hotBootBefore', this.onHotBootBefore.bind(this));
-        global.mudEmitter.on('sendToRoom', this.onSendToRoom.bind(this));
     }
 
     addExit(player, area, section, direction, x, y, z) {
@@ -97,14 +94,9 @@ class Room {
             parseInt(z) === parseInt(this.z);
     }
 
-    onHotBootBefore(player, args) {
-        global.mudEmitter.removeListener('hotBootBefore', this.onHotBootBefore.bind(this));
-        global.mudEmitter.removeListener('sendToRoom', this.onSendToRoom.bind(this));
-    }
-
-    onSendToRoom(player, message, execludedPlayers, messagePlain) {
+    sendToRoom(player, message) {
         this.exits?.forEach(exit => {
-            exit.onSendToRoom(player, messagePlain);
+            exit.sendToExit(player, message);
         });
     }
 

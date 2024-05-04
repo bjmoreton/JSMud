@@ -29,14 +29,14 @@ class ScriptManager {
                 }`, [logFunction], { arguments: { copy: true }, result: { promise: true, copy: true } });
 
         // Expose log function
-        const sendToAllFunction = new ivm.Reference(function (message) {
+        const sendToRoomFunction = new ivm.Reference(function (message) {
             global.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
         });
 
         await context.evalClosure(`
-                global.sendToAll = function(message) {
+                global.sendToRoom = function(message) {
                     $0.applySync(undefined, [message]);
-                }`, [sendToAllFunction], { arguments: { copy: true }, result: { promise: true, copy: true } });
+                }`, [sendToRoomFunction], { arguments: { copy: true }, result: { promise: true, copy: true } });
 
         // Handle methods explicitly
         if (objContext.exit && typeof objContext.exit.addState === 'function') {
@@ -80,7 +80,11 @@ class ScriptManager {
 
         // Execute the script
         const script = await this.isolate.compileScript(scriptCode);
-        await script.run(context);
+        try {
+            await script.run(context);
+        } catch (error) {
+            console.error(error);
+        }
     }
 }
 

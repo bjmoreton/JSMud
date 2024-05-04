@@ -53,6 +53,12 @@ class Player {
         return this.statuses && status;
     }
 
+    inRoom(room) {
+        return parseInt(this.currentX) === parseInt(room?.x) &&
+            parseInt(this.currentY) == parseInt(room?.y) &&
+            parseInt(this.currentZ) == parseInt(room?.z);
+    }
+
     load() {
         try {
             // Read the JSON file synchronously
