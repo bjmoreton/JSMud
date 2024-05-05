@@ -1,5 +1,6 @@
 class Emote {
-    constructor(solo, you, target, others, othersSolo) {
+    constructor(name, solo, you, target, others, othersSolo) {
+        this.name = name;
         this.solo = solo;
         this.you = you;
         this.target = target;

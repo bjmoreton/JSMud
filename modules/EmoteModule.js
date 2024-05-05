@@ -76,6 +76,7 @@ const EmoteModule = {
                 player.send(EmoteModule.formatEmote(player, null, emoteAction.solo));
                 EmoteModule.mudServer.mudEmitter.emit('sendToRoom', player, EmoteModule.formatEmote(player, targetPlayer, emoteAction.othersSolo), [player?.username, targetPlayer?.username]);
             }
+            EmoteModule.mudServer.mudEmitter.emit('sendToRoomEmote', player, emoteAction);
         } else {
             player.send(`Emote ${emote} doesn't exist!`);
         }
@@ -90,7 +91,7 @@ const EmoteModule = {
             // Using Object.keys to get an array of emotes and then iterate
             Object.keys(emotes).forEach(emoteType => {
                 const [solo, you, target, others, othersSolo] = emotes[emoteType];
-                EmoteModule.emotesList.set(emoteType.toLowerCase(), new Emote(solo, you, target, others, othersSolo));
+                EmoteModule.emotesList.set(emoteType.toLowerCase(), new Emote(emoteType.toLowerCase(), solo, you, target, others, othersSolo));
                 console.log(`Emote ${emoteType} loaded successfully.`);
             });
             if(player) player.send(`Emotes loaded successfully.`);

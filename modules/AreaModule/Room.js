@@ -94,6 +94,12 @@ class Room {
             parseInt(z) === parseInt(this.z);
     }
 
+    sendToRoomEmote(player, emote) {
+        this.exits?.forEach(exit => {
+            exit.sendToExitEmote(player, emote);
+        });
+    }
+
     sendToRoom(player, message) {
         this.exits?.forEach(exit => {
             exit.sendToExit(player, message);

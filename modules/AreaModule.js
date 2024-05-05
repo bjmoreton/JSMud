@@ -854,6 +854,7 @@ const AreaModule = {
         this.mudServer.mudEmitter.on('hotBootBefore', AreaModule.onBeforeHotboot);
         this.mudServer.mudEmitter.on('playerLoggedIn', AreaModule.onPlayerLoggedIn);
         this.mudServer.mudEmitter.on('sendToRoom', AreaModule.onSendToRoom);
+        this.mudServer.mudEmitter.on('sendToRoomEmote', AreaModule.onSendToRoomEmote);
     },
 
     async executeOpen(player, args) {
@@ -968,6 +969,7 @@ const AreaModule = {
         // Remove 'playerLoggedIn' event listener
         AreaModule.mudServer.mudEmitter.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
         AreaModule.mudServer.mudEmitter.removeListener('sendToRoom', AreaModule.onSendToRoom);
+        AreaModule.mudServer.mudEmitter.removeListener('sendToRoomEmote', AreaModule.onSendToRoomEmote);
     },
 
     onEnteredRoom(player, enterDirection, room) {
@@ -992,7 +994,12 @@ const AreaModule = {
         AreaModule.executeLook(player);
     },
 
+    onSendToRoomEmote(player, emote) {
+        AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ)?.sendToRoomEmote(player, emote);
+    },
+
     onSendToRoom(player, message, excludedPlayers = [], messagePlain) {
+        if(messagePlain === undefined) messagePlain = message;
         AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ)?.sendToRoom(player, messagePlain);
         AreaModule.mudServer.players.forEach(p => {
             if (p.sameRoomAs(player) && !excludedPlayers?.includes(p.username)) {
