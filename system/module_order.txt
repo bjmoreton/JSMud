@@ -4,6 +4,8 @@ AreaModule/Exit
 AreaModule/Room
 AreaModule/Section
 AreaModule
+InventoryModule/Inventory
+InventoryModule/Item
 InventoryModule
 HelpfileModule/Helpfile
 HelpfileModule

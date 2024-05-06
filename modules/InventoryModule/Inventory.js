@@ -10,7 +10,6 @@ class Inventory extends Map {
 
     addItem(vNum, item) {
         const vNumParsed = parseInt(vNum);
-
         if (isNumber(vNumParsed)) {
             if (this.size + 1 <= this.maxSize) {
                 if (this.has(vNumParsed)) {
@@ -42,7 +41,7 @@ class Inventory extends Map {
         try {
             items.forEach(item => {
                 item.data.forEach(newItem => {
-                    inventory.addItem(newItem.vNum, new Item(newItem.vNum, newItem.name, newItem.description, newItem.itemType));
+                    inventory.addItem(item.vNum, new Item(item.vNum, newItem.name, newItem.description, newItem.itemType));
                 });
             });
         } catch (error) {

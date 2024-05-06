@@ -90,7 +90,7 @@ const InventoryModule = {
             return false;
         };
 
-        player.inventory.addItem(0, new Item(0, 'Dusty Key', 'An old dusty key.', Item.ItemTypes.Key));
+        // player.inventory.addItem(0, new Item(0, 'Dusty Key', 'An old dusty key.', Item.ItemTypes.Key));
     },
 
     registerEvents() {

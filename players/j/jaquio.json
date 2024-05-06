@@ -19,6 +19,11 @@
           "name": "Dusty Key",
           "description": "An old dusty key.",
           "itemType": "Key"
+        },
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
         }
       ]
     }
