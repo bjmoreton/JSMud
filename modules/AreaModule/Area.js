@@ -46,7 +46,7 @@ class Area {
 
     // Method to find a section by name
     getSectionByName(section) {
-        return this.sections.get(section.toLowerCase());
+        return this.sections.get(typeof section === 'object' ? section.name?.toLowerCase() : section?.toLowerCase());
     }
 
     // Method to retrieve area property by string
@@ -66,20 +66,20 @@ class Area {
             const sectionsObj = {};
             this.sections.forEach((section) => {
                 sectionsObj[section.name] = {
-                    area: section.area,
+                    area: section.area.name,
                     description: section.description,
                     vSize: section.vSize,
                     rooms: Array.from(section.rooms.values()).map(room => ({
-                        area: room.area,
-                        section: room.section,
+                        area: room.area.name,
+                        section: room.section.name,
                         name: room.name,
                         description: room.description,
                         x: room.x,
                         y: room.y,
                         z: room.z,
                         exits: Array.from(room.exits.values()).map(exit => ({
-                            area: exit.area,
-                            section: exit.section,
+                            area: exit.area.name,
+                            section: exit.section.name,
                             direction: exit.direction.toString(),
                             initialState: exit.initialState,
                             x: exit.x,

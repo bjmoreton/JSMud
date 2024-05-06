@@ -7,10 +7,8 @@
   "workingArea": "start",
   "workingSection": "Start",
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
-  "currentArea": "Start",
-  "currentSection": "Start",
   "currentX": 0,
-  "currentY": 0,
+  "currentY": 1,
   "currentZ": 0,
   "workSection": "start",
   "inventory": [
@@ -24,5 +22,7 @@
         }
       ]
     }
-  ]
+  ],
+  "currentArea": "Start",
+  "currentSection": "Start"
 }

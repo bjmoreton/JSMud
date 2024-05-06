@@ -29,8 +29,27 @@ class Exit {
         Key: 1 << 8
     }
 
+    addEditReverseScript(event, script) {
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+
+        if (revExit) {
+            if (!revExit.progs) {
+                revExit.progs = {};  // Initialize progs if it doesn't exist
+            }
+            revExit.progs[event] = script;
+        }
+    }
+
     addState(state) {
         this.currentState |= state;
+        // Add reverse State
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+
+        if (revExit && !revExit.hasState(state)) {
+            revExit.addState(state);
+        }
     }
 
     canClose() {
@@ -72,6 +91,18 @@ class Exit {
         this.scriptManager = new ScriptManager();
     }
 
+    deleteReverseScript(event) {
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+
+        if (revExit) {
+            if (!revExit.progs) {
+                revExit.progs = {};  // Initialize progs if it doesn't exist
+            }
+            delete revExit.progs[event];
+        }
+    }
+
     static exitStateToString(stateValue) {
         const states = [];
         if (stateValue === Exit.ExitStates.None) {
@@ -93,6 +124,10 @@ class Exit {
 
     getPlayerProperties(player) {
         return getNonFunctionProperties(player, ['socket', 'textEditor', 'inventory']);
+    }
+
+    hasState(state) {
+        return this.currentState & state;
     }
 
     isAt(area, section, x, y, z) {
@@ -183,6 +218,13 @@ class Exit {
 
     removeState(state) {
         this.currentState &= ~state;
+        // Remove reverse State
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+
+        if (revExit && revExit.hasState(state)) {
+            revExit.removeState(state);
+        }
     }
 
     requiresEmote() {
@@ -198,11 +240,29 @@ class Exit {
     }
 
     reset() {
-        this.currentState = this.initialState;
+        if(this.currentState === this.initialState) return;
+        this.currentState = this.initialState;        
+        
+        // Reset reverse State
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+
+        if (revExit && revExit.currentState != revExit.initialState) {
+            revExit.reset();
+        }
     }
 
     saveState() {
+        if(this.initialState === this.currentState) return;
+
         this.initialState = this.currentState;
+        // Save reverse State
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+
+        if (revExit && revExit.initialState != revExit.currentStateState) {
+            revExit.saveState();
+        }
     }
 
     async sendToExit(player, message) {

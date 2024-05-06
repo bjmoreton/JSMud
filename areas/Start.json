@@ -3,7 +3,7 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/06/2024 09:22:29",
+  "lastUpdate": "05/06/2024 12:05:47",
   "sections": {
     "Start": {
       "area": "Start",
@@ -23,7 +23,7 @@
               "area": "Start",
               "section": "Start",
               "direction": "North",
-              "initialState": 463,
+              "initialState": 487,
               "x": "0",
               "y": 1,
               "z": "0",
@@ -48,10 +48,15 @@
               "area": "Start",
               "section": "Start",
               "direction": "South",
-              "initialState": 16,
+              "initialState": 487,
               "x": "0",
               "y": "0",
-              "z": "0"
+              "z": "0",
+              "progs": {
+                "onmessage": "if (player.message.toLowerCase() === 'test123' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
+                "onemote": "if (player.emote.name === 'wave' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
+                "onunlock": "if (hasItem(0)) { return true; }"
+              }
             },
             {
               "area": "Start",

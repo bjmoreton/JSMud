@@ -79,7 +79,9 @@ class Player {
 
     save() {
         // Exclude the properties you want to ignore
-        const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, currentRoom, ...playerData } = this;
+        const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
+        playerData.currentArea = this.currentArea.name;
+        playerData.currentSection = this.currentSection.name;
         playerData.inventory = this.inventory.serialize();
         const filePath = this.getFilePath();
         // Generate the directory path

@@ -76,7 +76,7 @@ class Room {
                 }
             }
 
-            this.exits.set(strToExit, new Exit(area.name, section.name, rX, rY, rZ, direction));
+            this.exits.set(strToExit, new Exit(area, section, rX, rY, rZ, direction));
             toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString()));
 
             player.send(`Exit added successfully!`);
@@ -173,8 +173,8 @@ class Room {
         } else toRoom = section.getRoomByCoordinates(rX, rY, rZ);
 
         if (toRoom != null) {
-            this.exits.delete(strToExit);
-            toRoom.exits.delete(Exit.oppositeExit(strToExit));
+            this.exits.delete(Exit.oppositeExit(strToExit));
+            toRoom.exits.delete(strToExit);
 
             player.send(`Exit removed successfully!`);
         } else {

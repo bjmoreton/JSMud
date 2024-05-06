@@ -16,7 +16,7 @@ class Section {
         if (inRange(x, -this.vSize, this.vSize) &&
             inRange(y, -this.vSize, this.vSize) &&
             inRange(z, -this.vSize, this.vSize)) {
-            const room = new Room(area?.name ?? area, section?.name ?? section, 'Empty Void', 'A void of emptiness!', x, y, z);
+            const room = new Room(area, section, 'Empty Void', 'A void of emptiness!', x, y, z);
             this.rooms.set(`${x},${y},${z}`, room);
             player.send(`Room added!`);
             return room;
