@@ -14,6 +14,18 @@ function formatTime(date) {
     return `${hours}:${minutes}:${seconds}`;
 }
 
+function getNonFunctionProperties(obj, ignoreList = []) {
+    const properties = Object.getOwnPropertyNames(obj);
+    const nonFunctionProperties = properties.filter(prop =>
+        typeof obj[prop] !== 'function' && !ignoreList.includes(prop)
+    );
+
+    return nonFunctionProperties.reduce((acc, prop) => {
+        acc[prop] = obj[prop];
+        return acc;
+    }, {});
+}
+
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -52,4 +64,4 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { formatTime, formatDate, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };
+module.exports = { formatTime, formatDate, getNonFunctionProperties, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };

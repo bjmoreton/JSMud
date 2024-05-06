@@ -3,7 +3,7 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/04/2024 21:16:15",
+  "lastUpdate": "05/06/2024 09:22:29",
   "sections": {
     "Start": {
       "area": "Start",
@@ -23,13 +23,14 @@
               "area": "Start",
               "section": "Start",
               "direction": "North",
-              "initialState": 17,
+              "initialState": 463,
               "x": "0",
               "y": 1,
               "z": "0",
               "progs": {
-                "onmessage": "try {\r\nif(player.message.toLowerCase() === 'test123') {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}\r\n} catch (error) {\r\nlog(error)\r\n}",
-                "onemote": "if(player.emote.name === 'wave'){log('test');}"
+                "onmessage": "if (player.message.toLowerCase() === 'test123' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
+                "onemote": "if (player.emote.name === 'wave' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
+                "onunlock": "if (hasItem(0)) { return true; }"
               }
             }
           ]

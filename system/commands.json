@@ -266,7 +266,9 @@
     "modLevel": 70
   },
   {
-    "aliases": [],
+    "aliases": [
+      "op"
+    ],
     "action": "Area.executeOpen",
     "command": "open",
     "modLevel": 0
@@ -288,5 +290,41 @@
     "action": "Area.loadAreas",
     "command": "loadareas",
     "modLevel": 80
+  },
+  {
+    "aliases": [
+      "i",
+      "items",
+      "inv"
+    ],
+    "action": "Inventory.showInventory",
+    "command": "inventory",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Area.executeLock",
+    "command": "lock",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "un"
+    ],
+    "action": "Area.executeUnlock",
+    "command": "unlock",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Inventory.addItem",
+    "command": "additem",
+    "modLevel": 75
+  },
+  {
+    "aliases": [],
+    "action": "Emote.deleteEmote",
+    "command": "deleteemote",
+    "modLevel": 70
   }
 ]

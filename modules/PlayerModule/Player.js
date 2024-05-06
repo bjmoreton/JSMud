@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { parseColors } = require('../../Utils/Color.js');
-const AreaModule = require('../areaModule.js');
 const TextEditor = require('./TextEditor.js');
+const Inventory = require('../InventoryModule/Inventory.js');
 
 class Player {
     Statuses = {
@@ -53,12 +53,6 @@ class Player {
         return this.statuses && status;
     }
 
-    inRoom(room) {
-        return parseInt(this.currentX) === parseInt(room?.x) &&
-            parseInt(this.currentY) == parseInt(room?.y) &&
-            parseInt(this.currentZ) == parseInt(room?.z);
-    }
-
     load() {
         try {
             // Read the JSON file synchronously
@@ -70,6 +64,7 @@ class Player {
 
             // Assign the player data to the player object
             Object.assign(this, playerObject);
+            if(this.inventory !== undefined) this.inventory = Inventory.deserialize(this, JSON.stringify(playerObject.inventory), playerObject.inventory.maxSize);
             return this;
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
@@ -82,17 +77,11 @@ class Player {
         this.statuses &= ~status;
     }
 
-    sameRoomAs(player) {
-        return parseInt(this.currentX) === parseInt(player?.currentX) &&
-            parseInt(this.currentY) == parseInt(player?.currentY) &&
-            parseInt(this.currentZ) == parseInt(player?.currentZ);
-    }
-
     save() {
         // Exclude the properties you want to ignore
-        const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, ...playerData } = this;
+        const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, currentRoom, ...playerData } = this;
+        playerData.inventory = this.inventory.serialize();
         const filePath = this.getFilePath();
-
         // Generate the directory path
         const directoryPath = path.dirname(filePath);
 

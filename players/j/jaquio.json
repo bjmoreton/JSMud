@@ -13,5 +13,16 @@
   "currentY": 0,
   "currentZ": 0,
   "workSection": "start",
-  "ConnectionStatus": null
+  "inventory": [
+    {
+      "vNum": 0,
+      "data": [
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        }
+      ]
+    }
+  ]
 }

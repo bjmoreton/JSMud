@@ -45,8 +45,8 @@ class Area {
     }
 
     // Method to find a section by name
-    getSectionByName(name) {
-        return this.sections.get(name?.toLowerCase());
+    getSectionByName(section) {
+        return this.sections.get(section.toLowerCase());
     }
 
     // Method to retrieve area property by string

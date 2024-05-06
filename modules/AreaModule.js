@@ -69,8 +69,7 @@ const AreaModule = {
 
     displayMap: (player) => {
         const area = AreaModule.getAreaByName(player.currentArea);
-        const section = area.getSectionByName(player.currentSection);
-        const currentRoom = section.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+        const currentRoom = player.currentRoom;
 
         if (!currentRoom) {
             player.send("Error: Current room not found.");
@@ -405,6 +404,34 @@ const AreaModule = {
             if (areaName === undefined) player.send(`Usage: goto area section x y z`);
             else player.send(`Area ${areaName} not found!`);
         }
+    },
+
+    async executeLock(player, args) {
+        const [exitDirection] = args;
+        const area = AreaModule.getAreaByName(player.currentArea);
+        if (!area) {
+            player.send("Error Current area not found!");
+            return;
+        }
+        const section = area.getSectionByName(player.currentSection);
+        if (!section) {
+            player.send("Error Current section not found!");
+            return;
+        }
+        const currentRoom = section.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+
+        if (!currentRoom) {
+            player.send("Error: Current room not found!");
+            return;
+        }
+        const exit = currentRoom.getExitByDirection(Exit.stringToExit(exitDirection));
+
+        if (!exit) {
+            player.send(`Exit ${exitDirection} not found.`);
+            return;
+        }
+
+        await exit.lock(player, args);
     },
 
     executeNorth(player, args) {
@@ -807,6 +834,34 @@ const AreaModule = {
         AreaModule.movePlayer(player, Exit.ExitDirections.West);
     },
 
+    async executeUnlock(player, args) {
+        const [exitDirection] = args;
+        const area = AreaModule.getAreaByName(player.currentArea);
+        if (!area) {
+            player.send("Error Current area not found!");
+            return;
+        }
+        const section = area.getSectionByName(player.currentSection);
+        if (!section) {
+            player.send("Error Current section not found!");
+            return;
+        }
+        const currentRoom = section.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+
+        if (!currentRoom) {
+            player.send("Error: Current room not found!");
+            return;
+        }
+        const exit = currentRoom.getExitByDirection(Exit.stringToExit(exitDirection));
+
+        if (!exit) {
+            player.send(`Exit ${exitDirection} not found.`);
+            return;
+        }
+
+        await exit.unlock(player, args);
+    },
+
     executeUp(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.Up);
     },
@@ -935,6 +990,9 @@ const AreaModule = {
         player.currentX = parseInt(newX);
         player.currentY = parseInt(newY);
         player.currentZ = parseInt(newZ);
+
+        player.currentRoom = toRoom;
+
         AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.oppositeExit(exitDirection), toRoom);
         AreaModule.executeLook(player);
     },
@@ -955,6 +1013,10 @@ const AreaModule = {
                     });
                 });
             });
+        });
+
+        AreaModule.mudServer.players.forEach(p => {
+            p.currentRoom = AreaModule.getRoomAt(p.currentArea, p.currentSection, p.currentX, p.currentY, p.currentZ);
         });
     },
 
@@ -989,18 +1051,31 @@ const AreaModule = {
         if (player.currentY == undefined || player.currentY == null) player.currentY = AreaModule.startY;
         if (player.currentZ == undefined || player.currentZ == null) player.currentZ = AreaModule.startZ;
 
-        AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.ExitDirections.None, AreaModule.getRoomAt(player.currentArea, player.currentSection, 
-                                                                                                                    player.currentX, player.currentY, player.currentZ));
+        player.inRoom = function (room) {
+            return parseInt(this.currentX) === parseInt(room?.x) &&
+                parseInt(this.currentY) == parseInt(room?.y) &&
+                parseInt(this.currentZ) == parseInt(room?.z);
+        };
+
+        player.sameRoomAs = function (player) {
+            return parseInt(this.currentX) === parseInt(player?.currentX) &&
+                parseInt(this.currentY) == parseInt(player?.currentY) &&
+                parseInt(this.currentZ) == parseInt(player?.currentZ);
+        }
+
+        player.currentRoom = AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ);
+
+        AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.ExitDirections.None, player.currentRoom);
         AreaModule.executeLook(player);
     },
 
     onSendToRoomEmote(player, emote) {
-        AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ)?.sendToRoomEmote(player, emote);
+        player.currentRoom?.sendToRoomEmote(player, emote);
     },
 
     onSendToRoom(player, message, excludedPlayers = [], messagePlain) {
-        if(messagePlain === undefined) messagePlain = message;
-        AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ)?.sendToRoom(player, messagePlain);
+        if (messagePlain === undefined) messagePlain = message;
+        player.currentRoom?.sendToRoom(player, messagePlain);
         AreaModule.mudServer.players.forEach(p => {
             if (p.sameRoomAs(player) && !excludedPlayers?.includes(p.username)) {
                 p.send(message);

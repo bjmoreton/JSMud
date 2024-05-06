@@ -26,7 +26,7 @@ const CommandModule = {
             return;
         }
 
-        if(parseInt(cmdLevel) > player.modLevel) {
+        if (parseInt(cmdLevel) > player.modLevel) {
             player.send(`Level cannot be higher than your own(${player.modLevel})`);
             return;
         }
@@ -53,74 +53,70 @@ const CommandModule = {
             return;
         }
         const oldCMD = cmd.command;
-        if (cmd.level <= player.modLevel) {
-            switch (cmdAction.toLowerCase()) {
-                case 'action':
-                    const [newActionName] = cmdData;
-                    const newAction = CommandModule.findAction(player, newActionName);
+        switch (cmdAction.toLowerCase()) {
+            case 'action':
+                const [newActionName] = cmdData;
+                const newAction = CommandModule.findAction(player, newActionName);
 
-                    if (newAction) {
-                        cmd.action = newActionName;
-                        cmd.handler = newAction;
-                        updated = true;
-                    }
-                    break;
-                case 'aliases':
-                    const [aliasAction, ...aliases] = cmdData;
-                    switch (aliasAction.toLowerCase()) {
-                        case 'add':
-                            aliases.forEach(alias => {
-                                const existingAlias = cmd.aliases.find(a => a === alias);
-                                if (!existingAlias) cmd.aliases.push(alias);
-                            });
-                            updated = true;
-                            break;
-                        case 'remove':
-                            aliases.forEach(alias => {
-                                const index = cmd.aliases.findIndex(a => a === alias);
-                                if (index !== -1) {
-                                    cmd.aliases.splice(index, 1); // Remove Alias at the found index
-                                }
-                            });
-                            updated = true;
-                            break;
-                        default:
-                            player.send(`Usage: editcommand commandnamee aliases <add | remove> aliases`);
-                            break;
-                    }
-                    break;
-                case 'level':
-                    const [newLevel] = cmdData;
-                    if (!isNumber(newLevel) || parseInt(newLevel) > player.modLevel) {
-                        player.send(`Level needs to be a number <= ${player.modLevel}!`);
-                        return;
-                    }
-
-                    cmd.modLevel = parseInt(newLevel);
+                if (newAction) {
+                    cmd.action = newActionName;
+                    cmd.handler = newAction;
                     updated = true;
-                    break;
-                case 'name':
-                    const [newName] = cmdData;
-                    const exists = CommandModule.findCommand(newName);
-
-                    if (!exists) {
-                        cmd.command = newName;
-                        CommandModule.commands.delete(oldCMD);
-                        CommandModule.commands.set(newName, cmd.handler);
+                }
+                break;
+            case 'aliases':
+                const [aliasAction, ...aliases] = cmdData;
+                switch (aliasAction.toLowerCase()) {
+                    case 'add':
+                        aliases.forEach(alias => {
+                            const existingAlias = cmd.aliases.find(a => a === alias);
+                            if (!existingAlias) cmd.aliases.push(alias);
+                        });
                         updated = true;
-                    } else {
-                        player.send(`Command ${newName} already exists!`);
-                    }
-                    break;
-                default:
-                    player.send(`Usage: editcommand commandName <action | aliases | level | name>`);
-                    break;
-            }
+                        break;
+                    case 'remove':
+                        aliases.forEach(alias => {
+                            const index = cmd.aliases.findIndex(a => a === alias);
+                            if (index !== -1) {
+                                cmd.aliases.splice(index, 1); // Remove Alias at the found index
+                            }
+                        });
+                        updated = true;
+                        break;
+                    default:
+                        player.send(`Usage: editcommand commandnamee aliases <add | remove> aliases`);
+                        break;
+                }
+                break;
+            case 'level':
+                const [newLevel] = cmdData;
+                if (!isNumber(newLevel) || parseInt(newLevel) > player.modLevel) {
+                    player.send(`Level needs to be a number <= ${player.modLevel}!`);
+                    return;
+                }
 
-            if (updated) player.send(`Editted command ${oldCMD} successfully.`);
-        } else {
-            player.send(`modLevel to low to change this command!`);
+                cmd.modLevel = parseInt(newLevel);
+                updated = true;
+                break;
+            case 'name':
+                const [newName] = cmdData;
+                const exists = CommandModule.findCommand(newName);
+
+                if (!exists) {
+                    cmd.command = newName;
+                    CommandModule.commands.delete(oldCMD);
+                    CommandModule.commands.set(newName, cmd.handler);
+                    updated = true;
+                } else {
+                    player.send(`Command ${newName} already exists!`);
+                }
+                break;
+            default:
+                player.send(`Usage: editcommand commandName <action | aliases | level | name>`);
+                break;
         }
+
+        if (updated) player.send(`Editted command ${oldCMD} successfully.`);
     },
 
     findAction(player, cmdAction) {

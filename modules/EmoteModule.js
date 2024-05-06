@@ -17,8 +17,8 @@ const EmoteModule = {
     addEmote(player, args) {
         const [emoteName, ...data] = args;
 
-        if(emoteName !== undefined) {
-            if(!EmoteModule.emotesList.has(emoteName.toLowerCase())) {
+        if (emoteName !== undefined) {
+            if (!EmoteModule.emotesList.has(emoteName.toLowerCase())) {
                 const emoteAction = new Emote(data.join(' '));
                 EmoteModule.emotesList.set(emoteName.toLowerCase(), emoteAction);
                 player.send(`Emote ${emoteName} added successfully.`);
@@ -30,6 +30,27 @@ const EmoteModule = {
         }
     },
 
+    async deleteEmote(player, args) {
+        const [emoteName, ...data] = args;
+
+        if (emoteName !== undefined) {
+            if (EmoteModule.emotesList.has(emoteName.toLowerCase())) {
+                const deleteForSure = await player.textEditor.showPrompt(`Delete emote ${emoteName}? y/n`)
+
+                if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
+                    EmoteModule.emotesList.delete(emoteName.toLowerCase());
+                    player.send(`Emote ${emoteName} removed successfully.`);
+                } else {
+                    player.send(`Emote ${emoteName} wasn't deleted!`);
+                }
+            } else {
+                player.send(`Emote ${emoteName} doesn't exist!`);
+            }
+        } else {
+            player.send(`Usage: deleteemote emote`);
+        }
+    },
+
     editEmote(player, args) {
         const [emoteName, emoteProperty, ...data] = args;
 
@@ -37,7 +58,13 @@ const EmoteModule = {
             if (EmoteModule.emotesList.has(emoteName.toLowerCase())) {
                 const emoteAction = EmoteModule.emotesList.get(emoteName.toLowerCase());
 
-                if (emoteAction[emoteProperty] !== undefined) {
+                if(emoteProperty.toLowerCase() == 'name') {
+                    const oldName = emoteName;
+                    const newName = data.join(' ');
+                    EmoteModule.emotesList.delete(emoteName.toLowerCase());
+                    EmoteModule.emotesList.set(newName.toLowerCase(), emoteAction);
+                    player.send(`Renamed emote ${oldName} to ${newName}.`);
+                } else if (emoteAction[emoteProperty] !== undefined) {
                     emoteAction[emoteProperty] = data.join(' ');
                 } else {
                     player.send(`Property ${emoteProperty} doesn't exist!`);
@@ -94,7 +121,7 @@ const EmoteModule = {
                 EmoteModule.emotesList.set(emoteType.toLowerCase(), new Emote(emoteType.toLowerCase(), solo, you, target, others, othersSolo));
                 console.log(`Emote ${emoteType} loaded successfully.`);
             });
-            if(player) player.send(`Emotes loaded successfully.`);
+            if (player) player.send(`Emotes loaded successfully.`);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
         }

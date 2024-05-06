@@ -1,3 +1,4 @@
+const { getNonFunctionProperties } = require("../../Utils/helpers");
 const ScriptManager = require("../Mud/ScriptManager");
 
 class Exit {
@@ -22,24 +23,31 @@ class Exit {
         Closed: 1 << 2,
         Locked: 1 << 3,
         Opened: 1 << 4,
-        Unlocked: 1 << 5
+        Unlocked: 1 << 5,
+        Password: 1 << 6,
+        Emote: 1 << 7,
+        Key: 1 << 8
     }
 
     addState(state) {
         this.currentState |= state;
     }
 
-    canCose() {
+    canClose() {
         return this.currentState & Exit.ExitStates.CanClose;
     }
 
+    canLock() {
+        return this.currentState & Exit.ExitStates.CanLock;
+    }
+
     async close(player, args) {
-        if (this.canCose()) {
+        if (this.canClose()) {
             if (this.isClosed()) {
                 player.send(`The door is already closed!`);
                 return;
             } else if (this.progs !== undefined && this.progs['onclose']) {
-                await this.scriptManager.executeExitScript(this.progs['onclose'], { player: { obj: player, args: args, username: player.username }, exit: this, exitStates: Exit.ExitStates, mudEmitter: global.mudEmitter });
+                await this.scriptManager.executeExitScript(this.progs['onclose'], { player: { obj: player, args: args, ...this.getPlayerProperties(player) }, exit: this, exitStates: Exit.ExitStates, mudEmitter: global.mudEmitter });
             } else {
                 this.addState(Exit.ExitStates.Closed);
                 this.removeState(Exit.ExitStates.Opened);
@@ -76,13 +84,20 @@ class Exit {
         if (stateValue & Exit.ExitStates.Locked) states.push('Locked');
         if (stateValue & Exit.ExitStates.Opened) states.push('Opened');
         if (stateValue & Exit.ExitStates.Unlocked) states.push('Unlocked');
+        if (stateValue & Exit.ExitStates.Password) states.push('Password');
+        if (stateValue & Exit.ExitStates.Emote) states.push('Emote');
+        if (stateValue & this.ExitStates.Key) states.push('Key');
 
         return states.join(', ');
     }
 
+    getPlayerProperties(player) {
+        return getNonFunctionProperties(player, ['socket', 'textEditor', 'inventory']);
+    }
+
     isAt(area, section, x, y, z) {
-        return area === this.area &&
-            section === this.section &&
+        return area.toLowerCase() === this.area?.toLowerCase() &&
+            section?.toLowerCase() === this.section?.toLowerCase() &&
             parseInt(x) === parseInt(this.x) &&
             parseInt(y) === parseInt(this.y) &&
             parseInt(z) === parseInt(this.z);
@@ -100,29 +115,49 @@ class Exit {
         return this.currentState & Exit.ExitStates.Opened;
     }
 
-    async sendToExit(player, message) {
-        if (this.progs !== undefined && this.progs['onmessage']) {
-            await this.scriptManager.executeExitScript(this.progs['onmessage'], { player: { obj: player, username: player.username, message: message }, exit: this, exitStates: Exit.ExitStates });
-        }
-    }
+    async lock(player, args) {
+        if (!this.isLocked()) {
+            if (this.canLock()) {
 
-    async sendToExitEmote(player, emote) {
-        if (this.progs !== undefined && this.progs['onemote']) {
-            await this.scriptManager.executeExitScript(this.progs['onemote'], { player: { obj: player, emote: emote, username: player.username }, exit: this, exitStates: Exit.ExitStates });
+                let locked = true;
+                if (this.progs !== undefined && this.progs['onlock']) {
+                    locked = await this.scriptManager.executeExitScript(this.progs['onlock'], { player: { obj: player, args: args, ...this.getPlayerProperties(player) }, exit: this, exitStates: Exit.ExitStates });
+                }
+
+                if (locked) {
+                    this.addState(Exit.ExitStates.Locked);
+                    this.removeState(Exit.ExitStates.Unlocked);
+                    player.send(`You lock the door.`);
+                } else {
+                    player.send(`You couldn't seem to lock the door!`);
+                }
+            } else {
+                player.send(`You cannot lock this door!`);
+            }
+        } else {
+            player.send(`The door is already locked!`);
         }
     }
 
     async open(player, args) {
+        console.log(args);
         if (!(this.isLocked())) {
             if (this.isOpened()) {
                 player.send(`The door is already opened!`);
                 return;
-            } else if (this.progs !== undefined && this.progs['onopen']) {
-                await this.scriptManager.executeExitScript(this.progs['onopen'], { player: { obj: player, username: player.username }, exit: this, exitStates: Exit.ExitStates });
-            } else {
+            }
+
+            let opened = true;
+            if (this.progs !== undefined && this.progs['onopen']) {
+                opened = await this.scriptManager.executeExitScript(this.progs['onopen'], { player: { obj: player, args: args, ...this.getPlayerProperties(player) }, exit: this, exitStates: Exit.ExitStates });
+            }
+
+            if (opened) {
                 this.addState(Exit.ExitStates.Opened);
                 this.removeState(Exit.ExitStates.Closed);
                 player.send(`You open the door.`);
+            } else {
+                player.send(`You couldn't open the door!`);
             }
         } else {
             player.send(`The door is locked!`);
@@ -150,12 +185,36 @@ class Exit {
         this.currentState &= ~state;
     }
 
+    requiresEmote() {
+        return this.currentState & Exit.ExitStates.Emote;
+    }
+
+    requiresKey() {
+        return this.currentState & Exit.ExitStates.Key;
+    }
+
+    requiresPassword() {
+        return this.currentState & Exit.ExitStates.Password;
+    }
+
     reset() {
         this.currentState = this.initialState;
     }
 
     saveState() {
         this.initialState = this.currentState;
+    }
+
+    async sendToExit(player, message) {
+        if (this.progs !== undefined && this.progs['onmessage'] && this.requiresPassword()) {
+            await this.scriptManager.executeExitScript(this.progs['onmessage'], { player: { obj: player, message: message, ...this.getPlayerProperties(player) }, exit: this, exitStates: Exit.ExitStates });
+        }
+    }
+
+    async sendToExitEmote(player, emote) {
+        if (this.progs !== undefined && this.progs['onemote'] && this.requiresEmote()) {
+            await this.scriptManager.executeExitScript(this.progs['onemote'], { player: { obj: player, emote: emote, ...this.getPlayerProperties(player) }, exit: this, exitStates: Exit.ExitStates });
+        }
     }
 
     static stringToExit(string) {
@@ -200,9 +259,38 @@ class Exit {
                 return Exit.ExitStates.Opened;
             case "unlocked":
                 return Exit.ExitStates.Unlocked;
+            case "password":
+                return Exit.ExitStates.Password;
+            case "emote":
+                return Exit.ExitStates.Emote;
+            case "key":
+                return Exit.ExitStates.Key;
             default:
                 console.error("Invalid exit state string: " + stateString);
                 return null;  // or throw an error, or return a default state
+        }
+    }
+
+    async unlock(player, args) {
+        if (this.isLocked()) {
+            if (this.requiresKey()) {
+                let unlocked = true;
+                if (this.progs !== undefined && this.progs['onunlock']) {
+                    unlocked = await this.scriptManager.executeExitScript(this.progs['onunlock'], { player: { obj: player, args: args, ...this.getPlayerProperties(player) }, exit: this, exitStates: Exit.ExitStates });
+                }
+
+                if (unlocked) {
+                    this.addState(Exit.ExitStates.Unlocked);
+                    this.removeState(Exit.ExitStates.Locked);
+                    player.send(`You unlock the door.`);
+                } else {
+                    player.send(`You couldn't seem to unlock the door!`);
+                }
+            } else {
+                player.send(`You couldn't seem to unlock the door!`);
+            }
+        } else {
+            player.send(`The door isn't locked!`);
         }
     }
 }

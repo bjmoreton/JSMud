@@ -20,65 +20,69 @@ class Room {
         let rZ = this.z;
 
         const strToExit = Exit.stringToExit(direction);
-        switch (strToExit) {
-            case Exit.ExitDirections.Down:
-                rZ--;
-                break;
-            case Exit.ExitDirections.East:
-                rX++;
-                break;
-            case Exit.ExitDirections.North:
-                rY++;
-                break;
-            case Exit.ExitDirections.NorthEast:
-                rX++;
-                rY++;
-                break;
-            case Exit.ExitDirections.NorthWest:
-                rX--;
-                rY++;
-                break;
-            case Exit.ExitDirections.South:
-                rY--;
-                break;
-            case Exit.ExitDirections.SouthEast:
-                rX++;
-                rY--;
-                break;
-            case Exit.ExitDirections.SouthWest:
-                rX--;
-                rY--;
-                break;
-            case Exit.ExitDirections.Up:
-                rZ++;
-                break;
-            case Exit.ExitDirections.West:
-                rX--;
-                break;
-            default:
-                player.send('Invalid exit direction!');
-                return;
-        }
-
-        if (isNumber(x) && isNumber(y) && isNumber(z)) {
-            rX = x;
-            rY = y;
-            rZ = z;
-        }
-
-        let toRoom = section.getRoomByCoordinates(rX, rY, rZ);
-        if (toRoom == null) {
-            toRoom = section.addRoom(player, area, section, rX, rY, rZ);
-            if (toRoom == null) {
-                player.send(`Room doesn't exist!`);
-                return;
+        if (!this.exits.has(strToExit)) {
+            switch (strToExit) {
+                case Exit.ExitDirections.Down:
+                    rZ--;
+                    break;
+                case Exit.ExitDirections.East:
+                    rX++;
+                    break;
+                case Exit.ExitDirections.North:
+                    rY++;
+                    break;
+                case Exit.ExitDirections.NorthEast:
+                    rX++;
+                    rY++;
+                    break;
+                case Exit.ExitDirections.NorthWest:
+                    rX--;
+                    rY++;
+                    break;
+                case Exit.ExitDirections.South:
+                    rY--;
+                    break;
+                case Exit.ExitDirections.SouthEast:
+                    rX++;
+                    rY--;
+                    break;
+                case Exit.ExitDirections.SouthWest:
+                    rX--;
+                    rY--;
+                    break;
+                case Exit.ExitDirections.Up:
+                    rZ++;
+                    break;
+                case Exit.ExitDirections.West:
+                    rX--;
+                    break;
+                default:
+                    player.send('Invalid exit direction!');
+                    return;
             }
+
+            if (isNumber(x) && isNumber(y) && isNumber(z)) {
+                rX = x;
+                rY = y;
+                rZ = z;
+            }
+
+            let toRoom = section.getRoomByCoordinates(rX, rY, rZ);
+            if (toRoom == null) {
+                toRoom = section.addRoom(player, area, section, rX, rY, rZ);
+                if (toRoom == null) {
+                    player.send(`Room doesn't exist!`);
+                    return;
+                }
+            }
+
+            this.exits.set(strToExit, new Exit(area.name, section.name, rX, rY, rZ, direction));
+            toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString()));
+
+            player.send(`Exit added successfully!`);
+        } else {
+            player.send(`Exit already exist in ${strToExit} direction!`);
         }
-
-        this.exits.set(strToExit, new Exit(area.name, section.name, rX, rY, rZ, direction));
-        toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString()));
-
-        player.send(`Exit added successfully!`);
     }
 
     // Method to get an exit by direction
@@ -87,8 +91,8 @@ class Room {
     }
 
     isAt(area, section, x, y, z) {
-        return area === this.area &&
-            section === this.section &&
+        return area?.toLowerCase() === this.area?.toLowerCase() &&
+            section?.toLowerCase() === this.section?.toLowerCase() &&
             parseInt(x) === parseInt(this.x) &&
             parseInt(y) === parseInt(this.y) &&
             parseInt(z) === parseInt(this.z);

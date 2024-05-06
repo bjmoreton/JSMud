@@ -4,6 +4,7 @@ AreaModule/Exit
 AreaModule/Room
 AreaModule/Section
 AreaModule
+InventoryModule
 HelpfileModule/Helpfile
 HelpfileModule
 PlayerModule/TextEditor

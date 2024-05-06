@@ -31,10 +31,6 @@ class Section {
 
         if (room != null) {
             room.exits?.forEach(exit => {
-                // const toArea = AreaModule.getAreaByName(exit.area);
-                // const toSection = toArea?.getSectionByName(exit.section);
-                // const toRoom = toSection?.getRoomByCoordinates(exit.x, exit.y, exit.z);
-
                 room.removeExit(player, this, Exit.oppositeExit(exit.direction.toString()));
             });
             this.rooms.delete(`${x},${y},${z}`);
