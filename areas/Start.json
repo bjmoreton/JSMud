@@ -3,7 +3,7 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/08/2024 20:23:07",
+  "lastUpdate": "05/09/2024 01:53:47",
   "sections": {
     "Start": {
       "area": "Start",
@@ -19,7 +19,202 @@
           "x": "0",
           "y": "0",
           "z": "0",
-          "exits": []
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "West",
+              "initialState": 16,
+              "x": -1,
+              "y": "0",
+              "z": "0",
+              "teleport": false
+            },
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "East",
+              "initialState": 16,
+              "x": 1,
+              "y": "0",
+              "z": "0",
+              "teleport": false
+            },
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "North",
+              "initialState": 16,
+              "x": 0,
+              "y": -9,
+              "z": 0,
+              "teleport": true
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Start",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": -1,
+          "y": "0",
+          "z": "0",
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "East",
+              "initialState": 16,
+              "x": "0",
+              "y": "0",
+              "z": "0",
+              "teleport": false
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Start",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": 1,
+          "y": "0",
+          "z": "0",
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "West",
+              "initialState": 16,
+              "x": "0",
+              "y": "0",
+              "z": "0",
+              "teleport": false
+            }
+          ]
+        }
+      ]
+    },
+    "Test": {
+      "area": "Start",
+      "description": "",
+      "nameDisplay": "Test",
+      "vSize": 10,
+      "rooms": [
+        {
+          "area": "Start",
+          "section": "Test",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": 0,
+          "y": -9,
+          "z": 0,
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Start",
+              "direction": "South",
+              "initialState": 16,
+              "x": "0",
+              "y": "0",
+              "z": "0",
+              "teleport": true
+            },
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "North",
+              "initialState": 16,
+              "x": 0,
+              "y": -8,
+              "z": 0,
+              "teleport": false
+            },
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "East",
+              "initialState": 16,
+              "x": 1,
+              "y": -9,
+              "z": 0,
+              "teleport": false
+            },
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "West",
+              "initialState": 16,
+              "x": -1,
+              "y": -9,
+              "z": 0,
+              "teleport": false
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Test",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": 0,
+          "y": -8,
+          "z": 0,
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "South",
+              "initialState": 16,
+              "x": 0,
+              "y": -9,
+              "z": 0,
+              "teleport": false
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Test",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": 1,
+          "y": -9,
+          "z": 0,
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "West",
+              "initialState": 16,
+              "x": 0,
+              "y": -9,
+              "z": 0,
+              "teleport": false
+            }
+          ]
+        },
+        {
+          "area": "Start",
+          "section": "Test",
+          "name": "Empty Void",
+          "description": "A void of emptiness!",
+          "x": -1,
+          "y": -9,
+          "z": 0,
+          "exits": [
+            {
+              "area": "Start",
+              "section": "Test",
+              "direction": "East",
+              "initialState": 16,
+              "x": 0,
+              "y": -9,
+              "z": 0,
+              "teleport": false
+            }
+          ]
         }
       ]
     }

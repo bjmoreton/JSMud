@@ -5,9 +5,9 @@
   "modLevel": 100,
   "statuses": 0,
   "workingArea": "start",
-  "workingSection": "Start",
+  "workingSection": "Test",
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
-  "currentX": 0,
+  "currentX": 1,
   "currentY": 0,
   "currentZ": 0,
   "workSection": "start",
@@ -15,6 +15,26 @@
     {
       "vNum": 0,
       "data": [
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        },
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        },
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        },
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        },
         {
           "name": "Dusty Key",
           "description": "An old dusty key.",

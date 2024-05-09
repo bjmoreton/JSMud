@@ -87,7 +87,8 @@ class Area {
                             x: exit.x,
                             y: exit.y,
                             z: exit.z,
-                            progs: exit.progs
+                            progs: exit.progs,
+                            teleport: exit.teleport ?? false
                         }))
                     }))
                 };

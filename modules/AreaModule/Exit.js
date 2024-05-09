@@ -84,7 +84,7 @@ class Exit {
         }
     }
 
-    constructor(area, section, x, y, z, direction, initialState = Exit.ExitStates.Opened, progs) {
+    constructor(area, section, x, y, z, direction, progs, teleport = false, initialState = Exit.ExitStates.Opened) {
         this.area = area;
         this.section = section;
         this.x = x;
@@ -94,6 +94,7 @@ class Exit {
         this.initialState = initialState;
         this.currentState = this.initialState;
         this.progs = progs;
+        this.teleport = teleport;
     }
 
     deleteReverseScript(event) {
@@ -141,8 +142,8 @@ class Exit {
     }
 
     isAt(area, section, x, y, z) {
-        return area.toLowerCase() === this.area?.toLowerCase() &&
-            section?.toLowerCase() === this.section?.toLowerCase() &&
+        return area.toLowerCase() === this.area?.name.toLowerCase() &&
+            section?.toLowerCase() === this.section?.name.toLowerCase() &&
             parseInt(x) === parseInt(this.x) &&
             parseInt(y) === parseInt(this.y) &&
             parseInt(z) === parseInt(this.z);

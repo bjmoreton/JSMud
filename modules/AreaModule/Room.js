@@ -15,7 +15,7 @@ class Room {
         this.exits = new Map();
     }
 
-    addExit(player, area, section, direction, x, y, z) {
+    addExit(player, area, section, direction, x, y, z, teleport = false) {
         let rX = this.x;
         let rY = this.y;
         let rZ = this.z;
@@ -77,8 +77,8 @@ class Room {
                 }
             }
 
-            this.exits.set(strToExit, new Exit(area, section, rX, rY, rZ, direction));
-            toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString()));
+            this.exits.set(strToExit, new Exit(area, section, rX, rY, rZ, direction, {}, teleport));
+            toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString(), {}, teleport));
 
             player.send(`Exit added successfully!`);
         } else {
@@ -185,7 +185,7 @@ class Room {
 
     onSpawn() {
         try {
-            if(this.progs !== undefined && this.progs['onspawn']) {
+            if (this.progs !== undefined && this.progs['onspawn']) {
                 eval(this.progs['onspawn']);
             }
         } catch (error) {

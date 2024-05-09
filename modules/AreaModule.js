@@ -99,8 +99,9 @@ const AreaModule = {
                                 exitData.y,
                                 exitData.z,
                                 exitData.direction,
-                                exitData.initialState,
-                                exitData.progs
+                                exitData.progs,
+                                exitData.teleport,
+                                exitData.initialState
                             );
                             room.exits.set(Exit.stringToExit(exit.direction), exit);
                         });
@@ -334,10 +335,13 @@ const AreaModule = {
                 continue;
             }
 
-            room.exits.forEach((exitRoom, exitDirection) => {
+            room?.exits?.forEach((exit, exitDirection) => {
                 const { newX, newY, newZ } = AreaModule.getNewCoordinates(x, y, z, exitDirection);
                 if (!roomMap.has(newX) || !roomMap.get(newX).has(newY)) {
-                    queue.push({ room: AreaModule.exitToRoom(exitRoom), x: newX, y: newY, z: newZ });
+                    const exitRoom = AreaModule.exitToRoom(exit);
+                    if (exit.teleport || (exitRoom.area.name == player.currentArea.name && exitRoom.section.name == player.currentSection.name)) {
+                        queue.push({ room: exitRoom, x: newX, y: newY, z: newZ });
+                    }
                 }
             });
         }
@@ -995,7 +999,7 @@ const AreaModule = {
                         await AreaModule.addRoomExit(player, foundArea, foundSection, data);
                         break;
                     case 'addtexit':
-                        await AreaModule.addTeleportExit(player, foundArea, foundSection, data);
+                        await AreaModule.addTeleportExit(player, data);
                         break;
                     case 'removeexit':
                         await AreaModule.removeRoomExit(player, foundSection, data);
@@ -1143,13 +1147,11 @@ const AreaModule = {
     /**
      * Add a teleport exit to the current room.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
-     * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    async addTeleportExit(player, foundArea, foundSection, data) {
+    async addTeleportExit(player, data) {
         const [toArea, toSection, toX, toY, toZ, toDirection] = data;
-        const fromRoom = foundSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
+        const fromRoom = player.currentRoom;
 
         if (toArea !== undefined && toSection !== undefined && toX !== undefined && toY !== undefined && toZ !== undefined && toDirection !== undefined) {
             if (!isNumber(parseInt(toX)) || !isNumber(parseInt(toY)) || !isNumber(parseInt(toZ))) {
@@ -1179,7 +1181,7 @@ const AreaModule = {
             }
 
             if (!exitFound) {
-                fromRoom.addExit(player, areaTo, sectionTo, toDirection, parseInt(toX), parseInt(toY), parseInt(toZ));
+                fromRoom.addExit(player, areaTo, sectionTo, toDirection, parseInt(toX), parseInt(toY), parseInt(toZ), true);
             } else {
                 player.send(`Exit already exists for the destination room.`);
             }
