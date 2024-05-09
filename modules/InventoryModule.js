@@ -11,28 +11,90 @@ const InventoryModule = {
 
     dropItem(player, args) {
         const [item] = args;
+        let itemDropped = false;
+
         if (player.hasItemLike(item)) {
             for (let [key, value] of player.inventory.entries()) {
-                if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
-                    const droppedItem = value[0];
+                // Check if any item in this stack matches the given name
+                const index = value.findIndex(i => i.name?.toLowerCase().includes(item?.toLowerCase()));
+
+                if (index !== -1) {
+                    const droppedItem = value[index];
                     const vNum = key;
-                    const removed = player.inventory.removeItem(key);
-                    if (removed) {
-                        if (!player.currentRoom.inventory.addItem(player, vNum, droppedItem)) {
-                            player.inventory.addItem(player, vNum, droppedItem);
-                        } else {
-                            player.send(`Dropped ${droppedItem.name}!`);
-                            return true;
-                        }
+
+                    // Remove the individual item from the stack
+                    value.splice(index, 1);
+
+                    // If the stack is empty, remove the key from the inventory
+                    if (value.length === 0) {
+                        player.inventory.delete(key);
+                    }
+
+                    // Add the item to the room's inventory
+                    if (!player.currentRoom.inventory.addItem(vNum, droppedItem)) {
+                        player.inventory.addItem(vNum, droppedItem);
+                    } else {
+                        player.send(`Dropped ${droppedItem.name}!`);
+                        itemDropped = true;
+                        return true;
                     }
                 }
             }
 
-            player.send(`Failed to drop ${item}!`);
+            if (!itemDropped) {
+                if (player.currentRoom.inventory.full) player.send(`Room is full!`);
+                else player.send(`Failed to drop ${item}!`);
+                return false;
+            }
+        } else {
+            player.send(`${item} not found!`);
             return false;
         }
-        player.send(`${item} not found!`);
-        return false;
+    },
+
+    dropAll(player, args) {
+        const [item] = args;
+
+        if (item) {
+            if (player.hasItemLike(item)) {
+                while (player.hasItemLike(item)) {
+                    InventoryModule.dropItem(player, [item]);
+                }
+
+                if (!player.hasItemLike(item)) {
+                    player.send(`Dropped all of ${item} successfully.`);
+                    return true;
+                }
+
+                player.send(`Failed to drop all of ${item}!`);
+                return false;
+            }
+
+            player.send(`${item} not found!`);
+            return false;
+        } else {
+            const allItems = [];
+
+            // Collect all items in the player's inventory
+            for (let [key, value] of player.inventory.entries()) {
+                for (let item of value) {
+                    allItems.push([key, item.name]);
+                }
+            }
+
+            // Drop all collected items
+            for (let [key, itemName] of allItems) {
+                InventoryModule.dropItem(player, [itemName]);
+            }
+
+            if (player.inventory.size === 0) {
+                player.send(`Dropped all items successfully.`);
+                return true;
+            }
+
+            player.send(`Failed to drop all items!`);
+            return false;
+        }
     },
 
     init: function (mudServer) {
@@ -89,11 +151,10 @@ const InventoryModule = {
 
     onRoomAdded(room, roomData) {
         if (!room.inventory) {
-            room.inventory = new Inventory(room, 10); // Assuming Inventory is correctly imported or defined elsewhere
+            room.inventory = new Inventory(10); // Assuming Inventory is correctly imported or defined elsewhere
             roomData.inventory?.forEach(itemData => {
-                console.log(itemData.vNum);
                 for (const item of itemData.data) {
-                    room.inventory.addItem(null, itemData.vNum, new Item(itemData.vNum, item.name, item.description, item.itemType), true);
+                    room.inventory.addItem(itemData.vNum, new Item(itemData.vNum, item.name, item.description, item.itemType), true);
                 }
             });
             room.hasItem = function (item) {
@@ -187,6 +248,49 @@ const InventoryModule = {
         }
     },
 
+    takeAllItems(player, args) {
+        const [takeItem] = args; 
+
+        if (player.currentRoom && player.currentRoom.inventory) {
+            const allItems = [];
+
+            // Collect all items in the room
+            for (let [key, value] of player.currentRoom.inventory.entries()) {
+                for (let item of value) {
+                    // Apply the optional item
+                    if (!takeItem || item.name.toLowerCase().includes(takeItem.toLowerCase())) {
+                        allItems.push([key, item]);
+                    }
+                }
+            }
+
+            // Pick up all collected items
+            for (let [key, item] of allItems) {
+                const removed = player.currentRoom.inventory.removeItem(key, item);
+                if (removed) {
+                    if (!player.inventory.addItem(key, item)) {
+                        player.currentRoom.inventory.addItem(key, item); // Re-add item if inventory is full
+                        player.send(`Inventory is full! Failed to pick up ${item.name}.`);
+                    } else {
+                        player.send(`Picked up ${item.name}!`);
+                    }
+                }
+            }
+
+            if (allItems.length > 0) {
+                if (player.currentRoom.inventory.size === 0) {
+                    player.send(`Picked up all items${takeItem ? ` matching '${takeItem}'` : ''} successfully.`);
+                } else {
+                    player.send(`Failed to pick up all items${takeItem ? ` matching '${takeItem}'` : ''}!`);
+                }
+            } else {
+                player.send(`No items found${takeItem ? ` matching '${takeItem}'` : ''}.`);
+            }
+        } else {
+            player.send(`No items to pick up!`);
+        }
+    },
+
     takeItem(player, args) {
         const [item] = args;
         if (player.currentRoom.hasItemLike(item)) {
@@ -196,8 +300,8 @@ const InventoryModule = {
                     const vNum = key;
                     const removed = player.currentRoom.inventory.removeItem(key);
                     if (removed) {
-                        if (!player.inventory.addItem(player, vNum, takenItem)) {
-                            player.currentRoom.inventory.addItem(player, vNum, takenItem);
+                        if (!player.inventory.addItem(vNum, takenItem)) {
+                            player.currentRoom.inventory.addItem(vNum, takenItem);
                         } else {
                             player.send(`Picked up ${takenItem.name}!`);
                             return true;
@@ -206,7 +310,8 @@ const InventoryModule = {
                 }
             }
 
-            player.send(`Failed to pick-up ${item}!`);
+            if (player.inventory.full) player.send(`Inventory is full!`);
+            else player.send(`Failed to pick-up ${item}!`);
             return false;
         }
         player.send(`${item} not found!`);

@@ -17,12 +17,12 @@ const ItemModule = {
 
     addItem(player, args) {
         // Check if necessary arguments are present
-        if (args.length < 3) {
-            player.send("Usage: addItem name \"description\" itemType");
+        if (args.length < 2) {
+            player.send("Usage: addItem name itemType");
             return;
         }
 
-        const [name, description, itemType] = args;
+        const [name, itemType] = args;
         const lastEntry = Array.from(ItemModule.itemsList.entries())[ItemModule.itemsList.size - 1];
         const lastItemVNum = lastEntry[0];
         const vNumInt = parseInt(lastItemVNum) + 1;
@@ -34,7 +34,7 @@ const ItemModule = {
         }
 
         // Create a new item
-        const newItem = new Item(vNumInt, name, description, itemType);
+        const newItem = new Item(vNumInt, name, '', itemType);
 
         // Add to the global items list
         ItemModule.itemsList.set(vNumInt, newItem);
@@ -117,8 +117,8 @@ const ItemModule = {
     },
 
     onPlayerLoggedIn: (player) => {
-        // const dustyKey = ItemModule.getItemByVNum(0);
-        // player.inventory.addItem(player, dustyKey.vNum, dustyKey);
+        //const dustyKey = ItemModule.getItemByVNum(0);
+        //for(let i = 0; i <= 30; i++) player.inventory.addItem(dustyKey.vNum, dustyKey, true);
     },
 
     registerEvents() {

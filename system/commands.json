@@ -366,5 +366,17 @@
     "action": "Inventory.takeItem",
     "command": "take",
     "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Inventory.dropAll",
+    "command": "drop all",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Inventory.takeAllItems",
+    "command": "take all",
+    "modLevel": 0
   }
 ]

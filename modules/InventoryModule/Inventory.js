@@ -1,18 +1,17 @@
 const { isNumber } = require("../../Utils/helpers");
-const Item = require("../ItemModule/Item");
 const Player = require("../PlayerModule/Player");
 
 class Inventory extends Map {
-    constructor(parent, maxSize = 30) {
+    constructor(maxSize = 30) {
         super();
         this.maxSize = maxSize;
-        this.parent = parent;
     }
 
-    addItem(player, vNum, item, bypass = false) {
+    addItem(vNum, item, bypass = false) {
         const vNumParsed = parseInt(vNum);
+
         if (isNumber(vNumParsed)) {
-            if (this.size + 1 <= this.maxSize || bypass) {
+            if (this.actualSize() + 1 <= this.maxSize || bypass) {
                 if (this.has(vNumParsed)) {
                     this.get(vNumParsed).push(item);
                 } else {
@@ -21,9 +20,6 @@ class Inventory extends Map {
                     this.set(vNumParsed, itemArray);
                 }
                 return true;
-            } else {
-                if (this.parent instanceof Player) this.parent.send(`Inventory is full!`);
-                else player.send(`No more items can be dropped here.`);
             }
         }
         return false;
@@ -36,7 +32,7 @@ class Inventory extends Map {
             if (items.length === 0) this.delete(vNum);
             return true;
         }
-        
+
         return false;
     }
 
@@ -48,21 +44,32 @@ class Inventory extends Map {
         return items;  // Only stringify once, at the top level
     }
 
+    actualSize() {
+        let sizeActual = this.size - 1;
+        for (const [key, value] of this.entries()) {
+            sizeActual += value.length;
+        }
+
+        return parseInt(sizeActual);
+    }
+
+    full = () => { return this.actualSize() === this.maxSize; }
+
     static deserialize(player, data, maxSize = 30) {
-        let inventory = new Inventory(player, maxSize);
+        let inventory = new Inventory(maxSize);
         let items = JSON.parse(data);  // Assuming data is a JSON string
         try {
             items.forEach(item => {
                 item.data.forEach(newItem => {
                     const addItem = global.ItemModule.getItemByVNum(item.vNum);
-                    inventory.addItem(player, parseInt(item.vNum), addItem);
+                    inventory.addItem(parseInt(item.vNum), addItem, true);
                 });
             });
         } catch (error) {
             console.error("Failed to deserialize inventory:", error);
-            return new Inventory(player, maxSize); // Optionally return an empty inventory on failure
+            return new Inventory(maxSize); // Optionally return an empty inventory on failure
         }
-        console.log("OMG", inventory);
+
         return inventory;
     }
 }

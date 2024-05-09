@@ -110,7 +110,6 @@ class Exit {
     }
 
     emitEvent(event, ...args) {
-        console.log('emit ' + event);
         global.mudEmitter.emit(event, ...args);
     }
 

@@ -150,6 +150,10 @@ const CommandModule = {
         let handler = undefined;
         if (args.length > 0) {
             handler = CommandModule.findCommand(`${cmdName} ${args[0]}`);
+
+            if (handler) {
+                args.shift();
+            }
         }
 
         if (!handler) handler = CommandModule.findCommand(cmdName);
