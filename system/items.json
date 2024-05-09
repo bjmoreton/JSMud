@@ -1,10 +1,10 @@
 [
-    {
-        "vNum": 0,
-        "data": {
-            "name": "Dusty Key",
-            "description": "An old dusty key.",
-            "itemType": "Key"
-        }
+  {
+    "vNum": 0,
+    "data": {
+      "name": "Dusty Key",
+      "description": "An old dusty key.",
+      "itemType": "Key"
     }
+  }
 ]

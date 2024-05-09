@@ -3,11 +3,12 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/06/2024 12:05:47",
+  "lastUpdate": "05/08/2024 20:23:07",
   "sections": {
     "Start": {
       "area": "Start",
       "description": "",
+      "nameDisplay": "Start",
       "vSize": 10,
       "rooms": [
         {
@@ -18,141 +19,7 @@
           "x": "0",
           "y": "0",
           "z": "0",
-          "exits": [
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "North",
-              "initialState": 487,
-              "x": "0",
-              "y": 1,
-              "z": "0",
-              "progs": {
-                "onmessage": "if (player.message.toLowerCase() === 'test123' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
-                "onemote": "if (player.emote.name === 'wave' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
-                "onunlock": "if (hasItem(0)) { return true; }"
-              }
-            }
-          ]
-        },
-        {
-          "area": "Start",
-          "section": "Start",
-          "name": "Empty Void",
-          "description": "A void of emptiness!",
-          "x": "0",
-          "y": 1,
-          "z": "0",
-          "exits": [
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "South",
-              "initialState": 487,
-              "x": "0",
-              "y": "0",
-              "z": "0",
-              "progs": {
-                "onmessage": "if (player.message.toLowerCase() === 'test123' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
-                "onemote": "if (player.emote.name === 'wave' && isLocked()) {\r\naddState(exitStates.Unlocked)\r\nremoveState(exitStates.Locked)\r\nsendToPlayer('The door to the ' + exit.direction + ' unlocked!')\r\nsendToRoom(player.username + ' unlocks the ' + exit.direction + ' exit.')\r\n}",
-                "onunlock": "if (hasItem(0)) { return true; }"
-              }
-            },
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "East",
-              "initialState": 16,
-              "x": 1,
-              "y": 1,
-              "z": "0"
-            },
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "NorthWest",
-              "initialState": 16,
-              "x": -1,
-              "y": 2,
-              "z": "0"
-            },
-            {
-              "area": "Start",
-              "section": "Test",
-              "direction": "North",
-              "initialState": 16,
-              "x": 4,
-              "y": 4,
-              "z": 0
-            }
-          ]
-        },
-        {
-          "area": "Start",
-          "section": "Start",
-          "name": "Empty Void",
-          "description": "A void of emptiness!",
-          "x": 1,
-          "y": 1,
-          "z": "0",
-          "exits": [
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "West",
-              "initialState": 16,
-              "x": "0",
-              "y": 1,
-              "z": "0"
-            }
-          ]
-        },
-        {
-          "area": "Start",
-          "section": "Start",
-          "name": "Empty Void",
-          "description": "A void of emptiness!",
-          "x": -1,
-          "y": 2,
-          "z": "0",
-          "exits": [
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "SouthEast",
-              "initialState": 16,
-              "x": "0",
-              "y": 1,
-              "z": "0"
-            }
-          ]
-        }
-      ]
-    },
-    "Test": {
-      "area": "Start",
-      "description": "",
-      "vSize": 5,
-      "rooms": [
-        {
-          "area": "Start",
-          "section": "Test",
-          "name": "Empty Void",
-          "description": "A void of emptiness!",
-          "x": 4,
-          "y": 4,
-          "z": 0,
-          "exits": [
-            {
-              "area": "Start",
-              "section": "Start",
-              "direction": "South",
-              "initialState": 16,
-              "x": "0",
-              "y": 1,
-              "z": "0"
-            }
-          ]
+          "exits": []
         }
       ]
     }

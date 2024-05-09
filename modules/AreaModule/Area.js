@@ -25,7 +25,7 @@ class Area {
 
     // Method to add a section
     addSection(name, vSize) {
-        const section = new Section(this.name, name, '', vSize);
+        const section = new Section(this.name, name, name, '', vSize);
         this.sections.set(name.toLowerCase(), section);
     }
 
@@ -68,6 +68,7 @@ class Area {
                 sectionsObj[section.name] = {
                     area: section.area.name,
                     description: section.description,
+                    nameDisplay: section.nameDisplay,
                     vSize: section.vSize,
                     rooms: Array.from(section.rooms.values()).map(room => ({
                         area: room.area.name,
@@ -77,6 +78,7 @@ class Area {
                         x: room.x,
                         y: room.y,
                         z: room.z,
+                        progs: room.progs,
                         exits: Array.from(room.exits.values()).map(exit => ({
                             area: exit.area.name,
                             section: exit.section.name,

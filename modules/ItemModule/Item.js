@@ -8,6 +8,18 @@ class Item {
         Other: "Other",
     }
 
+    static deserialize(data) {
+        // Data should already be an object, so no need to parse it
+        return new Item(data.vNum, data.name, data.description, data.itemType);
+    }
+
+    // Method to get a comma-separated string of item types in lowercase
+    static getItemTypesArray() {
+        // Extract the values from the ItemTypes object, convert them to lowercase, and join them into a string
+        return Object.values(Item.ItemTypes)
+                     .map(type => type.toLowerCase());  // Convert each type to lowercase
+    }
+
     serialize() {
         // Return an object instead of stringifying it here
         return {
@@ -15,11 +27,6 @@ class Item {
             description: this.description,
             itemType: this.itemType
         };
-    }
-
-    static deserialize(data) {
-        // Data should already be an object, so no need to parse it
-        return new Item(data.vNum, data.name, data.description, data.itemType);
     }
 
     // Method to convert string to ItemType
@@ -34,7 +41,7 @@ class Item {
         };
 
         // Normalize the string to lowercase to make the method case-insensitive
-        const normalizedStr = str.toLowerCase();
+        const normalizedStr = str?.toLowerCase();
         return typeMap[normalizedStr] || Item.ItemTypes.Other; // Default to 'Other' if not found
     }
 

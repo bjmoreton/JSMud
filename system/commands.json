@@ -48,7 +48,7 @@
     "aliases": [
       "sc"
     ],
-    "action": "Command.saveCommands",
+    "action": "Command.save",
     "command": "savecommands",
     "modLevel": 70
   },
@@ -56,7 +56,7 @@
     "aliases": [
       "lc"
     ],
-    "action": "Command.loadCommands",
+    "action": "Command.load",
     "command": "loadcommands",
     "modLevel": 70
   },
@@ -239,7 +239,7 @@
   },
   {
     "aliases": [],
-    "action": "Emote.loadEmotes",
+    "action": "Emote.load",
     "command": "loademotes",
     "modLevel": 70
   },
@@ -253,7 +253,7 @@
   },
   {
     "aliases": [],
-    "action": "Emote.saveEmotes",
+    "action": "Emote.save",
     "command": "saveemotes",
     "modLevel": 70
   },
@@ -287,7 +287,7 @@
   },
   {
     "aliases": [],
-    "action": "Area.loadAreas",
+    "action": "Area.load",
     "command": "loadareas",
     "modLevel": 80
   },
@@ -317,7 +317,7 @@
   },
   {
     "aliases": [],
-    "action": "Inventory.addItem",
+    "action": "Item.addItem",
     "command": "additem",
     "modLevel": 75
   },
@@ -326,5 +326,45 @@
     "action": "Emote.deleteEmote",
     "command": "deleteemote",
     "modLevel": 70
+  },
+  {
+    "aliases": [
+      "ei"
+    ],
+    "action": "Item.editItem",
+    "command": "edititem",
+    "modLevel": 85
+  },
+  {
+    "aliases": [],
+    "action": "Item.save",
+    "command": "saveitems",
+    "modLevel": 85
+  },
+  {
+    "aliases": [],
+    "action": "Area.save",
+    "command": "saveareas",
+    "modLevel": 90
+  },
+  {
+    "aliases": [],
+    "action": "Item.removeItem",
+    "command": "removeitem",
+    "modLevel": 90
+  },
+  {
+    "aliases": [],
+    "action": "Inventory.dropItem",
+    "command": "drop",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "pick up"
+    ],
+    "action": "Inventory.takeItem",
+    "command": "take",
+    "modLevel": 0
   }
 ]

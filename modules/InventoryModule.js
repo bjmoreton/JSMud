@@ -1,72 +1,44 @@
 // Importing necessary modules
-const fs = require('fs');
 const path = require('path');
-const Item = require('./InventoryModule/Item');
 const Inventory = require('./InventoryModule/Inventory');
 const { isNumber } = require('../Utils/helpers');
+const Item = require('./ItemModule/Item');
 
 // Inventory module
 const InventoryModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     name: "Inventory",
-    itemsList: new Map(),
-    init: function (mudServer) {
-        this.mudServer = mudServer;
-        this.loadItems();
-        this.registerEvents();
-    },
 
-    addItem(player, args) {
-        // Check if necessary arguments are present
-        if (args.length < 3) {
-            player.send("Usage: addItem name \"description\" itemType");
-            return;
-        }
-    
-        const [name, description, itemType] = args;
-        const lastEntry = Array.from(InventoryModule.itemsList.entries())[InventoryModule.itemsList.size - 1];
-        const lastItemVNum = lastEntry[0];
-        const vNumInt = parseInt(lastItemVNum) + 1;
-    
-        // Validate item number
-        if (isNaN(vNumInt)) {
-            player.send("Invalid item number.");
-            return;
-        }
-    
-        // Create a new item
-        const newItem = new Item(vNumInt, name, description, itemType);
-    
-        // Add to the global items list
-        InventoryModule.itemsList.set(vNumInt, newItem);
-    
-        // Optionally add to player's personal inventory
-        player.inventory.addItem(vNumInt, newItem);
-    
-        player.send(`Item added: ${name} (Type: ${itemType})`);
-    },
-
-    editItem(player, args) {
-
-    },
-
-    loadItems(player) {
-        try {
-            const data = fs.readFileSync(InventoryModule.ITEMS_PATH, 'utf8');
-            const itemsData = JSON.parse(data);
-            itemsData.forEach(item => {
-                // Accessing the nested data structure
-                const itemInfo = item.data;
-                if (itemInfo) {
-                    InventoryModule.itemsList.set(item.vNum, new Item(item.vNum, itemInfo.name, itemInfo.description, itemInfo.itemType));
+    dropItem(player, args) {
+        const [item] = args;
+        if (player.hasItemLike(item)) {
+            for (let [key, value] of player.inventory.entries()) {
+                if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
+                    const droppedItem = value[0];
+                    const vNum = key;
+                    const removed = player.inventory.removeItem(key);
+                    if (removed) {
+                        if (!player.currentRoom.inventory.addItem(player, vNum, droppedItem)) {
+                            player.inventory.addItem(player, vNum, droppedItem);
+                        } else {
+                            player.send(`Dropped ${droppedItem.name}!`);
+                            return true;
+                        }
+                    }
                 }
-            });
-            console.log("Items loaded successfully.");
-            if (player) player.send("Items loaded successfully.");
-        } catch (err) {
-            console.error('Error reading or parsing JSON file:', err);
-            if (player) player.send("Failed to load items.");
+            }
+
+            player.send(`Failed to drop ${item}!`);
+            return false;
         }
+        player.send(`${item} not found!`);
+        return false;
+    },
+
+    init: function (mudServer) {
+        global.InventoryModule = this;
+        this.mudServer = mudServer;
+        this.registerEvents();
     },
 
     onHotBootBefore() {
@@ -89,48 +61,97 @@ const InventoryModule = {
 
             return false;
         };
+        player.hasItemLike = function (item) {
+            if (!isNumber(item)) {
+                // Look through the inventory for any item with this vNum
+                for (let [key, value] of this.inventory.entries()) {
+                    if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
+                        return true;
+                    }
+                }
+            } else {
+                return this.inventory.has(item);
+            }
 
-        // player.inventory.addItem(0, new Item(0, 'Dusty Key', 'An old dusty key.', Item.ItemTypes.Key));
+            return false;
+        };
+
+        InventoryModule.mudServer.mudEmitter.emit('updatePlayerItems', player, player.inventory);
+    },
+
+    onLooked(player) {
+        if (player.currentRoom && player.currentRoom.inventory) {
+            player.currentRoom.inventory?.forEach((details) => {
+                player.send(`(${details.length}) ${details[0].name}: ${details[0].description}`);
+            });
+        }
+    },
+
+    onRoomAdded(room, roomData) {
+        if (!room.inventory) {
+            room.inventory = new Inventory(room, 10); // Assuming Inventory is correctly imported or defined elsewhere
+            roomData.inventory?.forEach(itemData => {
+                console.log(itemData.vNum);
+                for (const item of itemData.data) {
+                    room.inventory.addItem(null, itemData.vNum, new Item(itemData.vNum, item.name, item.description, item.itemType), true);
+                }
+            });
+            room.hasItem = function (item) {
+                if (!isNumber(item)) {
+                    // Look through the inventory for any item with this description
+                    for (let [key, value] of this.inventory.entries()) {
+                        if (value[0].name?.toLowerCase() === item?.toLowerCase()) {
+                            return true;
+                        }
+                    }
+                } else {
+                    return room.inventory.has(item);
+                }
+
+                return false;
+            };
+            room.hasItemLike = function (item) {
+                if (!isNumber(item)) {
+                    // Look through the inventory for any item with this vNum
+                    for (let [key, value] of this.inventory.entries()) {
+                        if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
+                            return true;
+                        }
+                    }
+                } else {
+                    return this.inventory.has(item);
+                }
+
+                return false;
+            };
+            room.onSpawn();
+        }
+    },
+
+    getRoomInventory(area, roomObj) {
+        for (const section of area.sections.values()) {
+            for (const room of section.rooms.values()) {
+                if (room.x == roomObj.x && room.y == roomObj.y && room.z == roomObj.z) {
+                    return room.inventory;
+                }
+            }
+        }
     },
 
     registerEvents() {
         const { mudEmitter } = InventoryModule.mudServer;
         mudEmitter.on('hotBootBefore', InventoryModule.onHotBootBefore);
         mudEmitter.on('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
+        mudEmitter.on('looked', InventoryModule.onLooked);
+        mudEmitter.on('roomAdded', InventoryModule.onRoomAdded);
     },
 
     removeEvents() {
         const { mudEmitter } = InventoryModule.mudServer;
         mudEmitter.removeListener('hotBootBefore', InventoryModule.onHotBootBefore);
         mudEmitter.removeListener('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
-    },
-
-    saveItems(player) {
-        try {
-            const serializedData = serializeItems(InventoryModule.itemsList);
-            fs.writeFileSync(InventoryModule.ITEMS_PATH, serializedData, 'utf8');
-            console.log("Items saved successfully.");
-            if (player) player.send("Items saved successfully.");
-        } catch (error) {
-            console.error("Failed to save items:", error);
-            if (player) player.send("Failed to save items.");
-        }
-    },
-
-    serializeItems(itemsMap) {
-        const itemsArray = [];
-        for (const [vNum, item] of itemsMap.entries()) {
-            const itemData = {
-                vNum: item.vNum,
-                data: {
-                    name: item.name,
-                    description: item.description,
-                    itemType: item.itemType
-                }
-            };
-            itemsArray.push(itemData);
-        }
-        return itemsArray; // Pretty-print the JSON
+        mudEmitter.removeListener('looked', InventoryModule.onLooked);
+        mudEmitter.removeListener('roomAdded', InventoryModule.onRoomAdded);
     },
 
     showInventory(player, args) {
@@ -154,7 +175,7 @@ const InventoryModule = {
             // Display only items that include the search term in their name
             let found = false;
             player.inventory.forEach((details) => {
-                if (itemName.toLowerCase().includes(searchTerm.toLowerCase())) {
+                if (details[0].name.toLowerCase().includes(searchTerm.toLowerCase())) {
                     player.send(`(${details.length}) ${details[0].name}: ${details[0].description}`);
                     found = true;
                 }
@@ -164,6 +185,32 @@ const InventoryModule = {
                 player.send(`No items found matching '${searchTerm}'.`);
             }
         }
+    },
+
+    takeItem(player, args) {
+        const [item] = args;
+        if (player.currentRoom.hasItemLike(item)) {
+            for (let [key, value] of player.currentRoom.inventory.entries()) {
+                if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
+                    const takenItem = value[0];
+                    const vNum = key;
+                    const removed = player.currentRoom.inventory.removeItem(key);
+                    if (removed) {
+                        if (!player.inventory.addItem(player, vNum, takenItem)) {
+                            player.currentRoom.inventory.addItem(player, vNum, takenItem);
+                        } else {
+                            player.send(`Picked up ${takenItem.name}!`);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            player.send(`Failed to pick-up ${item}!`);
+            return false;
+        }
+        player.send(`${item} not found!`);
+        return false;
     },
 }
 

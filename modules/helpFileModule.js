@@ -175,8 +175,7 @@ const HelpfileModule = {
 
     // Initialization method
     init: function (mudServer) {
-        // Load help files
-        this.loadHelpfiles();
+        global.HelpfileModule = this;
         this.mudServer = mudServer;
     },
 
@@ -185,7 +184,7 @@ const HelpfileModule = {
     Template: [],
 
     // Method to load help files from directory
-    loadHelpfiles: function () {
+    load: function () {
         try {
             const dataSync = fs.readFileSync(HELP_FILES_TEMPLATE, 'utf8');
             HelpfileModule.Template = dataSync?.split('\r\n');

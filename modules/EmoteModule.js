@@ -9,8 +9,8 @@ const EmoteModule = {
     name: "Emote",
     emotesList: new Map(),
     init: function (mudServer) {
+        global.EmoteModule = this;
         this.mudServer = mudServer;
-        this.loadEmotes();
         this.registerEvents();
     },
 
@@ -109,7 +109,7 @@ const EmoteModule = {
         }
     },
 
-    loadEmotes(player) {
+    load(player) {
         try {
             // Reading the JSON file
             const data = fs.readFileSync(EmoteModule.EMOTES_PATH, 'utf8');
@@ -143,7 +143,7 @@ const EmoteModule = {
         mudEmitter.removeListener('hotBootBefore', EmoteModule.onHotBootBefore);
     },
 
-    saveEmotes(player, args) {
+    save(player, args) {
         try {
             const emotesToSave = {};
             EmoteModule.emotesList.forEach((value, key) => {

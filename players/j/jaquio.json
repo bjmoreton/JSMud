@@ -8,13 +8,23 @@
   "workingSection": "Start",
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
   "currentX": 0,
-  "currentY": 1,
+  "currentY": 0,
   "currentZ": 0,
   "workSection": "start",
   "inventory": [
     {
       "vNum": 0,
       "data": [
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        },
+        {
+          "name": "Dusty Key",
+          "description": "An old dusty key.",
+          "itemType": "Key"
+        },
         {
           "name": "Dusty Key",
           "description": "An old dusty key.",

@@ -14,17 +14,36 @@ function formatTime(date) {
     return `${hours}:${minutes}:${seconds}`;
 }
 
-function getNonFunctionProperties(obj, ignoreList = []) {
-    const properties = Object.getOwnPropertyNames(obj);
-    const nonFunctionProperties = properties.filter(prop =>
-        typeof obj[prop] !== 'function' && !ignoreList.includes(prop)
-    );
+function getAllFunctionProperties(obj, ignoreList = []) {
+    const result = {};
 
-    return nonFunctionProperties.reduce((acc, prop) => {
-        acc[prop] = obj[prop];
-        return acc;
-    }, {});
+    function recurse(currentObj, currentResult) {
+        // Get both instance properties and prototype functions
+        const properties = Object.getOwnPropertyNames(currentObj);
+        const proto = Object.getPrototypeOf(currentObj);
+        if (proto) {
+            properties.push(...Object.getOwnPropertyNames(proto));
+        }
+
+        properties.forEach(prop => {
+            if (!ignoreList.includes(prop) && !(prop in currentResult)) {
+                const value = currentObj[prop];
+                if (typeof value === 'function') {
+                    currentResult[prop] = value;
+                } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    currentResult[prop] = {};
+                    recurse(value, currentResult[prop]);
+                } else {
+                    currentResult[prop] = value;
+                }
+            }
+        });
+    }
+
+    recurse(obj, result);
+    return result;
 }
+
 
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -64,4 +83,4 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { formatTime, formatDate, getNonFunctionProperties, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };
+module.exports = { formatTime, formatDate, getAllFunctionProperties, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };

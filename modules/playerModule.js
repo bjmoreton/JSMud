@@ -77,6 +77,7 @@ const PlayerModule = {
     },
 
     init: function (mudServer) {
+        global.PlayerModule = this;
         this.mudServer = mudServer;
 
         this.mudServer.mudEmitter.on('hotBootAfter', this.onHotBootAfter);

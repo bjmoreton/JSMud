@@ -1,17 +1,18 @@
 const { isNumber } = require("../../Utils/helpers");
-const Item = require("./Item");
+const Item = require("../ItemModule/Item");
+const Player = require("../PlayerModule/Player");
 
 class Inventory extends Map {
-    constructor(player, maxSize = 30) {
+    constructor(parent, maxSize = 30) {
         super();
         this.maxSize = maxSize;
-        this.player = player;
+        this.parent = parent;
     }
 
-    addItem(vNum, item) {
+    addItem(player, vNum, item, bypass = false) {
         const vNumParsed = parseInt(vNum);
         if (isNumber(vNumParsed)) {
-            if (this.size + 1 <= this.maxSize) {
+            if (this.size + 1 <= this.maxSize || bypass) {
                 if (this.has(vNumParsed)) {
                     this.get(vNumParsed).push(item);
                 } else {
@@ -21,16 +22,28 @@ class Inventory extends Map {
                 }
                 return true;
             } else {
-                this.player.send(`Inventory is full!`);
+                if (this.parent instanceof Player) this.parent.send(`Inventory is full!`);
+                else player.send(`No more items can be dropped here.`);
             }
         }
+        return false;
+    }
+
+    removeItem(vNum) {
+        const items = this.get(vNum);
+        if (items.length > 0) {
+            items.shift();
+            if (items.length === 0) this.delete(vNum);
+            return true;
+        }
+        
         return false;
     }
 
     serialize() {
         let items = Array.from(this.entries()).map(([vNum, itemList]) => ({
             vNum: parseInt(vNum),
-            data: itemList.map(item => item.serialize())  // Directly use serialize to get the object
+            data: itemList.map(item => item?.serialize())  // Directly use serialize to get the object
         }));
         return items;  // Only stringify once, at the top level
     }
@@ -41,13 +54,15 @@ class Inventory extends Map {
         try {
             items.forEach(item => {
                 item.data.forEach(newItem => {
-                    inventory.addItem(item.vNum, new Item(item.vNum, newItem.name, newItem.description, newItem.itemType));
+                    const addItem = global.ItemModule.getItemByVNum(item.vNum);
+                    inventory.addItem(player, parseInt(item.vNum), addItem);
                 });
             });
         } catch (error) {
             console.error("Failed to deserialize inventory:", error);
             return new Inventory(player, maxSize); // Optionally return an empty inventory on failure
         }
+        console.log("OMG", inventory);
         return inventory;
     }
 }

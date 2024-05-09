@@ -2,7 +2,7 @@ const { isNumber } = require("../../Utils/helpers");
 const Exit = require("./Exit");
 
 class Room {
-    constructor(area, section, name, description, x, y, z) {
+    constructor(area, section, name, description, x, y, z, progs) {
         this.area = area;
         this.section = section;
         this.name = name;
@@ -10,6 +10,7 @@ class Room {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.progs = progs;
 
         this.exits = new Map();
     }
@@ -179,6 +180,16 @@ class Room {
             player.send(`Exit removed successfully!`);
         } else {
             player.send(`Room doesn't exist!`);
+        }
+    }
+
+    onSpawn() {
+        try {
+            if(this.progs !== undefined && this.progs['onspawn']) {
+                eval(this.progs['onspawn']);
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
 }

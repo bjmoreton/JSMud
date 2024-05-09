@@ -257,6 +257,15 @@ const MUDServer = {
                 MUDServer.loadModule(modulePath);
             });
 
+            for(const moduleId in MUDServer.modules) {
+                const module = MUDServer.modules[moduleId];
+
+                if (typeof module.load === 'function') {
+                    module.load();
+                    console.log(`Module ${module.name} loaded`);
+                }
+            }
+
             console.log('Modules loaded based on order specified in the text file.');
         } catch (error) {
             console.error('Error loading modules based on order:', error);
@@ -277,7 +286,7 @@ const MUDServer = {
             // Initialize the module if an init function is found
             if (typeof module.init === 'function') {
                 module.init(this);
-                console.log(`Module ${module.name} loaded`);
+                console.log(`Module ${module.name} initialized.`);
             }
         } else {
             console.error(`Module file '${modulePath}' not found.`);

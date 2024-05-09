@@ -147,7 +147,12 @@ const CommandModule = {
         // Remove quotes from each part
         const cleanedParts = commandParts.map(part => part.replace(/^"|"$/g, ''));
         const [cmdName, ...args] = cleanedParts;
-        const handler = CommandModule.findCommand(cmdName);
+        let handler = undefined;
+        if (args.length > 0) {
+            handler = CommandModule.findCommand(`${cmdName} ${args[0]}`);
+        }
+
+        if (!handler) handler = CommandModule.findCommand(cmdName);
 
         if (handler) {
             handler.execute(player, args);
@@ -157,12 +162,12 @@ const CommandModule = {
     },
 
     init(mudServer) {
+        global.CommandModule = this;
         this.mudServer = mudServer;
-        this.loadCommands();
         this.registerEvents();
     },
 
-    loadCommands() {
+    load() {
         try {
             const data = fs.readFileSync(CommandModule.COMMANDS_PATH, 'utf-8');
             const commands = JSON.parse(data);
@@ -223,7 +228,7 @@ const CommandModule = {
         mudEmitter.on('hotBootBefore', CommandModule.onHotBootBefore);
     },
 
-    saveCommands(player) {
+    save(player) {
         try {
             const commandsToSave = Array.from(CommandModule.commands.values()).map(({ handler, ...cmd }) => cmd);
             const jsonData = JSON.stringify(commandsToSave, null, 2);

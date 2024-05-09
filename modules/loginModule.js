@@ -109,6 +109,7 @@ const LoginModule = {
         LoginModule.mudServer.mudEmitter.removeListener('hotBootBefore', LoginModule.handleHotbootBefore);
     },
     init: function (mudServer) {
+        global.LoginModule = this;
         this.mudServer = mudServer;
         this.mudServer.mudEmitter.on('handleLogin', this.handleLoginCB);
         this.mudServer.mudEmitter.on('hotBootBefore', this.handleHotbootBefore);

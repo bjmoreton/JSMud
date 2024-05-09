@@ -7,9 +7,10 @@
   "workingArea": "",
   "workingSection": "",
   "password": "$2b$10$GQrlzANWw2snWuZe75pj8OrLI3nbRItKJjII2sqMNNc//OjZGrPu2",
-  "currentArea": "Start",
-  "currentSection": "Start",
   "currentX": 0,
-  "currentY": 0,
-  "currentZ": 0
+  "currentY": 1,
+  "currentZ": 0,
+  "inventory": [],
+  "currentArea": "Start",
+  "currentSection": "Start"
 }

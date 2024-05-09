@@ -1,10 +1,10 @@
-const Inventory = require("./Inventory");
+const Inventory = require("../InventoryModule/Inventory");
 const Item = require("./Item");
 
 class Container extends Item {
     constructor(player, size, vNum, name, description) {
         super(vNum, name, description, Item.ItemTypes.Container);
-        this.Inventory = new Inventory(player, size);
+        this.inventory = new Inventory(player, size);
     }
 }
 

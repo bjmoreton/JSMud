@@ -1,11 +1,12 @@
-Mud/ScriptManager
 AreaModule/Area
 AreaModule/Exit
 AreaModule/Room
 AreaModule/Section
 AreaModule
+ItemModule/Container
+ItemModule/Item
+ItemModule
 InventoryModule/Inventory
-InventoryModule/Item
 InventoryModule
 HelpfileModule/Helpfile
 HelpfileModule

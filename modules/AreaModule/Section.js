@@ -3,10 +3,11 @@ const Exit = require("./Exit");
 const Room = require("./Room");
 
 class Section {
-    constructor(area, name, description, vSize) {
+    constructor(area, name, nameDisplay, description, vSize) {
         this.area = area;
         this.description = description;
         this.name = name;
+        this.nameDisplay = nameDisplay;
         this.rooms = new Map();
         this.vSize = vSize;
     }

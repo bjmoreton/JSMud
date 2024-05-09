@@ -65,6 +65,7 @@ class Player {
             // Assign the player data to the player object
             Object.assign(this, playerObject);
             if(this.inventory !== undefined) this.inventory = Inventory.deserialize(this, JSON.stringify(playerObject.inventory), playerObject.inventory.maxSize);
+            console.log(this.inventory);
             return this;
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
