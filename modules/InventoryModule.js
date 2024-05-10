@@ -160,6 +160,10 @@ const InventoryModule = {
         InventoryModule.mudServer.mudEmitter.emit('updatePlayerItems', player, player.inventory);
     },
 
+    onPlayerSaved(player, playerData) {
+        playerData.inventory = player.inventory.serialize();
+    },
+
     onLooked(player) {
         if (player.currentRoom && player.currentRoom.inventory) {
             player.currentRoom.inventory?.forEach((details) => {
@@ -224,6 +228,7 @@ const InventoryModule = {
         const { mudEmitter } = InventoryModule.mudServer;
         mudEmitter.on('hotBootBefore', InventoryModule.onHotBootBefore);
         mudEmitter.on('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
+        mudEmitter.on('playerSaved', InventoryModule.onPlayerSaved);
         mudEmitter.on('looked', InventoryModule.onLooked);
         mudEmitter.on('roomAdded', InventoryModule.onRoomAdded);
     },
@@ -232,6 +237,7 @@ const InventoryModule = {
         const { mudEmitter } = InventoryModule.mudServer;
         mudEmitter.removeListener('hotBootBefore', InventoryModule.onHotBootBefore);
         mudEmitter.removeListener('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
+        mudEmitter.removeListener('playerSaved', InventoryModule.onPlayerSaved);
         mudEmitter.removeListener('looked', InventoryModule.onLooked);
         mudEmitter.removeListener('roomAdded', InventoryModule.onRoomAdded);
     },

@@ -80,9 +80,10 @@ class Player {
     save() {
         // Exclude the properties you want to ignore
         const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
-        playerData.currentArea = this.currentArea.name;
-        playerData.currentSection = this.currentSection.name;
-        playerData.inventory = this.inventory.serialize();
+        // playerData.currentArea = this.currentArea.name;
+        // playerData.currentSection = this.currentSection.name;
+        // playerData.inventory = this.inventory.serialize();
+        global.mudEmitter.emit('playerSaved', this, playerData);
         const filePath = this.getFilePath();
         // Generate the directory path
         const directoryPath = path.dirname(filePath);

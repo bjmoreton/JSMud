@@ -79,6 +79,7 @@ class Area {
                         y: room.y,
                         z: room.z,
                         progs: room.progs,
+                        symbol: room.symbol,
                         exits: Array.from(room.exits.values()).map(exit => ({
                             area: exit.area.name,
                             section: exit.section.name,

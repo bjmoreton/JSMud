@@ -3,7 +3,7 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/10/2024 01:16:15",
+  "lastUpdate": "05/10/2024 15:16:33",
   "sections": {
     "Start": {
       "area": "Start",
@@ -19,6 +19,7 @@
           "x": "0",
           "y": "0",
           "z": "0",
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",
@@ -60,6 +61,7 @@
           "x": -1,
           "y": "0",
           "z": "0",
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",
@@ -81,6 +83,7 @@
           "x": 1,
           "y": "0",
           "z": "0",
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",
@@ -110,6 +113,7 @@
           "x": 0,
           "y": -9,
           "z": 0,
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",
@@ -161,6 +165,7 @@
           "x": 0,
           "y": -8,
           "z": 0,
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",
@@ -182,6 +187,7 @@
           "x": 1,
           "y": -9,
           "z": 0,
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",
@@ -203,6 +209,7 @@
           "x": -1,
           "y": -9,
           "z": 0,
+          "symbol": "#",
           "exits": [
             {
               "area": "Start",

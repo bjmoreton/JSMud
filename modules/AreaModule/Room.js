@@ -2,7 +2,7 @@ const { isNumber } = require("../../Utils/helpers");
 const Exit = require("./Exit");
 
 class Room {
-    constructor(area, section, name, description, x, y, z, progs) {
+    constructor(area, section, name, description, x, y, z, progs, symbol = '#') {
         this.area = area;
         this.section = section;
         this.name = name;
@@ -11,6 +11,7 @@ class Room {
         this.y = y;
         this.z = z;
         this.progs = progs;
+        this.symbol = symbol;
 
         this.exits = new Map();
     }

@@ -1,12 +1,34 @@
 const { isNumber } = require("../../Utils/helpers");
-const Player = require("../PlayerModule/Player");
 
+/**
+ * Represents a player's inventory.
+ * Extends the Map class to store items with their vNum as keys.
+ * 
+ * @class Inventory
+ * @extends {Map<number, Array<Object>>}
+ */
 class Inventory extends Map {
+    /**
+     * Creates an instance of Inventory.
+     * @param {number} [maxSize=30] - Maximum number of items allowed in the inventory.
+     */
     constructor(maxSize = 30) {
         super();
+        /**
+         * Maximum number of items allowed in the inventory.
+         * @type {number}
+         */
         this.maxSize = maxSize;
     }
 
+    /**
+     * Adds an item to the inventory.
+     * 
+     * @param {number} vNum - The unique identifier of the item.
+     * @param {Object} item - The item to be added.
+     * @param {boolean} [bypass=false] - If true, bypasses the inventory size limit.
+     * @returns {boolean} - Returns true if the item is successfully added, false otherwise.
+     */
     addItem(vNum, item, bypass = false) {
         const vNumParsed = parseInt(vNum);
 
@@ -25,36 +47,64 @@ class Inventory extends Map {
         return false;
     }
 
+    /**
+     * Removes an item from the inventory by vNum.
+     * 
+     * @param {number} vNum - The unique identifier of the item.
+     * @returns {boolean} - Returns true if the item is successfully removed, false otherwise.
+     */
     removeItem(vNum) {
         const items = this.get(vNum);
-        if (items.length > 0) {
+        if (items && items.length > 0) {
             items.shift();
             if (items.length === 0) this.delete(vNum);
             return true;
         }
-
         return false;
     }
 
+    /**
+     * Serializes the inventory into a JSON-compatible object.
+     * 
+     * @returns {Array<Object>} - Returns an array of objects representing the inventory items.
+     */
     serialize() {
         let items = Array.from(this.entries()).map(([vNum, itemList]) => ({
             vNum: parseInt(vNum),
             data: itemList.map(item => item?.serialize())  // Directly use serialize to get the object
         }));
-        return items;  // Only stringify once, at the top level
+        return items;
     }
 
+    /**
+     * Calculates the current number of items in the inventory.
+     * 
+     * @returns {number} - Returns the actual number of items in the inventory.
+     */
     actualSize() {
-        let sizeActual = this.size - 1;
+        let sizeActual = 0;
         for (const [key, value] of this.entries()) {
             sizeActual += value.length;
         }
-
         return parseInt(sizeActual);
     }
 
+    /**
+     * Checks if the inventory is full.
+     * 
+     * @returns {boolean} - Returns true if the inventory is full, false otherwise.
+     */
     full = () => { return this.actualSize() === this.maxSize; }
 
+    /**
+     * Deserializes a JSON string into an Inventory object.
+     * 
+     * @static
+     * @param {Object} player - The player owning the inventory.
+     * @param {string} data - A JSON string representing the inventory data.
+     * @param {number} [maxSize=30] - Maximum number of items allowed in the inventory.
+     * @returns {Inventory} - Returns an Inventory object.
+     */
     static deserialize(player, data, maxSize = 30) {
         let inventory = new Inventory(maxSize);
         let items = JSON.parse(data);  // Assuming data is a JSON string
