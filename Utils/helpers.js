@@ -73,6 +73,19 @@ function isNumber(value) {
     return typeof value === 'number' && !Number.isNaN(value);
 }
 
+/**
+ * Retrieves a value from a Map based on the specified index.
+ * @param {Map} map - The Map object to retrieve the value from.
+ * @param {number} index - The zero-based index of the key-value pair.
+ * @returns {[any, any] | null} - The key-value pair as an array, or null if out of range.
+ */
+function mapGetByIndex(map, index) {
+    if (index >= 0 && index < map.size) {
+        return Array.from(map.entries())[index];
+    }
+    return null;
+}
+
 async function verifyPassword(plaintextPassword, hashedPassword) {
     try {
         const result = await bcrypt.compare(plaintextPassword, hashedPassword);
@@ -83,4 +96,4 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { formatTime, formatDate, getAllFunctionProperties, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };
+module.exports = { formatTime, formatDate, getAllFunctionProperties, generateRandomString, hashPassword, inRange, isNumber, mapGetByIndex, verifyPassword };

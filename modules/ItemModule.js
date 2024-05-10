@@ -117,8 +117,10 @@ const ItemModule = {
     },
 
     onPlayerLoggedIn: (player) => {
-        //const dustyKey = ItemModule.getItemByVNum(0);
-        //for(let i = 0; i <= 30; i++) player.inventory.addItem(dustyKey.vNum, dustyKey, true);
+        const dustyKey = ItemModule.getItemByVNum(0);
+        for(let i = 0; i < 2; i++) player.inventory.addItem(dustyKey.vNum, dustyKey, true);
+        const bronzeKey = ItemModule.getItemByVNum(1);
+        for (let i = 0; i < 2; i++) player.inventory.addItem(bronzeKey.vNum, bronzeKey, true);
     },
 
     registerEvents() {
@@ -139,10 +141,10 @@ const ItemModule = {
         const [vNum] = args;
 
         const item = ItemModule.getItemByVNum(vNum);
-        if(item) {
+        if (item) {
             const deleteForSure = await player.textEditor.showPrompt(`Delete ${item.name}? y/n`);
 
-            if(deleteForSure.toLowerCase() == 'y' || deleteForSure == 'yes') {
+            if (deleteForSure.toLowerCase() == 'y' || deleteForSure == 'yes') {
                 ItemModule.itemsList.delete(parseInt(vNum));
                 ItemModule.updatePlayersItems();
                 player.send(`${item.name} deleted successfully.`);

@@ -1,7 +1,7 @@
 // Importing necessary modules
 const path = require('path');
 const Inventory = require('./InventoryModule/Inventory');
-const { isNumber } = require('../Utils/helpers');
+const { isNumber, mapGetByIndex } = require('../Utils/helpers');
 const Item = require('./ItemModule/Item');
 
 // Inventory module
@@ -9,90 +9,107 @@ const InventoryModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     name: "Inventory",
 
-    dropItem(player, args) {
-        const [item] = args;
-        let itemDropped = false;
+    dropAll(player, args) {
+        let [itemString] = args;
 
-        if (player.hasItemLike(item)) {
-            for (let [key, value] of player.inventory.entries()) {
-                // Check if any item in this stack matches the given name
-                const index = value.findIndex(i => i.name?.toLowerCase().includes(item?.toLowerCase()));
+        let itemIndex = 0;
+        const indexPattern = /^(\d+)\.(.*)/;
+        const match = itemString?.match(indexPattern);
 
-                if (index !== -1) {
-                    const droppedItem = value[index];
-                    const vNum = key;
+        if (match) {
+            // Extract index and new itemString
+            itemIndex = parseInt(match[1], 10);
+            itemString = match[2].trim();
+        }
 
-                    // Remove the individual item from the stack
-                    value.splice(index, 1);
+        let foundItems = player.hasItemLike(itemString);
 
-                    // If the stack is empty, remove the key from the inventory
-                    if (value.length === 0) {
-                        player.inventory.delete(key);
+        if (foundItems) {
+            if (itemIndex >= 0 && itemIndex < foundItems.size) {
+                foundItems = mapGetByIndex(foundItems, itemIndex);
+            } else {
+                player.send(`Index ${itemIndex} is out of range!`);
+                return false;
+            }
+
+            let droppedCount = 0;
+            for (const foundItemId in foundItems) {
+                for (let foundItem in foundItems[foundItemId]) {
+                    foundItem = foundItems[foundItemId][foundItem];
+                    const itemStack = player.inventory.get(foundItem.vNum);
+
+                    // Move all items from player's inventory to the room's inventory
+                    while (itemStack?.length > 0) {
+                        const item = itemStack.shift(); // Retrieve an item from the stack
+
+                        if (player.currentRoom.inventory.addItem(item.vNum, item)) {
+                            player.send(`Dropped ${item.name} successfully.`);
+                            droppedCount++;
+                        } else {
+                            // Failed to add to the room, return the item back to the player's inventory
+                            player.inventory.addItem(item.vNum, item, true);
+                            player.send(`Failed to drop ${item.name}!`);
+                            break;
+                        }
                     }
 
-                    // Add the item to the room's inventory
-                    if (!player.currentRoom.inventory.addItem(vNum, droppedItem)) {
-                        player.inventory.addItem(vNum, droppedItem);
-                    } else {
-                        player.send(`Dropped ${droppedItem.name}!`);
-                        itemDropped = true;
-                        return true;
+                    // Remove the empty inventory entry if necessary
+                    if (itemStack?.length === 0) {
+                        player.inventory.delete(foundItem.vNum);
                     }
                 }
             }
 
-            if (!itemDropped) {
-                if (player.currentRoom.inventory.full) player.send(`Room is full!`);
-                else player.send(`Failed to drop ${item}!`);
+            if (droppedCount > 0) {
+                if (!match) return InventoryModule.dropAll(player, args);
+                return true;
+            } else {
                 return false;
             }
         } else {
-            player.send(`${item} not found!`);
+            if (match) player.send(`${itemString} not found!`);
+            else player.send(`Nothing left to drop!`);
             return false;
         }
     },
 
-    dropAll(player, args) {
-        const [item] = args;
+    dropItem(player, args) {
+        let [itemString] = args;
+        let itemIndex = 0;
+        const indexPattern = /^(\d+)\.(.*)/;
+        const match = itemString?.match(indexPattern);
 
-        if (item) {
-            if (player.hasItemLike(item)) {
-                while (player.hasItemLike(item)) {
-                    InventoryModule.dropItem(player, [item]);
-                }
+        if (itemString === undefined) return;
 
-                if (!player.hasItemLike(item)) {
-                    player.send(`Dropped all of ${item} successfully.`);
-                    return true;
-                }
+        if (match) {
+            // Extract index and new itemString
+            itemIndex = parseInt(match[1], 10);
+            itemString = match[2].trim();
+        }
 
-                player.send(`Failed to drop all of ${item}!`);
+        let foundItems = player.hasItemLike(itemString);
+
+        if (foundItems) {
+            if (itemIndex < 0 && itemIndex >= foundItems.size) {
+                player.send(`Index ${itemIndex} is out of range!`);
                 return false;
             }
 
-            player.send(`${item} not found!`);
-            return false;
-        } else {
-            const allItems = [];
-
-            // Collect all items in the player's inventory
-            for (let [key, value] of player.inventory.entries()) {
-                for (let item of value) {
-                    allItems.push([key, item.name]);
+            const foundItem = Array.from(foundItems.values())[itemIndex][0];
+            if (!player.currentRoom.inventory.addItem(foundItem.vNum, foundItem)) {
+                player.inventory.addItem(foundItem.vNum, foundItem);
+                player.send(`Failed to drop ${foundItem.name}!`);
+                return false;
+            } else {
+                player.send(`Dropped ${foundItem.name} successfully.`);
+                player.inventory.get(foundItem.vNum).splice(0, 1);
+                if (player.inventory.get(foundItem.vNum).length === 0) {
+                    player.inventory.delete(foundItem.vNum);
                 }
-            }
-
-            // Drop all collected items
-            for (let [key, itemName] of allItems) {
-                InventoryModule.dropItem(player, [itemName]);
-            }
-
-            if (player.inventory.size === 0) {
-                player.send(`Dropped all items successfully.`);
                 return true;
             }
-
-            player.send(`Failed to drop all items!`);
+        } else {
+            player.send(`${itemString} not found!`);
             return false;
         }
     },
@@ -114,28 +131,30 @@ const InventoryModule = {
                 // Look through the inventory for any item with this vNum
                 for (let [key, value] of this.inventory.entries()) {
                     if (value[0].name?.toLowerCase() === item?.toLowerCase()) {
-                        return true;
+                        return value;
                     }
                 }
             } else {
-                return this.inventory.has(item);
+                return this.inventory.get(item);
             }
 
             return false;
         };
-        player.hasItemLike = function (item) {
-            if (!isNumber(item)) {
-                // Look through the inventory for any item with this vNum
-                for (let [key, value] of this.inventory.entries()) {
-                    if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
-                        return true;
+        player.hasItemLike = function (itemString) {
+            const search = itemString?.toLowerCase();
+            let foundItems = new Map();
+
+            for (const [vNum, items] of this.inventory.entries()) {
+                for (const item of items) {
+                    if (item.name.toLowerCase().includes(search) || search === undefined) {
+                        if (!foundItems.has(item.vNum)) foundItems.set(item.vNum, []);
+                        foundItems.get(item.vNum).push(item);
+                        //foundItems.push(item);
                     }
                 }
-            } else {
-                return this.inventory.has(item);
             }
 
-            return false;
+            return foundItems.size ? foundItems : null;
         };
 
         InventoryModule.mudServer.mudEmitter.emit('updatePlayerItems', player, player.inventory);
@@ -171,19 +190,21 @@ const InventoryModule = {
 
                 return false;
             };
-            room.hasItemLike = function (item) {
-                if (!isNumber(item)) {
-                    // Look through the inventory for any item with this vNum
-                    for (let [key, value] of this.inventory.entries()) {
-                        if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
-                            return true;
+            room.hasItemLike = function (itemString) {
+                const search = itemString?.toLowerCase();
+                let foundItems = new Map();
+
+                for (const [vNum, items] of this.inventory.entries()) {
+                    for (const item of items) {
+                        if (item.name.toLowerCase().includes(search) || search === undefined) {
+                            if (!foundItems.has(item.vNum)) foundItems.set(item.vNum, []);
+                            foundItems.get(item.vNum).push(item);
+                            //foundItems.push(item);
                         }
                     }
-                } else {
-                    return this.inventory.has(item);
                 }
 
-                return false;
+                return foundItems.size ? foundItems : null;
             };
             room.onSpawn();
         }
@@ -249,72 +270,111 @@ const InventoryModule = {
     },
 
     takeAllItems(player, args) {
-        const [takeItem] = args; 
+        let [takeItem] = args;
+
+        let itemIndex = 0;
+        const indexPattern = /^(\d+)\.(.*)/;
+        const match = takeItem?.match(indexPattern);
+
+        if (match) {
+            itemIndex = parseInt(match[1], 10);
+            takeItem = match[2].trim();
+        }
 
         if (player.currentRoom && player.currentRoom.inventory) {
-            const allItems = [];
+            let foundItems = player.currentRoom.hasItemLike(takeItem);
 
-            // Collect all items in the room
-            for (let [key, value] of player.currentRoom.inventory.entries()) {
-                for (let item of value) {
-                    // Apply the optional item
-                    if (!takeItem || item.name.toLowerCase().includes(takeItem.toLowerCase())) {
-                        allItems.push([key, item]);
-                    }
+            if (foundItems) {
+                if (itemIndex >= 0 && itemIndex < foundItems.size) {
+                    foundItems = mapGetByIndex(foundItems, itemIndex);
                 }
-            }
 
-            // Pick up all collected items
-            for (let [key, item] of allItems) {
-                const removed = player.currentRoom.inventory.removeItem(key, item);
-                if (removed) {
-                    if (!player.inventory.addItem(key, item)) {
-                        player.currentRoom.inventory.addItem(key, item); // Re-add item if inventory is full
-                        player.send(`Inventory is full! Failed to pick up ${item.name}.`);
-                    } else {
-                        player.send(`Picked up ${item.name}!`);
-                    }
-                }
-            }
-
-            if (allItems.length > 0) {
-                if (player.currentRoom.inventory.size === 0) {
-                    player.send(`Picked up all items${takeItem ? ` matching '${takeItem}'` : ''} successfully.`);
-                } else {
-                    player.send(`Failed to pick up all items${takeItem ? ` matching '${takeItem}'` : ''}!`);
-                }
-            } else {
-                player.send(`No items found${takeItem ? ` matching '${takeItem}'` : ''}.`);
-            }
-        } else {
-            player.send(`No items to pick up!`);
-        }
-    },
-
-    takeItem(player, args) {
-        const [item] = args;
-        if (player.currentRoom.hasItemLike(item)) {
-            for (let [key, value] of player.currentRoom.inventory.entries()) {
-                if (value[0].name?.toLowerCase().includes(item?.toLowerCase())) {
-                    const takenItem = value[0];
-                    const vNum = key;
-                    const removed = player.currentRoom.inventory.removeItem(key);
-                    if (removed) {
-                        if (!player.inventory.addItem(vNum, takenItem)) {
-                            player.currentRoom.inventory.addItem(vNum, takenItem);
-                        } else {
-                            player.send(`Picked up ${takenItem.name}!`);
-                            return true;
+                let pickedCount = 0;
+                for (const foundItemId in foundItems) {
+                    for (let foundItem in foundItems[foundItemId]) {
+                        foundItem = foundItems[foundItemId][foundItem];
+                        if (player.currentRoom.inventory.removeItem(foundItem.vNum, foundItem)) {
+                            if (!player.inventory.addItem(foundItem.vNum, foundItem)) {
+                                player.currentRoom.inventory.addItem(foundItem.vNum, foundItem, true); // Re-add item if inventory is full
+                                player.send(`Inventory is full! Failed to pick up ${foundItem.name}.`);
+                                break;
+                            } else {
+                                player.send(`Picked up ${foundItem.name}!`);
+                                pickedCount++;
+                            }
                         }
                     }
                 }
-            }
 
-            if (player.inventory.full) player.send(`Inventory is full!`);
-            else player.send(`Failed to pick-up ${item}!`);
+                if (pickedCount > 0) {
+                    if (!match) return InventoryModule.takeAllItems(player, args);
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                if (match) player.send(`${takeItem} not found!`);
+                else player.send(`Nothing left to pick up!`);
+                return false;
+            }
+        } else {
+            player.send(`No items to pick up!`);
             return false;
         }
-        player.send(`${item} not found!`);
+    },
+
+
+    takeItem(player, args) {
+        let [itemString] = args;
+
+        let itemIndex = 0;
+        const indexPattern = /^(\d+)\.(.*)/;
+        const match = itemString.match(indexPattern);
+
+        if (match) {
+            // Extract index and new itemString
+            itemIndex = parseInt(match[1], 10);
+            itemString = match[2].trim();
+        }
+
+        let foundItems = player.currentRoom.hasItemLike(itemString);
+
+        if (foundItems && foundItems.size > 0) {
+            if (itemIndex >= 0 && itemIndex < foundItems.size) {
+                // Map the items from the map into an array to access them by index
+                let itemArray = [];
+                foundItems = mapGetByIndex(foundItems, itemIndex);
+
+                for(const foundItemId in foundItems) {
+                    for(const foundItem in foundItems[foundItemId]) {
+                        itemArray.push(foundItems[foundItemId][foundItem]);
+                    }
+                }
+
+                // Check if the itemIndex is valid
+                if (itemArray.length > itemIndex) {
+                    let selectedItem = itemArray[itemIndex];
+                    if (player.currentRoom.inventory.removeItem(selectedItem.vNum, selectedItem)) {
+                        if (!player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                            // If adding the item fails, put it back in the room inventory
+                            player.currentRoom.inventory.addItem(selectedItem.vNum, selectedItem, true);
+                            player.send(`Inventory is full! Failed to pick up ${selectedItem.name}.`);
+                        } else {
+                            player.send(`Picked up ${selectedItem.name}!`);
+                            return true;
+                        }
+                    } else {
+                        player.send(`Failed to pick up ${selectedItem.name}!`);
+                    }
+                } else {
+                    player.send(`Index ${itemIndex} is out of range!`);
+                }
+            } else {
+                player.send(`Index ${itemIndex} is out of range!`);
+            }
+        } else {
+            player.send(`${itemString} not found!`);
+        }
         return false;
     },
 }

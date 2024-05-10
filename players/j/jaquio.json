@@ -7,7 +7,7 @@
   "workingArea": "start",
   "workingSection": "Test",
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
-  "currentX": 1,
+  "currentX": 0,
   "currentY": 0,
   "currentZ": 0,
   "workSection": "start",
@@ -24,145 +24,50 @@
           "name": "Dusty Key",
           "description": "An old dusty key.",
           "itemType": "Key"
-        },
+        }
+      ]
+    },
+    {
+      "vNum": 1,
+      "data": [
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         },
         {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
+          "name": "Bronze Key",
+          "description": "A key made of Bronze.",
           "itemType": "Key"
         }
       ]
