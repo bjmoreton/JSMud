@@ -3,100 +3,17 @@
   "commands": [],
   "canBuild": false,
   "modLevel": 100,
-  "statuses": 0,
-  "workingArea": "Start",
-  "workingSection": "Start",
+  "statuses": [
+    "None"
+  ],
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
-  "currentX": 1,
+  "currentX": 0,
   "currentY": 0,
   "currentZ": 0,
-  "inventory": [
-    {
-      "vNum": 1,
-      "data": [
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Bronze Key",
-          "description": "A key made of Bronze.",
-          "itemType": "Key"
-        }
-      ]
-    },
-    {
-      "vNum": 0,
-      "data": [
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        },
-        {
-          "name": "Dusty Key",
-          "description": "An old dusty key.",
-          "itemType": "Key"
-        }
-      ]
-    }
-  ],
+  "inventory": {
+    "items": [],
+    "maxSize": 30
+  },
   "currentArea": "Start",
   "currentSection": "Start"
 }

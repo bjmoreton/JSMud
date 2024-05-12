@@ -19,5 +19,12 @@
     "%p brushes up against you and farts!",
     "%p brushes up against %t and farts!",
     "%p farts loudly!"
+  ],
+  "pee": [
+    "You start peeing everywhere!",
+    "You starting peeing on %t",
+    "%p starts peeing on you!",
+    "%p starts peeing on %t!",
+    "%p starts peeing everywhere!"
   ]
 }

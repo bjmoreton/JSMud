@@ -1,53 +1,48 @@
 class Item {
-    static ItemTypes = {
-        Container: "Container",
-        Drink: "Drink",
-        Food: "Food",
-        Key: "Key",
-        Quest: "Quest",
-        Other: "Other",
+    static ItemTypes = {}
+
+    static addItemType(type) {
+        Item.ItemTypes[type.toString()] = type;
     }
 
     static deserialize(data) {
         // Data should already be an object, so no need to parse it
-        return new Item(data.vNum, data.name, data.description, data.itemType);
+        return new Item.stringToItemType(data.itemType)(data.vNum, data.name, data.nameDisplay, data.description, data.itemType);
     }
 
     // Method to get a comma-separated string of item types in lowercase
     static getItemTypesArray() {
         // Extract the values from the ItemTypes object, convert them to lowercase, and join them into a string
         return Object.values(Item.ItemTypes)
-                     .map(type => type.toLowerCase());  // Convert each type to lowercase
+            .map(type => type.toLowerCase());  // Convert each type to lowercase
     }
 
     serialize() {
         // Return an object instead of stringifying it here
         return {
             name: this.name,
+            nameDisplay: this.nameDisplay,
             description: this.description,
-            itemType: this.itemType
+            itemType: this.itemType.toString()
         };
     }
 
     // Method to convert string to ItemType
-    static stringToItemType(str) {
-        const typeMap = {
-            "container": Item.ItemTypes.Container,
-            "drink": Item.ItemTypes.Drink,
-            "food": Item.ItemTypes.Food,
-            "key": Item.ItemTypes.Key,
-            "quest": Item.ItemTypes.Quest,
-            "other": Item.ItemTypes.Other
-        };
-
-        // Normalize the string to lowercase to make the method case-insensitive
-        const normalizedStr = str?.toLowerCase();
-        return typeMap[normalizedStr] || Item.ItemTypes.Other; // Default to 'Other' if not found
+    static stringToItemType(itemTypeString) {
+        const normalizedInput = itemTypeString.toLowerCase();
+        for (const key in Item.ItemTypes) {
+            if (key.toLowerCase() === normalizedInput) {
+                return Item.ItemTypes[key];
+            }
+        }
+        return null; // Return null if no matching state is found
     }
 
-    constructor(vNum, name, description, itemType) {
+    constructor(vNum, name, nameDisplay, description, itemType) {
         this.vNum = parseInt(vNum);
         this.name = name;
+        this.nameDisplay = nameDisplay;
+        if(this.nameDisplay === undefined) this.nameDisplay = this.name;
         this.description = description;
         this.itemType = Item.stringToItemType(itemType);
     }

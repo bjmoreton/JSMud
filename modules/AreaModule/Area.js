@@ -65,34 +65,53 @@ class Area {
             // Convert sections to a plain object for serialization
             const sectionsObj = {};
             this.sections.forEach((section) => {
-                sectionsObj[section.name] = {
+                const sectionData = sectionsObj[section.name] = {
                     area: section.area.name,
                     description: section.description,
                     nameDisplay: section.nameDisplay,
                     vSize: section.vSize,
-                    rooms: Array.from(section.rooms.values()).map(room => ({
-                        area: room.area.name,
-                        section: room.section.name,
-                        name: room.name,
-                        description: room.description,
-                        x: room.x,
-                        y: room.y,
-                        z: room.z,
-                        progs: room.progs,
-                        symbol: room.symbol,
-                        exits: Array.from(room.exits.values()).map(exit => ({
-                            area: exit.area.name,
-                            section: exit.section.name,
-                            direction: exit.direction.toString(),
-                            initialState: exit.initialState,
-                            x: exit.x,
-                            y: exit.y,
-                            z: exit.z,
-                            progs: exit.progs,
-                            teleport: exit.teleport ?? false
-                        }))
-                    }))
+                    rooms: Array.from(section.rooms.values()).map(room => {
+                        const roomData = {
+                            area: room.area.name,
+                            section: room.section.name,
+                            name: room.name,
+                            description: room.description,
+                            x: parseInt(room.x),
+                            y: parseInt(room.y),
+                            z: parseInt(room.z),
+                            progs: room.progs,
+                            symbol: room.symbol,
+                            defaultState: {
+                                flags: room.defaultState.flags
+                            },
+                            exits: Array.from(room.exits.values()).map(exit => {
+                                const exitData = {
+                                    area: exit.area.name,
+                                    section: exit.section.name,
+                                    direction: exit.direction.toString(),
+                                    initialState: exit.initialState,
+                                    x: parseInt(exit.x),
+                                    y: parseInt(exit.y),
+                                    z: parseInt(exit.z),
+                                    progs: exit.progs,
+                                    teleport: exit.teleport ?? false
+                                };
+
+                                // Emit an event after serializing each exit
+                                global.mudServer.emit('exitSaved', player, exit, exitData);
+                                return exitData;
+                            })
+                        };
+
+                        // Emit an event after serializing each room
+                        global.mudServer.emit('roomSaved', player, room, roomData);
+                        return roomData;
+                    })
                 };
+
+                // Emit an event after serializing each section
+                global.mudServer.emit('sectionSaved', player, section, sectionData);
+                return sectionData;
             });
 
             // Write data to file in JSON format
@@ -104,6 +123,9 @@ class Area {
                 lastUpdate: this.lastUpdate,
                 sections: sectionsObj
             };
+            
+            global.mudServer.emit('areaSaved', player, this, data);
+
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
             if (showOutput) player.send(`Area ${this.name} saved!`);
         } catch (error) {

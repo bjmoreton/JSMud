@@ -9,33 +9,33 @@ const PlayerModule = {
         const message = args.join(' ');
         const currentDate = new Date();
 
-        PlayerModule.mudServer.mudEmitter.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${message}`);
+        PlayerModule.mudServer.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${message}`);
     },
 
     executeSay(player, args) {
         const message = args.join(' ');
 
         player.send(`You say "${message}"`);
-        PlayerModule.mudServer.mudEmitter.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
+        PlayerModule.mudServer.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
     },
 
     onPlayerConnected: (socket) => {
         const player = new Player(socket, 'Guest');
         PlayerModule.mudServer.players.set(socket, player);
 
-        PlayerModule.mudServer.mudEmitter.emit('handleLogin', player, "");
+        PlayerModule.mudServer.emit('handleLogin', player, "");
 
         player.socket.on('data', data => {
             data = data.toString().replace("\r\n", "");
             const cleanedData = data.toString().trim();
-            if (!player.hasStatus(player.Statuses.Editing)) {
+            if (!player.hasStatus(Player.Statuses.Editing)) {
                 if (player.loggedIn) {
-                    if (!cleanedData.startsWith('/')) PlayerModule.mudServer.mudEmitter.emit('handleCommand', player, cleanedData);
+                    if (!cleanedData.startsWith('/')) PlayerModule.mudServer.emit('handleCommand', player, cleanedData);
                     else {
                         const emoteData = cleanedData.startsWith('/') ? cleanedData.replace('/', '') : cleanedData;
-                        PlayerModule.mudServer.mudEmitter.emit('handleEmote', player, emoteData);
+                        PlayerModule.mudServer.emit('handleEmote', player, emoteData);
                     }
-                } else PlayerModule.mudServer.mudEmitter.emit('handleLogin', player, cleanedData);
+                } else PlayerModule.mudServer.emit('handleLogin', player, cleanedData);
             } else player.textEditor.processInput(cleanedData);
         });
 
@@ -44,7 +44,7 @@ const PlayerModule = {
         });
 
         player.socket.on('close', () => {
-            PlayerModule.mudServer.mudEmitter.emit('playerDisconnected', player);
+            PlayerModule.mudServer.emit('playerDisconnected', player);
         });
 
     },
@@ -62,10 +62,10 @@ const PlayerModule = {
     
     onHotBootBefore: () => {
         PlayerModule.saveAllPlayers();
-        PlayerModule.mudServer.mudEmitter.removeListener('hotBootAfter', PlayerModule.onHotBootAfter);
-        PlayerModule.mudServer.mudEmitter.removeListener('hotBootBefore', PlayerModule.onHotBootBefore);
-        PlayerModule.mudServer.mudEmitter.removeListener('playerConnected', PlayerModule.onPlayerConnected);
-        PlayerModule.mudServer.mudEmitter.removeListener('sendToAll', PlayerModule.onSendToAll);
+        PlayerModule.mudServer.removeListener('hotBootAfter', PlayerModule.onHotBootAfter);
+        PlayerModule.mudServer.removeListener('hotBootBefore', PlayerModule.onHotBootBefore);
+        PlayerModule.mudServer.removeListener('playerConnected', PlayerModule.onPlayerConnected);
+        PlayerModule.mudServer.removeListener('sendToAll', PlayerModule.onSendToAll);
     },
 
     onSendToAll(player, message, excludedPlayers = []) {
@@ -79,11 +79,11 @@ const PlayerModule = {
     init: function (mudServer) {
         global.PlayerModule = this;
         this.mudServer = mudServer;
-
-        this.mudServer.mudEmitter.on('hotBootAfter', this.onHotBootAfter);
-        this.mudServer.mudEmitter.on('hotBootBefore', this.onHotBootBefore);
-        this.mudServer.mudEmitter.on('playerConnected', this.onPlayerConnected);
-        this.mudServer.mudEmitter.on('sendToAll', this.onSendToAll);
+        
+        this.mudServer.on('hotBootAfter', this.onHotBootAfter);
+        this.mudServer.on('hotBootBefore', this.onHotBootBefore);
+        this.mudServer.on('playerConnected', this.onPlayerConnected);
+        this.mudServer.on('sendToAll', this.onSendToAll);
     },
 
     playerQuit(player) {

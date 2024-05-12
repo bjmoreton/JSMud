@@ -2,6 +2,7 @@
 const path = require('path');
 const Inventory = require('./InventoryModule/Inventory');
 const { isNumber, mapGetByIndex } = require('../Utils/helpers');
+const Container = require('./InventoryModule/Container');
 const Item = require('./ItemModule/Item');
 
 // Inventory module
@@ -120,12 +121,49 @@ const InventoryModule = {
         this.registerEvents();
     },
 
+    onHotBootAfter() {
+        InventoryModule.mudServer.players.forEach(player => {
+            InventoryModule.addPlayerMethods(player);
+        });
+    },
+
     onHotBootBefore() {
         InventoryModule.removeEvents();
     },
 
+    onItemLoaded(item, itemInfo) {
+        if (item.itemType === Item.ItemTypes.Container) {
+            item.inventory = Inventory.deserialize(null, JSON.stringify(itemInfo.data.inventory), itemInfo.data.inventory.maxSize);
+        }
+    },
+
+    onItemsLoading(player) {
+        Item.addItemType(Container);
+    },
+
+    onItemSerialized(item, itemData) {
+        if (item !== undefined) {
+            if (item.itemType === Item.ItemTypes.Container) {
+                itemData.data.inventory = item.inventory.serialize();
+            }
+        }
+    },
+
+    onPlayerLoaded(player, playerData) {
+        if (player.inventory !== undefined) player.inventory = Inventory.deserialize(player, JSON.stringify(playerData.inventory), playerData.inventory.maxSize);
+
+        // global.ItemModule.addItem(player, ['Old brown bag', 'Container']);
+        // const oldBag = global.ItemModule.getItemByVNum(2);
+        // player.inventory.addItem(oldBag.vNum, oldBag, true);
+    },
+
     onPlayerLoggedIn: (player) => {
         if (player.inventory == undefined || player.inventory == null) player.inventory = new Inventory();
+        InventoryModule.addPlayerMethods(player);
+        InventoryModule.mudServer.emit('updatePlayerItems', player, player.inventory);
+    },
+
+    addPlayerMethods(player) {
         player.hasItem = function (item) {
             if (!isNumber(item)) {
                 // Look through the inventory for any item with this vNum
@@ -149,19 +187,18 @@ const InventoryModule = {
                     if (item.name.toLowerCase().includes(search) || search === undefined) {
                         if (!foundItems.has(item.vNum)) foundItems.set(item.vNum, []);
                         foundItems.get(item.vNum).push(item);
-                        //foundItems.push(item);
                     }
                 }
             }
 
             return foundItems.size ? foundItems : null;
         };
-
-        InventoryModule.mudServer.mudEmitter.emit('updatePlayerItems', player, player.inventory);
     },
 
     onPlayerSaved(player, playerData) {
         playerData.inventory = player.inventory.serialize();
+
+        return playerData;
     },
 
     onLooked(player) {
@@ -172,17 +209,27 @@ const InventoryModule = {
         }
     },
 
-    onRoomAdded(room, roomData) {
-        if (!room.inventory) {
-            room.inventory = new Inventory(10); // Assuming Inventory is correctly imported or defined elsewhere
-            roomData.inventory?.forEach(itemData => {
+    onRoomLoaded(room, roomData) {
+        if (!room.defaultState.inventory) {
+            room.defaultState.inventory = new Inventory(roomData.defaultState?.inventory?.maxSize ?? 20);
+            roomData.defaultState?.inventory?.forEach(itemData => {
                 for (const item of itemData.data) {
-                    room.inventory.addItem(itemData.vNum, new Item(itemData.vNum, item.name, item.description, item.itemType), true);
+                    room.defaultState.inventory.addItem(itemData.vNum, global.ItemModule.getItemByVNum(itemData.vNum), true);
                 }
             });
+        }
+
+        if (!room.inventory) {
+            room.inventory = new Inventory(room.defaultState.inventory.maxSize); // Assuming Inventory is correctly imported or defined elsewhere
+            room.defaultState.inventory?.forEach(itemData => {
+                for (const item of itemData) {
+                    room.inventory.addItem(item.vNum, global.ItemModule.getItemByVNum(item.vNum), true);
+                }
+            });
+
             room.hasItem = function (item) {
                 if (!isNumber(item)) {
-                    // Look through the inventory for any item with this description
+                    // Look through the inventory for an item with a specific name
                     for (let [key, value] of this.inventory.entries()) {
                         if (value[0].name?.toLowerCase() === item?.toLowerCase()) {
                             return true;
@@ -194,6 +241,7 @@ const InventoryModule = {
 
                 return false;
             };
+
             room.hasItemLike = function (itemString) {
                 const search = itemString?.toLowerCase();
                 let foundItems = new Map();
@@ -201,16 +249,34 @@ const InventoryModule = {
                 for (const [vNum, items] of this.inventory.entries()) {
                     for (const item of items) {
                         if (item.name.toLowerCase().includes(search) || search === undefined) {
-                            if (!foundItems.has(item.vNum)) foundItems.set(item.vNum, []);
-                            foundItems.get(item.vNum).push(item);
-                            //foundItems.push(item);
+                            if (!foundItems.has(vNum)) foundItems.set(vNum, []);
+                            foundItems.get(vNum).push(item);
                         }
                     }
                 }
 
                 return foundItems.size ? foundItems : null;
             };
-            room.onSpawn();
+        }
+    },
+
+    onRoomSaved(player, room, roomData) {
+        roomData.defaultState.inventory = room.defaultState.inventory.serialize();
+    },
+
+    onRoomStateSaved(player, room) {
+        room.inventory?.forEach(itemData => {
+            for (const item of itemData) {
+                room.defaultState?.inventory?.addItem(item.vNum, global.ItemModule.getItemByVNum(item.vNum), true);
+            }
+        });
+    },
+
+    onUpdatePlayerItem(player, item, itemCopy, updatedItem) {
+        if (item.itemType === Item.ItemTypes.Container) {
+            item.inventory = itemCopy.inventory;
+            //item.inventory.maxSize = updatedItem.inventory.maxSize;
+            InventoryModule.mudServer.emit('updatePlayerItems', player, item.inventory)
         }
     },
 
@@ -225,21 +291,35 @@ const InventoryModule = {
     },
 
     registerEvents() {
-        const { mudEmitter } = InventoryModule.mudServer;
-        mudEmitter.on('hotBootBefore', InventoryModule.onHotBootBefore);
-        mudEmitter.on('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
-        mudEmitter.on('playerSaved', InventoryModule.onPlayerSaved);
-        mudEmitter.on('looked', InventoryModule.onLooked);
-        mudEmitter.on('roomAdded', InventoryModule.onRoomAdded);
+        InventoryModule.mudServer.on('hotBootAfter', InventoryModule.onHotBootAfter);
+        InventoryModule.mudServer.on('hotBootBefore', InventoryModule.onHotBootBefore);
+        InventoryModule.mudServer.on('itemLoaded', InventoryModule.onItemLoaded);
+        InventoryModule.mudServer.on('itemsLoading', InventoryModule.onItemsLoading);
+        InventoryModule.mudServer.on('itemSerialized', InventoryModule.onItemSerialized);
+        InventoryModule.mudServer.on('looked', InventoryModule.onLooked);
+        InventoryModule.mudServer.on('playerLoaded', InventoryModule.onPlayerLoaded);
+        InventoryModule.mudServer.on('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
+        InventoryModule.mudServer.on('playerSaved', InventoryModule.onPlayerSaved);
+        InventoryModule.mudServer.on('roomLoaded', InventoryModule.onRoomLoaded);
+        InventoryModule.mudServer.on('roomSaved', InventoryModule.onRoomSaved);
+        InventoryModule.mudServer.on('roomStateSaved', InventoryModule.onRoomStateSaved);
+        InventoryModule.mudServer.on('updatePlayerItem', InventoryModule.onUpdatePlayerItem);
     },
 
     removeEvents() {
-        const { mudEmitter } = InventoryModule.mudServer;
-        mudEmitter.removeListener('hotBootBefore', InventoryModule.onHotBootBefore);
-        mudEmitter.removeListener('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
-        mudEmitter.removeListener('playerSaved', InventoryModule.onPlayerSaved);
-        mudEmitter.removeListener('looked', InventoryModule.onLooked);
-        mudEmitter.removeListener('roomAdded', InventoryModule.onRoomAdded);
+        InventoryModule.mudServer.removeListener('hotBootAfter', InventoryModule.onHotBootAfter);
+        InventoryModule.mudServer.removeListener('hotBootBefore', InventoryModule.onHotBootBefore);
+        InventoryModule.mudServer.removeListener('itemLoaded', InventoryModule.onItemLoaded);
+        InventoryModule.mudServer.removeListener('itemsLoading', InventoryModule.onItemsLoading);
+        InventoryModule.mudServer.removeListener('itemSerialized', InventoryModule.onItemSerialized);
+        InventoryModule.mudServer.removeListener('looked', InventoryModule.onLooked);
+        InventoryModule.mudServer.removeListener('playerLoaded', InventoryModule.onPlayerLoaded);
+        InventoryModule.mudServer.removeListener('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
+        InventoryModule.mudServer.removeListener('playerSaved', InventoryModule.onPlayerSaved);
+        InventoryModule.mudServer.removeListener('roomLoaded', InventoryModule.onRoomLoaded);
+        InventoryModule.mudServer.removeListener('roomSaved', InventoryModule.onRoomSaved);
+        InventoryModule.mudServer.removeListener('roomStateSaved', InventoryModule.onRoomStateSaved);
+        InventoryModule.mudServer.removeListener('updatePlayerItem', InventoryModule.onUpdatePlayerItem);
     },
 
     showInventory(player, args) {
@@ -351,8 +431,8 @@ const InventoryModule = {
                 let itemArray = [];
                 foundItems = mapGetByIndex(foundItems, itemIndex);
 
-                for(const foundItemId in foundItems) {
-                    for(const foundItem in foundItems[foundItemId]) {
+                for (const foundItemId in foundItems) {
+                    for (const foundItem in foundItems[foundItemId]) {
                         itemArray.push(foundItems[foundItemId][foundItem]);
                     }
                 }

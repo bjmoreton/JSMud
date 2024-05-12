@@ -35,7 +35,7 @@ const LoginModule = {
                 const confirmPassword = await player.textEditor.showPrompt('Confirm password: ');
                 if (confirmPassword === player.password) {
                     player.password = await hashPassword(player.password);
-                    LoginModule.mudServer.mudEmitter.emit('playerCreated', player);
+                    LoginModule.mudServer.emit('playerCreated', player);
                     player.save();
                     player.connectionStatus = this.ConnectionStatus.WelcomeScreen;
                 } else {
@@ -95,7 +95,7 @@ const LoginModule = {
                     if (p.username == player.username || p?.connectionStatus != this.ConnectionStatus.LoggedIn) return;
                     p.send(`Player ${player.username} has logged in.`);
                 });
-                LoginModule.mudServer.mudEmitter.emit('playerLoggedIn', player);
+                LoginModule.mudServer.emit('playerLoggedIn', player);
                 break;
         }
 
@@ -105,14 +105,14 @@ const LoginModule = {
         await LoginModule.handleLogin(player, data);
     },
     handleHotbootBefore: function () {
-        LoginModule.mudServer.mudEmitter.removeListener('handleLogin', LoginModule.handleLoginCB);
-        LoginModule.mudServer.mudEmitter.removeListener('hotBootBefore', LoginModule.handleHotbootBefore);
+        LoginModule.mudServer.removeListener('handleLogin', LoginModule.handleLoginCB);
+        LoginModule.mudServer.removeListener('hotBootBefore', LoginModule.handleHotbootBefore);
     },
     init: function (mudServer) {
         global.LoginModule = this;
         this.mudServer = mudServer;
-        this.mudServer.mudEmitter.on('handleLogin', this.handleLoginCB);
-        this.mudServer.mudEmitter.on('hotBootBefore', this.handleHotbootBefore);
+        this.mudServer.on('handleLogin', this.handleLoginCB);
+        this.mudServer.on('hotBootBefore', this.handleHotbootBefore);
     }
 };
 

@@ -71,9 +71,11 @@ class Inventory extends Map {
     serialize() {
         let items = Array.from(this.entries()).map(([vNum, itemList]) => ({
             vNum: parseInt(vNum),
-            data: itemList.map(item => item?.serialize())  // Directly use serialize to get the object
+            data: itemList.map(item => item?.serialize())
         }));
-        return items;
+
+        // Return as an object including maxSize
+        return { items, maxSize: parseInt(this.maxSize) };
     }
 
     /**
@@ -106,8 +108,10 @@ class Inventory extends Map {
      * @returns {Inventory} - Returns an Inventory object.
      */
     static deserialize(player, data, maxSize = 30) {
-        let inventory = new Inventory(maxSize);
-        let items = JSON.parse(data);  // Assuming data is a JSON string
+        const inventory = new Inventory(maxSize);
+        const invObj = JSON.parse(data);  // Assuming data is a JSON string
+        const items = invObj.items;
+
         try {
             items.forEach(item => {
                 item.data.forEach(newItem => {

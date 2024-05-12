@@ -14,5 +14,17 @@
       "description": "A key made of Bronze.",
       "itemType": "Key"
     }
+  },
+  {
+    "vNum": 2,
+    "data": {
+      "name": "Old brown bag",
+      "description": "",
+      "itemType": "Container",
+      "inventory": {
+        "items": [],
+        "maxSize": 10
+      }
+    }
   }
 ]

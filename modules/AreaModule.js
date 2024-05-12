@@ -29,6 +29,7 @@ const AreaModule = {
      * @returns {Area|null} - The area object if found, null otherwise.
      */
     getAreaByName(area) {
+        if (!area) return null;
         return AreaModule.areaList.get(typeof area === 'object' ? area.name?.toLowerCase() : area?.toLowerCase()) || null;
     },
 
@@ -63,13 +64,15 @@ const AreaModule = {
         global.AreaModule = this;
         this.mudServer = mudServer;
 
-        this.mudServer.mudEmitter.on('enteredRoom', this.onEnteredRoom);
-        this.mudServer.mudEmitter.on('hotBootAfter', this.onAfterHotboot);
-        this.mudServer.mudEmitter.on('hotBootBefore', this.onBeforeHotboot);
-        this.mudServer.mudEmitter.on('playerLoggedIn', this.onPlayerLoggedIn);
-        this.mudServer.mudEmitter.on('playerSaved', this.onPlayerSaved);
-        this.mudServer.mudEmitter.on('sendToRoom', this.onSendToRoom);
-        this.mudServer.mudEmitter.on('sendToRoomEmote', this.onSendToRoomEmote);
+        this.mudServer.on('enteredRoom', this.onEnteredRoom);
+        this.mudServer.on('exitedRoom', this.onExitedRoom);
+        this.mudServer.on('hotBootAfter', this.onAfterHotboot);
+        this.mudServer.on('hotBootBefore', this.onBeforeHotboot);
+        this.mudServer.on('playerDisconnected', this.onPlayerDisconnected);
+        this.mudServer.on('playerLoggedIn', this.onPlayerLoggedIn);
+        this.mudServer.on('playerSaved', this.onPlayerSaved);
+        this.mudServer.on('sendToRoom', this.onSendToRoom);
+        this.mudServer.on('sendToRoomEmote', this.onSendToRoomEmote);
     },
 
     /**
@@ -112,12 +115,13 @@ const AreaModule = {
                         area.sections.set(sectionName.toLowerCase(), section);
 
                         sectionData.rooms.forEach(roomData => {
-                            const room = new Room(area, section, roomData.name, roomData.description, roomData.x, roomData.y, roomData.z, roomData.progs, roomData.symbol);
+                            const room = new Room(area, section, roomData.name, roomData.description, roomData.x, roomData.y, roomData.z,
+                                roomData.progs, roomData.symbol, roomData.defaultState);
 
                             section.rooms.set(`${room.x},${room.y},${room.z}`, room);
                             allExits.set(room, roomData.exits);
 
-                            AreaModule.mudServer.mudEmitter.emit('roomAdded', room, roomData);
+                            AreaModule.mudServer.emit('roomLoaded', room, roomData);
                         });
                     }
 
@@ -157,11 +161,37 @@ const AreaModule = {
     onEnteredRoom(player, enterDirection, room) {
         let message = '';
         if (player.inRoom(room)) {
+            room.addPlayer(player);
             if (enterDirection != Exit.ExitDirections.None) message = `${player.username} entered the room from the ${enterDirection}.`;
             else message = `${player.username} entered the room.`;
 
-            global.mudEmitter.emit('sendToRoom', player, message, [player.username], message);
+            AreaModule.mudServer.emit('sendToRoom', player, message, [player.username]);
         }
+    },
+
+    /**
+     * Handle player exiting a room.
+     * @param {object} player - The player object.
+     * @param {string} enterDirection - The direction exiting.
+     * @param {Room} room - The room exiting from.
+     */
+    onExitedRoom(player, enterDirection, room) {
+        let message = '';
+        if (player.inRoom(room)) {
+            room.removePlayer(player);
+            if (enterDirection != Exit.ExitDirections.None) message = `${player.username} left in the ${enterDirection} direction.`;
+            else message = `${player.username} left the room.`;
+
+            AreaModule.mudServer.emit('sendToRoom', player, message, [player.username]);
+        }
+    },
+
+    /**
+     * Handle player disconnecting.
+     * @param {object} player - The player object.
+     */
+    onPlayerDisconnected(player) {
+        AreaModule.mudServer.emit('exitedRoom', player, Exit.ExitDirections.None, player.currentRoom);
     },
 
     /**
@@ -175,24 +205,32 @@ const AreaModule = {
         if (player.currentY === undefined) player.currentY = AreaModule.startY;
         if (player.currentZ === undefined) player.currentZ = AreaModule.startZ;
 
-        player.inRoom = function (room) {
-            return parseInt(AreaModule.currentX) === parseInt(room?.x) &&
-                parseInt(AreaModule.currentY) == parseInt(room?.y) &&
-                parseInt(AreaModule.currentZ) == parseInt(room?.z);
-        };
-
-        player.sameRoomAs = function (otherPlayer) {
-            return parseInt(AreaModule.currentX) === parseInt(otherPlayer?.currentX) &&
-                parseInt(AreaModule.currentY) == parseInt(otherPlayer?.currentY) &&
-                parseInt(AreaModule.currentZ) == parseInt(otherPlayer?.currentZ);
-        };
+        AreaModule.addPlayerMethods(player);
 
         player.currentArea = AreaModule.getAreaByName(player.currentArea);
         player.currentSection = player.currentArea.getSectionByName(player.currentSection);
         player.currentRoom = player.currentSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
 
-        AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.ExitDirections.None, player.currentRoom);
+        AreaModule.mudServer.emit('enteredRoom', player, Exit.ExitDirections.None, player.currentRoom);
         AreaModule.executeLook(player);
+    },
+
+    /**
+     * Add methods to the player
+     * @param {object} player - The player object
+     */
+    addPlayerMethods(player) {
+        player.inRoom = function (room) {
+            return parseInt(this.currentX) === parseInt(room?.x) &&
+                parseInt(this.currentY) == parseInt(room?.y) &&
+                parseInt(this.currentZ) == parseInt(room?.z);
+        };
+
+        player.sameRoomAs = function (otherPlayer) {
+            return parseInt(this.currentX) === parseInt(otherPlayer?.currentX) &&
+                parseInt(this.currentY) == parseInt(otherPlayer?.currentY) &&
+                parseInt(this.currentZ) == parseInt(otherPlayer?.currentZ);
+        };
     },
 
     /**
@@ -225,11 +263,14 @@ const AreaModule = {
         });
 
         AreaModule.mudServer.players.forEach(player => {
+            AreaModule.addPlayerMethods(player);
             player.currentArea = AreaModule.getAreaByName(player.currentArea);
             player.currentSection = player.currentArea?.getSectionByName(player.currentSection);
             player.currentRoom = AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ);
             player.workingArea = AreaModule.getAreaByName(player.workingArea);
             player.workingSection = player.workingArea?.getSectionByName(player.workingSection);
+
+            player.currentRoom?.addPlayer(player);
         });
     },
 
@@ -237,14 +278,15 @@ const AreaModule = {
      * Handle hotboot before event.
      */
     onBeforeHotboot(player) {
-        AreaModule.save(player);
-        AreaModule.mudServer.mudEmitter.removeListener('enteredRoom', AreaModule.onEnteredRoom);
-        AreaModule.mudServer.mudEmitter.removeListener('hotBootAfter', AreaModule.onAfterHotboot);
-        AreaModule.mudServer.mudEmitter.removeListener('hotBootBefore', AreaModule.onBeforeHotboot);
-        AreaModule.mudServer.mudEmitter.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
-        AreaModule.mudServer.mudEmitter.removeListener('playerSaved', AreaModule.onPlayerSaved);
-        AreaModule.mudServer.mudEmitter.removeListener('sendToRoom', AreaModule.onSendToRoom);
-        AreaModule.mudServer.mudEmitter.removeListener('sendToRoomEmote', AreaModule.onSendToRoomEmote);
+        AreaModule.mudServer.removeListener('enteredRoom', AreaModule.onEnteredRoom);
+        AreaModule.mudServer.removeListener('exitedRoom', AreaModule.onExitedRoom);
+        AreaModule.mudServer.removeListener('hotBootAfter', AreaModule.onAfterHotboot);
+        AreaModule.mudServer.removeListener('hotBootBefore', AreaModule.onBeforeHotboot);
+        AreaModule.mudServer.removeListener('playerDisconnected', AreaModule.onPlayerDisconnected);
+        AreaModule.mudServer.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+        AreaModule.mudServer.removeListener('playerSaved', AreaModule.onPlayerSaved);
+        AreaModule.mudServer.removeListener('sendToRoom', AreaModule.onSendToRoom);
+        AreaModule.mudServer.removeListener('sendToRoomEmote', AreaModule.onSendToRoomEmote);
     },
 
     /**
@@ -255,14 +297,8 @@ const AreaModule = {
      * @param {string} [messagePlain] - The plain message to send.
      */
     onSendToRoom(player, message, excludedPlayers = [], messagePlain) {
-        console.log('Sending message to room:', message);
         if (messagePlain === undefined) messagePlain = message;
-        player.currentRoom?.sendToRoom(player, messagePlain);
-        AreaModule.mudServer.players.forEach(p => {
-            if (p.sameRoomAs(player) && !excludedPlayers.includes(p.username)) {
-                p.send(message);
-            }
-        });
+        player.currentRoom?.sendToRoom(player, message, excludedPlayers, messagePlain);
     },
 
     /**
@@ -480,6 +516,8 @@ const AreaModule = {
             return;
         }
 
+        AreaModule.mudServer.emit('exitedRoom', player, exitDirection, player.currentRoom);
+
         player.currentArea = newArea;
         player.currentSection = newSection;
         player.currentX = parseInt(newX);
@@ -488,7 +526,7 @@ const AreaModule = {
 
         player.currentRoom = toRoom;
 
-        AreaModule.mudServer.mudEmitter.emit('enteredRoom', player, Exit.oppositeExit(exitDirection), toRoom);
+        AreaModule.mudServer.emit('enteredRoom', player, Exit.oppositeExit(exitDirection), toRoom);
         AreaModule.executeLook(player);
     },
 
@@ -505,7 +543,7 @@ const AreaModule = {
             roomTemplate.forEach(string => {
                 player.send(`${string}`);
             });
-            AreaModule.mudServer.mudEmitter.emit('looked', player);
+            AreaModule.mudServer.emit('looked', player);
         } else {
             const strToExit = Exit.stringToExit(direction);
             if (strToExit !== Exit.ExitDirections.None) {
@@ -949,8 +987,12 @@ const AreaModule = {
                     }
                     break;
                 default:
-                    foundSection[editWhat] = newName;
-                    player.send(`${editWhat} updated successfully on ${foundSection.name}.`);
+                    if (foundSection[editWhat]) {
+                        foundSection[editWhat] = newName;
+                        player.send(`${editWhat} updated successfully on ${foundSection.name}.`);
+                    } else {
+                        player.send(`${editWhat} property not found!`);
+                    }
                     break;
             }
         } else {
@@ -989,8 +1031,14 @@ const AreaModule = {
 
             if (foundSection) {
                 switch (cmdName?.toLowerCase()) {
+                    case 'addexit':
+                        AreaModule.addRoomExit(player, foundArea, foundSection, data);
+                        break;
+                    case 'addtexit':
+                        AreaModule.addTeleportExit(player, data);
+                        break;
                     case 'create':
-                        await AreaModule.createRoom(player, foundArea, foundSection, data);
+                        AreaModule.createRoom(player, foundArea, foundSection, data);
                         break;
                     case 'delete':
                         await AreaModule.deleteRoom(player, foundSection, data);
@@ -998,20 +1046,20 @@ const AreaModule = {
                     case 'edit':
                         await AreaModule.editRoom(player, foundSection, data);
                         break;
-                    case 'addexit':
-                        await AreaModule.addRoomExit(player, foundArea, foundSection, data);
-                        break;
-                    case 'addtexit':
-                        await AreaModule.addTeleportExit(player, data);
+                    case 'editexit':
+                        await AreaModule.editExit(player, data);
                         break;
                     case 'removeexit':
-                        await AreaModule.removeRoomExit(player, foundSection, data);
+                        AreaModule.removeRoomExit(player, foundSection, data);
+                        break;
+                    case "savestate":
+                        await AreaModule.saveRoomState(player);
                         break;
                     case 'setsymbol':
                         player.currentRoom.symbol = data.join(' ');
                         break;
                     default:
-                        player.send(`Usage: room <create | delete | edit | addexit | removeexit | setsymbol>`);
+                        player.send(`Usage: room <create | delete | edit | addexit | removeexit | savestate | setsymbol>`);
                         break;
                 }
             } else {
@@ -1029,7 +1077,7 @@ const AreaModule = {
      * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    async createRoom(player, foundArea, foundSection, data) {
+    createRoom(player, foundArea, foundSection, data) {
         const [x, y, z] = data;
 
         if (x !== undefined && y !== undefined && z !== undefined) {
@@ -1097,6 +1145,152 @@ const AreaModule = {
     },
 
     /**
+     * Edits the properties or scripts of an exit based on user input.
+     * @param {Player} player - The player performing the edit.
+     * @param {Section} foundSection - The section where the exit is located.
+     * @param {Array<string>} args - Arguments provided by the player which include the exit direction, the type of edit, and additional parameters.
+     * @async
+     * @returns {Promise<void>} Nothing is returned, but messages are sent to the player based on the outcome of the operation.
+     */
+    async editExit(player, args) {
+        const [editDirection, editOption, ...editValues] = args;
+        if (!editDirection || !editOption) {
+            player.send("Usage: room editexit <direction> <option> [...values]");
+            return;
+        }
+
+        const strToExit = Exit.stringToExit(editDirection);
+        if (strToExit === null) {
+            player.send("Invalid exit direction provided.");
+            return;
+        }
+
+        const fromRoom = player.currentRoom;
+        const editExit = fromRoom.getExitByDirection(strToExit);
+        if (!editExit) {
+            player.send("No exit found in the specified direction.");
+            return;
+        }
+
+        switch (editOption.toLowerCase()) {
+            case 'script':
+                await this.editExitScript(player, editExit, editValues);
+                break;
+            case 'state':
+                this.editExitState(player, editExit, editValues);
+                break;
+            default:
+                player.send("Invalid option. Use 'script' or 'state'.");
+                break;
+        }
+    },
+
+    /**
+     * Handles editing scripts associated with an exit.
+     * @param {Player} player - The player who is editing the exit's script.
+     * @param {Exit} exit - The exit object being edited.
+     * @param {Array<string>} editValues - Additional arguments including the command ('add', 'edit', 'remove'), the event name, and potentially the script content to edit.
+     * @async
+     * @returns {Promise<void>} The function sends messages to the player based on the result of the script editing operation.
+     */
+    async editExitScript(player, exit, editValues) {
+        const [command, onEvent] = editValues;
+        if (!command || !onEvent) {
+            player.send("Usage: room editexit script <add | edit | remove> <event>");
+            return;
+        }
+
+        const eventName = onEvent.toLowerCase();
+        if (!exit.progs) exit.progs = {};
+
+        switch (command.toLowerCase()) {
+            case 'add':
+                if (exit.progs[eventName]) {
+                    player.send(`${onEvent} already exists.`);
+                    return;
+                }
+                const newScript = await player.textEditor.startEditing('');
+                if (newScript.trim() === '') {
+                    player.send("Script creation canceled or empty script provided.");
+                    return;
+                }
+                exit.progs[eventName] = newScript;
+                exit.addEditReverseScript(eventName, newScript);
+                player.send(`${onEvent} added successfully.`);
+                break;
+            case 'edit':
+                if (!exit.progs[eventName]) {
+                    player.send(`No existing script for ${onEvent} to edit.`);
+                    return;
+                }
+                const updatedScript = await player.textEditor.startEditing(exit.progs[eventName]);
+                if (updatedScript.trim() === '') {
+                    player.send("Script editing canceled or empty script provided.");
+                    return;
+                }
+                exit.progs[eventName] = updatedScript;
+                exit.addEditReverseScript(eventName, updatedScript);
+                player.send(`${onEvent} edited successfully.`);
+                break;
+            case 'remove':
+                if (!exit.progs[eventName]) {
+                    player.send(`No existing script for ${onEvent} to remove.`);
+                    return;
+                }
+                delete exit.progs[eventName];
+                exit.deleteReverseScript(eventName);
+                player.send(`${onEvent} removed successfully.`);
+                break;
+            default:
+                player.send("Invalid command. Use 'add', 'edit', or 'remove'.");
+                break;
+        }
+    },
+
+    /**
+     * Manages state changes to an exit, including adding, removing, saving, or displaying the state.
+     * @param {Player} player - The player making state changes to the exit.
+     * @param {Exit} exit - The exit object whose state is being modified.
+     * @param {Array<string>} editValues - Commands and parameters for state management such as 'add', 'remove', 'save', 'showstate', or 'showdefaultstate'.
+     * @returns {void} Sends feedback to the player about the outcome of the state change operations.
+     */
+    editExitState(player, exit, editValues) {
+        const [action, ...states] = editValues;
+        if (!action) {
+            player.send("Usage: room editexit state <add | defaults | remove | save | show>");
+            return;
+        }
+
+        switch (action.toLowerCase()) {
+            case 'add':
+            case 'remove':
+                states.forEach(state => {
+                    const actualState = Exit.stringToExitState(state);
+                    if (actualState === null) {
+                        player.send(`Invalid state: ${state}`);
+                        return;
+                    }
+                    action === 'add' ? exit.addState(actualState) : exit.removeState(actualState);
+                });
+                player.send(`State(s) ${action === 'add' ? 'added' : 'removed'} successfully.`);
+                break;
+            case 'save':
+                exit.saveState();
+                player.send("State saved successfully.");
+                break;
+            case 'show':
+                player.send(exit.currentState.join(', '));
+                break;
+            case 'defaults':
+                player.send(exit.initialState.join(', '));
+                break;
+            default:
+                player.send("Invalid action. Use 'add', 'defaults', 'remove', 'save', or 'show'.");
+                break;
+        }
+    },
+
+    /**
      * Edit room properties.
      * @param {object} player - The player object.
      * @param {Room} room - The room object.
@@ -1143,7 +1337,7 @@ const AreaModule = {
      * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    async addRoomExit(player, foundArea, foundSection, data) {
+    addRoomExit(player, foundArea, foundSection, data) {
         const [direction] = data;
 
         if (direction !== undefined) {
@@ -1158,7 +1352,7 @@ const AreaModule = {
      * @param {object} player - The player object.
      * @param {array} data - The command arguments.
      */
-    async addTeleportExit(player, data) {
+    addTeleportExit(player, data) {
         const [toArea, toSection, toX, toY, toZ, toDirection] = data;
         const fromRoom = player.currentRoom;
 
@@ -1205,7 +1399,7 @@ const AreaModule = {
      * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    async removeRoomExit(player, foundSection, data) {
+    removeRoomExit(player, foundSection, data) {
         const [direction] = data;
         const fromRoom = player.currentRoom;
 
@@ -1220,6 +1414,18 @@ const AreaModule = {
             }
         } else {
             player.send(`Usage: room removeexit direction`);
+        }
+    },
+
+    async saveRoomState(player) {
+        const reallyOverwrite = await player.textEditor.showPrompt(`Overwrite existing room state? yes/no `);
+
+        if (reallyOverwrite.toLowerCase() === 'y' || reallyOverwrite.toLowerCase() === 'yes') {
+            player.currentRoom.defaultState.flags = player.currentRoom.flags;
+            AreaModule.mudServer.emit('roomStateSaved', player, player.currentRoom);
+            player.send(`Room state overwritten successfully.`);
+        } else {
+            player.send(`Room state wasn't overwritten.`);
         }
     },
 };

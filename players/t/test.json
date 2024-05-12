@@ -3,12 +3,12 @@
   "commands": [],
   "canBuild": false,
   "modLevel": 0,
-  "statuses": 0,
-  "workingArea": "",
-  "workingSection": "",
+  "statuses": [
+    "None"
+  ],
   "password": "$2b$10$GQrlzANWw2snWuZe75pj8OrLI3nbRItKJjII2sqMNNc//OjZGrPu2",
   "currentX": 0,
-  "currentY": 1,
+  "currentY": 0,
   "currentZ": 0,
   "inventory": [],
   "currentArea": "Start",

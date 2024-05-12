@@ -1,8 +1,9 @@
 const { isNumber } = require("../../Utils/helpers");
 const Exit = require("./Exit");
+const RoomState = require("./RoomState");
 
 class Room {
-    constructor(area, section, name, description, x, y, z, progs, symbol = '#') {
+    constructor(area, section, name, description, x, y, z, progs, symbol = '#', defaultState) {
         this.area = area;
         this.section = section;
         this.name = name;
@@ -12,8 +13,11 @@ class Room {
         this.z = z;
         this.progs = progs;
         this.symbol = symbol;
+        this.defaultState = new RoomState(defaultState);
+        this.flags = this.defaultState.flags;
 
         this.exits = new Map();
+        this.players = new Map();
     }
 
     addExit(player, area, section, direction, x, y, z, teleport = false) {
@@ -87,17 +91,17 @@ class Room {
         }
     }
 
+    addPlayer(player) {
+        if (player) this.players.set(player.username, player);
+    }
+
     // Method to get an exit by direction
     getExitByDirection(exitDirection) {
         return this.exits.get(exitDirection);
     }
 
-    isAt(area, section, x, y, z) {
-        return area?.toLowerCase() === this.area?.toLowerCase() &&
-            section?.toLowerCase() === this.section?.toLowerCase() &&
-            parseInt(x) === parseInt(this.x) &&
-            parseInt(y) === parseInt(this.y) &&
-            parseInt(z) === parseInt(this.z);
+    removePlayer(player) {
+        if (player) this.players.delete(player.username);
     }
 
     sendToRoomEmote(player, emote) {
@@ -106,7 +110,12 @@ class Room {
         });
     }
 
-    sendToRoom(player, message) {
+    sendToRoom(player, message, excludedPlayers, messagePlain) {
+        this.players.forEach(p => {
+            if (!excludedPlayers.includes(p.username)) {
+                p.send(message);
+            }
+        });
         this.exits?.forEach(exit => {
             exit.sendToExit(player, message);
         });
@@ -165,15 +174,14 @@ class Room {
                 return;
         }
 
-        let toRoom;
         if (toArea !== undefined && toSection !== undefined && x !== undefined &&
             y !== undefined && z !== undefined) {
             rX = x;
             rY = y;
             rZ = z;
-            toRoom = toSection.getRoomByCoordinates(rX, rY, rZ);
-        } else toRoom = section.getRoomByCoordinates(rX, rY, rZ);
+        }
 
+        const toRoom = section.getRoomByCoordinates(rX, rY, rZ);
         if (toRoom != null) {
             this.exits.delete(Exit.oppositeExit(strToExit));
             toRoom.exits.delete(strToExit);
@@ -181,16 +189,6 @@ class Room {
             player.send(`Exit removed successfully!`);
         } else {
             player.send(`Room doesn't exist!`);
-        }
-    }
-
-    onSpawn() {
-        try {
-            if (this.progs !== undefined && this.progs['onspawn']) {
-                eval(this.progs['onspawn']);
-            }
-        } catch (error) {
-            console.error(error);
         }
     }
 }

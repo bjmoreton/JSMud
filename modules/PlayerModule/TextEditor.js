@@ -14,7 +14,7 @@ class TextEditor {
 
     showPrompt(prompt, colors = false) {
         this.isPrompt = true;
-        this.player.addStatus(this.player.Statuses.Editing);
+        this.player.addStatus('editing');
         if (colors === true) this.player.sendRAW(`${parseColors(`${prompt}`)}`);
         else this.player.sendRAW(prompt);
         return new Promise((resolve, reject) => {
@@ -27,7 +27,7 @@ class TextEditor {
     }
 
     startEditing(defaultValue) {
-        this.player.addStatus(this.player.Statuses.Editing);
+        this.player.addStatus('editing');
         this.defaultValue = defaultValue;
         if (this.defaultValue != '' && this.defaultValue != undefined && this.defaultValue != null) {
             this.textValues = this.defaultValue.split('\r\n');
@@ -50,12 +50,12 @@ class TextEditor {
 
     saveText() {
         this.resolveInputPromise(this.textValues.join('\r\n')); // Resolve the promise with the edited text
-        this.player.removeStatus(this.player.Statuses.Editing);
+        this.player.removeStatus('editing');
     }
 
     cancelEditing() {
         this.resolveInputPromise(this.defaultValue); // Resolve the promise with null to indicate cancellation
-        this.player.removeStatus(this.player.Statuses.Editing);
+        this.player.removeStatus('editing');
     }
 
     processInput(input) {
@@ -93,7 +93,7 @@ class TextEditor {
             this.isList = false;
             this.resolveInputPromise();
         } else if (this.isPrompt) {
-            this.player.removeStatus(this.player.Statuses.Editing);
+            this.player.removeStatus('editing');
             this.isPrompt = false;
             this.resolveInputPromise(input); // Resolve the promise with the edited text
         }

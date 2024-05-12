@@ -2,12 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const { parseColors } = require('../../Utils/Color.js');
 const TextEditor = require('./TextEditor.js');
-const Inventory = require('../InventoryModule/Inventory.js');
 
 class Player {
-    Statuses = {
-        None: 0,
-        Editing: 1 << 0
+    static Statuses = {
+        None: "None",
+        Editing: "Editing"
     }
 
     textEditor = new TextEditor(this);
@@ -16,8 +15,17 @@ class Player {
         return this.commands.push(cmds);
     }
 
-    addStatus(status) {
-        this.statuses |= status;
+    addStatus(statuses) {
+        const statusList = Array.isArray(statuses) ? statuses : statuses.toString().split(',').map(s => s.trim());
+
+        statusList.forEach(status => {
+            const resolvedStatus = Player.stringToStatus(status);
+            if (resolvedStatus && !this.statuses.includes(resolvedStatus) && this.validStatus(resolvedStatus)) {
+                this.statuses.push(resolvedStatus);
+            }
+        });
+
+        this.removeStatus(Player.Statuses.None);
     }
 
     constructor(socket, username) {
@@ -27,7 +35,7 @@ class Player {
         this.canBuild = false;
         this.loggedIn = false;
         this.modLevel = 0;
-        this.statuses = this.Statuses.None;
+        this.statuses = [Player.Statuses.None];
         this.workingArea = '';
         this.workingSection = '';
     }
@@ -49,8 +57,20 @@ class Player {
         return this.commands.includes(cmd);
     }
 
-    hasStatus(status) {
-        return this.statuses && status;
+    hasStatus(statuses) {
+        // Handle different types of inputs flexibly
+        let statusList;
+        if (Array.isArray(statuses)) {
+            statusList = statuses;
+        } else {
+            statusList = statuses.toString().split(',').map(item => item.trim());
+        }
+
+        // Check if every status in the list is included in the current statuses
+        return statusList.every(status => {
+            const resolvedStatus = Player.stringToStatus(status);
+            return resolvedStatus && this.statuses.includes(resolvedStatus);
+        });
     }
 
     load() {
@@ -64,7 +84,9 @@ class Player {
 
             // Assign the player data to the player object
             Object.assign(this, playerObject);
-            if(this.inventory !== undefined) this.inventory = Inventory.deserialize(this, JSON.stringify(playerObject.inventory), playerObject.inventory.maxSize);
+            this.setStatus(this.statuses);
+
+            global.mudServer.emit('playerLoaded', this, playerObject);
             return this;
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
@@ -73,17 +95,24 @@ class Player {
         return null;
     }
 
-    removeStatus(status) {
-        this.statuses &= ~status;
+    removeStatus(statuses) {
+        const statusList = Array.isArray(statuses) ? statuses : statuses.toString().split(',').map(item => item.trim());
+
+        // Filter out the statuses to be removed from the currentStatus array
+        statusList.forEach(status => {
+            const resolvedStatus = Player.stringToStatus(status);
+            if (this.statuses.includes(resolvedStatus)) {
+                this.statuses = this.statuses.filter(s => s !== resolvedStatus);
+            }
+        });
+
+        if(this.statuses.length === 0) this.statuses.push(Player.Statuses.None);
     }
 
     save() {
         // Exclude the properties you want to ignore
-        const { socket, send, connectionStatus, loggedIn, Statuses, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
-        // playerData.currentArea = this.currentArea.name;
-        // playerData.currentSection = this.currentSection.name;
-        // playerData.inventory = this.inventory.serialize();
-        global.mudEmitter.emit('playerSaved', this, playerData);
+        const { socket, send, connectionStatus, loggedIn, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
+        global.mudServer.emit('playerSaved', this, playerData);
         const filePath = this.getFilePath();
         // Generate the directory path
         const directoryPath = path.dirname(filePath);
@@ -101,9 +130,10 @@ class Player {
 
     send(message) {
         try {
-            if (!this.hasStatus(this.Statuses.Editing)) this.socket.write(`${parseColors(message)}\r\n`);
+            if (!this.hasStatus(Player.Statuses.Editing)) this.socket.write(`${parseColors(message)}\r\n`);
         } catch (error) {
             console.log(`${this.username} failed to receive ${message}`);
+            console.log(error);
         }
     }
 
@@ -112,7 +142,31 @@ class Player {
             this.socket.write(`${message}\r\n`);
         } catch (error) {
             console.log(`${this.username} failed to receive ${message}`);
+            console.log(error);
         }
+    }
+
+    setStatus(statuses) {
+        this.statuses = [];
+        for (const status of statuses.toString().split(',').map(item => item.trim())) {
+            if (this.validStatus(status)) this.statuses.push(Player.stringToStatus(status));
+        }
+
+        if (this.statuses.length === 0) this.statuses.push(Player.Statuses.None);
+    }
+
+    validStatus(status) {
+        return Object.values(Player.Statuses).includes(status);
+    }
+
+    static stringToStatus(statusString) {
+        const normalizedInput = statusString.toLowerCase();
+        for (const key in Player.Statuses) {
+            if (key.toLowerCase() === normalizedInput) {
+                return Player.Statuses[key];
+            }
+        }
+        return null; // Return null if no matching state is found
     }
 }
 

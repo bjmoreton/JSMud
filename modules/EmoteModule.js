@@ -98,12 +98,12 @@ const EmoteModule = {
             if (targetPlayer && targetPlayer.sameRoomAs(player)) {
                 player.send(EmoteModule.formatEmote(player, targetPlayer, emoteAction.you));
                 targetPlayer.send(EmoteModule.formatEmote(player, targetPlayer, emoteAction.target));
-                EmoteModule.mudServer.mudEmitter.emit('sendToRoom', player, EmoteModule.formatEmote(player, targetPlayer, emoteAction.others), [player?.username, targetPlayer?.username]);
+                EmoteModule.mudServer.emit('sendToRoom', player, EmoteModule.formatEmote(player, targetPlayer, emoteAction.others), [player?.username, targetPlayer?.username]);
             } else {
                 player.send(EmoteModule.formatEmote(player, null, emoteAction.solo));
-                EmoteModule.mudServer.mudEmitter.emit('sendToRoom', player, EmoteModule.formatEmote(player, targetPlayer, emoteAction.othersSolo), [player?.username, targetPlayer?.username]);
+                EmoteModule.mudServer.emit('sendToRoom', player, EmoteModule.formatEmote(player, targetPlayer, emoteAction.othersSolo), [player?.username, targetPlayer?.username]);
             }
-            EmoteModule.mudServer.mudEmitter.emit('sendToRoomEmote', player, emoteAction);
+            EmoteModule.mudServer.emit('sendToRoomEmote', player, emoteAction);
         } else {
             player.send(`Emote ${emote} doesn't exist!`);
         }
@@ -132,15 +132,13 @@ const EmoteModule = {
     },
 
     registerEvents() {
-        const { mudEmitter } = EmoteModule.mudServer;
-        mudEmitter.on('handleEmote', EmoteModule.handleEmote);
-        mudEmitter.on('hotBootBefore', EmoteModule.onHotBootBefore);
+        EmoteModule.mudServer.on('handleEmote', EmoteModule.handleEmote);
+        EmoteModule.mudServer.on('hotBootBefore', EmoteModule.onHotBootBefore);
     },
 
     removeEvents() {
-        const { mudEmitter } = EmoteModule.mudServer;
-        mudEmitter.removeListener('handleEmote', EmoteModule.handleEmote);
-        mudEmitter.removeListener('hotBootBefore', EmoteModule.onHotBootBefore);
+        EmoteModule.mudServer.removeListener('handleEmote', EmoteModule.handleEmote);
+        EmoteModule.mudServer.removeListener('hotBootBefore', EmoteModule.onHotBootBefore);
     },
 
     save(player, args) {

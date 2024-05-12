@@ -14,17 +14,30 @@ class Exit {
         West: "West"
     }
 
+    static DirectionAbbreviations = {
+        d: "Down",
+        e: "East",
+        n: "North",
+        ne: "NorthEast",
+        nw: "NorthWest",
+        s: "South",
+        se: "SouthEast",
+        sw: "SouthWest",
+        u: "Up",
+        w: "West"
+    };
+
     static ExitStates = {
-        None: 0,
-        CanClose: 1 << 0,
-        CanLock: 1 << 1,
-        Closed: 1 << 2,
-        Locked: 1 << 3,
-        Opened: 1 << 4,
-        Unlocked: 1 << 5,
-        Password: 1 << 6,
-        Emote: 1 << 7,
-        Key: 1 << 8
+        None: "None",
+        CanClose: "CanClose",
+        CanLock: "CanLock",
+        Closed: "Closed",
+        Locked: "Locked",
+        Opened: "Opened",
+        Unlocked: "Unlocked",
+        Password: "Password",
+        Emote: "Emote",
+        Key: "Key"
     }
 
     addEditReverseScript(event, script) {
@@ -39,23 +52,31 @@ class Exit {
         }
     }
 
-    addState(state) {
-        this.currentState |= state;
+    addState(states) {
         // Add reverse State
         const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
         const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
 
-        if (revExit && !revExit.hasState(state)) {
-            revExit.addState(state);
+        const stateList = Array.isArray(states) ? states : states.toString().split(',').map(s => s.trim());
+
+        stateList.forEach(state => {
+            const resolvedState = Exit.stringToExitState(state);
+            if (resolvedState && !this.currentState.includes(resolvedState) && this.validExitState(resolvedState)) {
+                this.currentState.push(resolvedState);
+            }
+        });
+
+        if (revExit && !revExit.hasState(states)) {
+            revExit.addState(states);
         }
     }
 
     canClose() {
-        return this.currentState & Exit.ExitStates.CanClose;
+        return this.hasState(Exit.ExitStates.CanClose);
     }
 
     canLock() {
-        return this.currentState & Exit.ExitStates.CanLock;
+        return this.hasState(Exit.ExitStates.CanLock);
     }
 
     async close(player, args) {
@@ -91,7 +112,7 @@ class Exit {
         this.y = y;
         this.z = z;
         this.direction = Exit.stringToExit(direction);
-        this.initialState = initialState;
+        this.setState(initialState);
         this.currentState = this.initialState;
         this.progs = progs;
         this.teleport = teleport;
@@ -109,35 +130,31 @@ class Exit {
         }
     }
 
-    emitEvent(event, ...args) {
-        global.mudEmitter.emit(event, ...args);
-    }
-
-    static exitStateToString(stateValue) {
-        const states = [];
-        if (stateValue === Exit.ExitStates.None) {
-            return 'None';
-        }
-
-        if (stateValue & Exit.ExitStates.CanClose) states.push('Can Close');
-        if (stateValue & Exit.ExitStates.CanLock) states.push('Can Lock');
-        if (stateValue & Exit.ExitStates.Closed) states.push('Closed');
-        if (stateValue & Exit.ExitStates.Locked) states.push('Locked');
-        if (stateValue & Exit.ExitStates.Opened) states.push('Opened');
-        if (stateValue & Exit.ExitStates.Unlocked) states.push('Unlocked');
-        if (stateValue & Exit.ExitStates.Password) states.push('Password');
-        if (stateValue & Exit.ExitStates.Emote) states.push('Emote');
-        if (stateValue & this.ExitStates.Key) states.push('Key');
-
-        return states.join(', ');
+    // Method to get a comma-separated string of exit states in lowercase
+    static getExitStatesArray() {
+        // Extract the values from the ExitStates object, convert them to lowercase, and join them into a string
+        return Object.values(Exit.ExitStates)
+            .map(type => type.toLowerCase());  // Convert each type to lowercase
     }
 
     getPlayerProperties(player) {
         return getAllFunctionProperties(player, ['socket', 'textEditor', 'inventory', 'hasItem', 'sameRoomAs', 'inRoom']);
     }
 
-    hasState(state) {
-        return this.currentState & state;
+    hasState(states) {
+        // Handle different types of inputs flexibly
+        let stateList;
+        if (Array.isArray(states)) {
+            stateList = states;
+        } else {
+            stateList = states.toString().split(',').map(item => item.trim());
+        }
+
+        // Check if every state in the list is included in the current state
+        return stateList.every(state => {
+            const resolvedState = Exit.stringToExitState(state);
+            return resolvedState && this.currentState.includes(resolvedState);
+        });
     }
 
     isAt(area, section, x, y, z) {
@@ -149,15 +166,15 @@ class Exit {
     }
 
     isClosed() {
-        return this.currentState & Exit.ExitStates.Closed;
+        return this.hasState(Exit.ExitStates.Closed);
     }
 
     isLocked() {
-        return this.currentState & Exit.ExitStates.Locked;
+        return this.hasState(Exit.ExitStates.Locked);
     }
 
     isOpened() {
-        return this.currentState & Exit.ExitStates.Opened;
+        return this.hasState(Exit.ExitStates.Opened);
     }
 
     async lock(player, args) {
@@ -233,27 +250,35 @@ class Exit {
         return Exit.ExitDirections.None;
     }
 
-    removeState(state) {
-        this.currentState &= ~state;
-        // Remove reverse State
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
+    removeState(states) {
+        const stateList = Array.isArray(states) ? states : states.toString().split(',').map(item => item.trim());
 
-        if (revExit && revExit.hasState(state)) {
-            revExit.removeState(state);
+        // Filter out the states to be removed from the currentState array
+        stateList.forEach(state => {
+            const resolvedState = Exit.stringToExitState(state);
+            if (this.currentState.includes(resolvedState)) {
+                this.currentState = this.currentState.filter(s => s !== resolvedState);
+            }
+        });
+
+        // Remove state from the reverse exit if it exists and has the same state
+        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
+        const revExit = revRoom && revRoom.exits.get(Exit.oppositeExit(this.direction));
+        if (revExit && revExit.hasState(states)) {
+            revExit.removeState(states); // Ensure states are resolved when passed to reverse exit
         }
     }
 
     requiresEmote() {
-        return this.currentState & Exit.ExitStates.Emote;
+        return this.hasState(Exit.ExitStates.Emote);
     }
 
     requiresKey() {
-        return this.currentState & Exit.ExitStates.Key;
+        return this.hasState(Exit.ExitStates.Key);
     }
 
     requiresPassword() {
-        return this.currentState & Exit.ExitStates.Password;
+        return this.hasState(Exit.ExitStates.Password);
     }
 
     reset() {
@@ -295,58 +320,39 @@ class Exit {
         }
     }
 
-    static stringToExit(string) {
-        switch (string?.toLowerCase()) {
-            case 'd':
-            case 'down': return Exit.ExitDirections.Down;
-            case 'e':
-            case 'east': return Exit.ExitDirections.East;
-            case 'n':
-            case 'north': return Exit.ExitDirections.North;
-            case 'ne':
-            case 'northeast': return Exit.ExitDirections.NorthEast;
-            case 'nw':
-            case 'northwest': return Exit.ExitDirections.NorthWest;
-            case 's':
-            case 'south': return Exit.ExitDirections.South;
-            case 'se':
-            case 'southeast': return Exit.ExitDirections.SouthEast;
-            case 'sw':
-            case 'southwest': return Exit.ExitDirections.SouthWest;
-            case 'u':
-            case 'up': return Exit.ExitDirections.Up;
-            case 'w':
-            case 'west': return Exit.ExitDirections.West;
-            default: return Exit.ExitDirections.None;
+    setState(states) {
+        this.initialState = [];
+        for (const state of states.toString().split(',').map(item => item.trim())) {
+            if (this.validExitState(state)) this.initialState.push(Exit.stringToExitState(state));
         }
+
+        if (this.initialState.length === 0) this.initialState.push(Exit.ExitStates.Opened);
+    }
+
+    static stringToExit(exitString) {
+        const normalizedInput = exitString.toLowerCase();
+        // First, check abbreviations
+        if (Exit.DirectionAbbreviations[normalizedInput]) {
+            return Exit.DirectionAbbreviations[normalizedInput];
+        }
+
+        // Second, check full names
+        for (const key in Exit.ExitDirections) {
+            if (key.toLowerCase() === normalizedInput) {
+                return Exit.ExitDirections[key];
+            }
+        }
+        return null; // Return null if no matching direction is found
     }
 
     static stringToExitState(stateString) {
-        switch (stateString.toLowerCase()) {
-            case "none":
-                return Exit.ExitStates.None;
-            case "canclose":
-                return Exit.ExitStates.CanClose;
-            case "canlock":
-                return Exit.ExitStates.CanLock;
-            case "closed":
-                return Exit.ExitStates.Closed;
-            case "locked":
-                return Exit.ExitStates.Locked;
-            case "opened":
-                return Exit.ExitStates.Opened;
-            case "unlocked":
-                return Exit.ExitStates.Unlocked;
-            case "password":
-                return Exit.ExitStates.Password;
-            case "emote":
-                return Exit.ExitStates.Emote;
-            case "key":
-                return Exit.ExitStates.Key;
-            default:
-                console.error("Invalid exit state string: " + stateString);
-                return null;  // or throw an error, or return a default state
+        const normalizedInput = stateString.toLowerCase();
+        for (const key in Exit.ExitStates) {
+            if (key.toLowerCase() === normalizedInput) {
+                return Exit.ExitStates[key];
+            }
         }
+        return null; // Return null if no matching state is found
     }
 
     async unlock(player, args) {
@@ -374,6 +380,10 @@ class Exit {
         } catch (error) {
             console.error(error);
         }
+    }
+
+    validExitState(state) {
+        return Object.values(Exit.ExitStates).includes(state);
     }
 }
 

@@ -217,9 +217,8 @@ const CommandModule = {
     },
 
     removeEvents() {
-        const { mudEmitter } = CommandModule.mudServer;
-        mudEmitter.removeListener('handleCommand', CommandModule.handleCommand);
-        mudEmitter.removeListener('hotBootBefore', CommandModule.onHotBootBefore);
+        CommandModule.mudServer.removeListener('handleCommand', CommandModule.handleCommand);
+        CommandModule.mudServer.removeListener('hotBootBefore', CommandModule.onHotBootBefore);
     },
 
     registerCommand(name, handler) {
@@ -227,9 +226,8 @@ const CommandModule = {
     },
 
     registerEvents() {
-        const { mudEmitter } = CommandModule.mudServer;
-        mudEmitter.on('handleCommand', CommandModule.handleCommand);
-        mudEmitter.on('hotBootBefore', CommandModule.onHotBootBefore);
+        CommandModule.mudServer.on('handleCommand', CommandModule.handleCommand);
+        CommandModule.mudServer.on('hotBootBefore', CommandModule.onHotBootBefore);
     },
 
     save(player) {

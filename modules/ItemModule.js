@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const Item = require('./ItemModule/Item');
 const { isNumber } = require('../Utils/helpers');
+const Key = require('./ItemModule/Key');
 
 // Inventory module
 const ItemModule = {
@@ -34,12 +35,13 @@ const ItemModule = {
         }
 
         // Create a new item
-        const newItem = new Item(vNumInt, name, '', itemType);
+        const newItem = new Item.ItemTypes[itemType](vNumInt, name, name, '', itemType);
+        console.log(newItem);
 
         // Add to the global items list
         ItemModule.itemsList.set(vNumInt, newItem);
 
-        player.send(`Item added: ${name} (Type: ${itemType})`);
+        player.send(`Item added: ${newItem.name} (Type: ${newItem.itemType})`);
     },
 
     async editItem(player, args) {
@@ -85,7 +87,7 @@ const ItemModule = {
             player.send(`Item editted successfully!`);
             ItemModule.updatePlayersItems();
         } else {
-            player.send(`Usage: editItem <description | name | type>`);
+            player.send(`Usage: editItem vNum <description | name | type>`);
         }
     },
 
@@ -97,13 +99,18 @@ const ItemModule = {
         try {
             const data = fs.readFileSync(ItemModule.ITEMS_PATH, 'utf8');
             const itemsData = JSON.parse(data);
+            Item.addItemType(Key);
+            ItemModule.mudServer.emit('itemsLoading', player);
             itemsData.forEach(item => {
                 // Accessing the nested data structure
                 const itemInfo = item.data;
                 if (itemInfo) {
-                    ItemModule.itemsList.set(parseInt(item.vNum), new Item(parseInt(item.vNum), itemInfo.name, itemInfo.description, itemInfo.itemType));
+                    const itemObj = new Item(parseInt(item.vNum), itemInfo.name, itemInfo.nameDisplay, itemInfo.description, itemInfo.itemType);
+                    ItemModule.mudServer.emit('itemLoaded', itemObj, item);
+                    ItemModule.itemsList.set(parseInt(item.vNum), itemObj);
                 }
             });
+
             console.log("Items loaded successfully.");
             if (player) player.send("Items loaded successfully.");
         } catch (err) {
@@ -117,24 +124,22 @@ const ItemModule = {
     },
 
     onPlayerLoggedIn: (player) => {
-        const dustyKey = ItemModule.getItemByVNum(0);
-        for(let i = 0; i < 2; i++) player.inventory.addItem(dustyKey.vNum, dustyKey, true);
-        const bronzeKey = ItemModule.getItemByVNum(1);
-        for (let i = 0; i < 2; i++) player.inventory.addItem(bronzeKey.vNum, bronzeKey, true);
+        // const dustyKey = ItemModule.getItemByVNum(0);
+        // for(let i = 0; i < 2; i++) player.inventory.addItem(dustyKey.vNum, dustyKey, true);
+        // const bronzeKey = ItemModule.getItemByVNum(1);
+        // for (let i = 0; i < 2; i++) player.inventory.addItem(bronzeKey.vNum, bronzeKey, true);
     },
 
     registerEvents() {
-        const { mudEmitter } = ItemModule.mudServer;
-        mudEmitter.on('hotBootBefore', ItemModule.onHotBootBefore);
-        mudEmitter.on('playerLoggedIn', ItemModule.onPlayerLoggedIn);
-        mudEmitter.on('updatePlayerItems', ItemModule.updatePlayerItems);
+        ItemModule.mudServer.on('hotBootBefore', ItemModule.onHotBootBefore);
+        ItemModule.mudServer.on('playerLoggedIn', ItemModule.onPlayerLoggedIn);
+        ItemModule.mudServer.on('updatePlayerItems', ItemModule.updatePlayerItems);
     },
 
     removeEvents() {
-        const { mudEmitter } = ItemModule.mudServer;
-        mudEmitter.removeListener('hotBootBefore', ItemModule.onHotBootBefore);
-        mudEmitter.removeListener('playerLoggedIn', ItemModule.onPlayerLoggedIn);
-        mudEmitter.removeListener('updatePlayerItems', ItemModule.updatePlayerItems);
+        ItemModule.mudServer.removeListener('hotBootBefore', ItemModule.onHotBootBefore);
+        ItemModule.mudServer.removeListener('playerLoggedIn', ItemModule.onPlayerLoggedIn);
+        ItemModule.mudServer.removeListener('updatePlayerItems', ItemModule.updatePlayerItems);
     },
 
     async removeItem(player, args) {
@@ -170,13 +175,14 @@ const ItemModule = {
         const itemsArray = [];
         for (const [vNum, item] of itemsMap.entries()) {
             const itemData = {
-                vNum: parseInt(item.vNum),
+                vNum: parseInt(vNum),
                 data: {
                     name: item.name,
                     description: item.description,
-                    itemType: item.itemType
+                    itemType: item.itemType.toString()
                 }
             };
+            ItemModule.mudServer.emit('itemSerialized', item, itemData);
             itemsArray.push(itemData);
         }
         return itemsArray; // Pretty-print the JSON
@@ -187,10 +193,9 @@ const ItemModule = {
             const updatedItem = ItemModule.getItemByVNum(key);
             if (updatedItem) {
                 items.forEach(item => {
+                    let itemCopy = { ...item };
                     Object.assign(item, updatedItem);
-                    if (item.itemType === Item.ItemTypes.Container) {
-                        ItemModule.updatePlayerItems(player, item.inventory);
-                    }
+                    ItemModule.mudServer.emit('updatePlayerItem', player, item, itemCopy, updatedItem);
                 });
             } else inventory.delete(key);
         }

@@ -378,5 +378,11 @@
     "action": "Inventory.takeAllItems",
     "command": "take all",
     "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Item.load",
+    "command": "loaditems",
+    "modLevel": 85
   }
 ]

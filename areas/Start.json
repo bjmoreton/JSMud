@@ -3,7 +3,7 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/10/2024 15:16:33",
+  "lastUpdate": "05/12/2024 01:40:12",
   "sections": {
     "Start": {
       "area": "Start",
@@ -16,36 +16,50 @@
           "section": "Start",
           "name": "Empty Void",
           "description": "A void of emptiness!",
-          "x": "0",
-          "y": "0",
-          "z": "0",
+          "x": 0,
+          "y": 0,
+          "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Start",
               "direction": "West",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": -1,
-              "y": "0",
-              "z": "0",
+              "y": 0,
+              "z": 0,
               "teleport": false
             },
             {
               "area": "Start",
               "section": "Start",
               "direction": "East",
-              "initialState": 16,
+              "initialState": [
+                "CanClose",
+                "Key",
+                "CanLock",
+                "Unlocked",
+                "Opened"
+              ],
               "x": 1,
-              "y": "0",
-              "z": "0",
+              "y": 0,
+              "z": 0,
               "teleport": false
             },
             {
               "area": "Start",
               "section": "Test",
               "direction": "North",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": 0,
               "y": -9,
               "z": 0,
@@ -59,18 +73,24 @@
           "name": "Empty Void",
           "description": "A void of emptiness!",
           "x": -1,
-          "y": "0",
-          "z": "0",
+          "y": 0,
+          "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Start",
               "direction": "East",
-              "initialState": 16,
-              "x": "0",
-              "y": "0",
-              "z": "0",
+              "initialState": [
+                "Opened"
+              ],
+              "x": 0,
+              "y": 0,
+              "z": 0,
               "teleport": false
             }
           ]
@@ -81,18 +101,28 @@
           "name": "Empty Void",
           "description": "A void of emptiness!",
           "x": 1,
-          "y": "0",
-          "z": "0",
+          "y": 0,
+          "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Start",
               "direction": "West",
-              "initialState": 16,
-              "x": "0",
-              "y": "0",
-              "z": "0",
+              "initialState": [
+                "CanClose",
+                "Key",
+                "CanLock",
+                "Unlocked",
+                "Opened"
+              ],
+              "x": 0,
+              "y": 0,
+              "z": 0,
               "teleport": false
             }
           ]
@@ -114,22 +144,30 @@
           "y": -9,
           "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Start",
               "direction": "South",
-              "initialState": 16,
-              "x": "0",
-              "y": "0",
-              "z": "0",
+              "initialState": [
+                "Opened"
+              ],
+              "x": 0,
+              "y": 0,
+              "z": 0,
               "teleport": true
             },
             {
               "area": "Start",
               "section": "Test",
               "direction": "North",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": 0,
               "y": -8,
               "z": 0,
@@ -139,7 +177,9 @@
               "area": "Start",
               "section": "Test",
               "direction": "East",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": 1,
               "y": -9,
               "z": 0,
@@ -149,7 +189,9 @@
               "area": "Start",
               "section": "Test",
               "direction": "West",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": -1,
               "y": -9,
               "z": 0,
@@ -166,12 +208,18 @@
           "y": -8,
           "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Test",
               "direction": "South",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": 0,
               "y": -9,
               "z": 0,
@@ -188,12 +236,18 @@
           "y": -9,
           "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Test",
               "direction": "West",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": 0,
               "y": -9,
               "z": 0,
@@ -210,12 +264,18 @@
           "y": -9,
           "z": 0,
           "symbol": "#",
+          "defaultState": {
+            "flags": 0,
+            "inventory": []
+          },
           "exits": [
             {
               "area": "Start",
               "section": "Test",
               "direction": "East",
-              "initialState": 16,
+              "initialState": [
+                "Opened"
+              ],
               "x": 0,
               "y": -9,
               "z": 0,
