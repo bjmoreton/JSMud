@@ -31,7 +31,6 @@ const HelpfileModule = {
             case "description":
                 return foundHelpfile.description;
             case "keywords":
-                console.log(`Keywords: ${foundHelpfile.keywords}`);
                 return foundHelpfile.keywords?.map((word, index) => (index + 1) % 6 === 0 ? word + '\n' : word).join(' ');
             case "title":
                 return foundHelpfile.title;

@@ -137,10 +137,6 @@ class Exit {
             .map(type => type.toLowerCase());  // Convert each type to lowercase
     }
 
-    getPlayerProperties(player) {
-        return getAllFunctionProperties(player, ['socket', 'textEditor', 'inventory', 'hasItem', 'sameRoomAs', 'inRoom']);
-    }
-
     hasState(states) {
         // Handle different types of inputs flexibly
         let stateList;

@@ -1,5 +1,10 @@
 const bcrypt = require('bcrypt');
 
+/**
+ * Formats a date object into a string in MM/DD/YYYY format.
+ * @param {Date} date - The date object to format.
+ * @returns {string} Formatted date as a string.
+ */
 function formatDate(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -7,6 +12,11 @@ function formatDate(date) {
     return `${month}/${day}/${year}`;
 }
 
+/**
+ * Formats a date object into a time string in HH:MM:SS format.
+ * @param {Date} date - The date object to format.
+ * @returns {string} Formatted time as a string.
+ */
 function formatTime(date) {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -14,37 +24,11 @@ function formatTime(date) {
     return `${hours}:${minutes}:${seconds}`;
 }
 
-function getAllFunctionProperties(obj, ignoreList = []) {
-    const result = {};
-
-    function recurse(currentObj, currentResult) {
-        // Get both instance properties and prototype functions
-        const properties = Object.getOwnPropertyNames(currentObj);
-        const proto = Object.getPrototypeOf(currentObj);
-        if (proto) {
-            properties.push(...Object.getOwnPropertyNames(proto));
-        }
-
-        properties.forEach(prop => {
-            if (!ignoreList.includes(prop) && !(prop in currentResult)) {
-                const value = currentObj[prop];
-                if (typeof value === 'function') {
-                    currentResult[prop] = value;
-                } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-                    currentResult[prop] = {};
-                    recurse(value, currentResult[prop]);
-                } else {
-                    currentResult[prop] = value;
-                }
-            }
-        });
-    }
-
-    recurse(obj, result);
-    return result;
-}
-
-
+/**
+ * Generates a random alphanumeric string of a specified length.
+ * @param {number} length - The length of the string to generate.
+ * @returns {string} A random alphanumeric string.
+ */
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -55,6 +39,11 @@ function generateRandomString(length) {
     return result;
 }
 
+/**
+ * Hashes a plaintext password using bcrypt with a specified number of salt rounds.
+ * @param {string} password - The plaintext password to hash.
+ * @returns {Promise<string>} A promise that resolves to the hashed password.
+ */
 async function hashPassword(password) {
     try {
         const hashedPassword = await bcrypt.hash(password, 10); // 10 is the number of salt rounds
@@ -65,27 +54,32 @@ async function hashPassword(password) {
     }
 }
 
+/**
+ * Checks if a value is within a specified range (exclusive).
+ * @param {number} value - The value to check.
+ * @param {number} low - The lower bound of the range.
+ * @param {number} high - The upper bound of the range.
+ * @returns {boolean} True if the value is within the range, false otherwise.
+ */
 function inRange(value, low, high) {
     return value > low && value < high;
 }
 
+/**
+ * Determines if a variable is strictly a number and not NaN.
+ * @param {any} value - The value to check.
+ * @returns {boolean} True if the value is a number and not NaN, false otherwise.
+ */
 function isNumber(value) {
     return typeof value === 'number' && !Number.isNaN(value);
 }
 
 /**
- * Retrieves a value from a Map based on the specified index.
- * @param {Map} map - The Map object to retrieve the value from.
- * @param {number} index - The zero-based index of the key-value pair.
- * @returns {[any, any] | null} - The key-value pair as an array, or null if out of range.
+ * Verifies a plaintext password against a hashed password.
+ * @param {string} plaintextPassword - The plaintext password to verify.
+ * @param {string} hashedPassword - The hashed password to compare against.
+ * @returns {Promise<boolean>} A promise that resolves to a boolean indicating if the password verification was successful.
  */
-function mapGetByIndex(map, index) {
-    if (index >= 0 && index < map.size) {
-        return Array.from(map.entries())[index];
-    }
-    return null;
-}
-
 async function verifyPassword(plaintextPassword, hashedPassword) {
     try {
         const result = await bcrypt.compare(plaintextPassword, hashedPassword);
@@ -96,4 +90,4 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { formatTime, formatDate, getAllFunctionProperties, generateRandomString, hashPassword, inRange, isNumber, mapGetByIndex, verifyPassword };
+module.exports = { formatTime, formatDate, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };

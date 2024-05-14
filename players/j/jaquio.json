@@ -7,11 +7,106 @@
     "None"
   ],
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
-  "currentX": 0,
+  "currentX": 1,
   "currentY": 0,
   "currentZ": 0,
   "inventory": {
-    "items": [],
+    "items": [
+      {
+        "vNum": 2,
+        "data": [
+          {
+            "name": "Old brown bag",
+            "nameDisplay": "Old brown bag",
+            "description": "",
+            "itemType": "Container",
+            "inventory": {
+              "items": [
+                {
+                  "vNum": 2,
+                  "data": [
+                    {
+                      "name": "Old brown bag",
+                      "nameDisplay": "Old brown bag",
+                      "description": "",
+                      "itemType": "Container",
+                      "inventory": {
+                        "items": [
+                          {
+                            "vNum": 0,
+                            "data": [
+                              {
+                                "name": "Dusty Key",
+                                "nameDisplay": "Dusty Key",
+                                "description": "An old dusty key.",
+                                "itemType": "Key"
+                              },
+                              {
+                                "name": "Dusty Key",
+                                "nameDisplay": "Dusty Key",
+                                "description": "An old dusty key.",
+                                "itemType": "Key"
+                              },
+                              {
+                                "name": "Dusty Key",
+                                "nameDisplay": "Dusty Key",
+                                "description": "An old dusty key.",
+                                "itemType": "Key"
+                              },
+                              {
+                                "name": "Dusty Key",
+                                "nameDisplay": "Dusty Key",
+                                "description": "An old dusty key.",
+                                "itemType": "Key"
+                              }
+                            ]
+                          },
+                          {
+                            "vNum": 2,
+                            "data": [
+                              {
+                                "name": "Old brown bag",
+                                "nameDisplay": "Old brown bag",
+                                "description": "",
+                                "itemType": "Container",
+                                "inventory": {
+                                  "items": [
+                                    {
+                                      "vNum": 0,
+                                      "data": [
+                                        {
+                                          "name": "Dusty Key",
+                                          "nameDisplay": "Dusty Key",
+                                          "description": "An old dusty key.",
+                                          "itemType": "Key"
+                                        },
+                                        {
+                                          "name": "Dusty Key",
+                                          "nameDisplay": "Dusty Key",
+                                          "description": "An old dusty key.",
+                                          "itemType": "Key"
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "maxSize": 10
+                                }
+                              }
+                            ]
+                          }
+                        ],
+                        "maxSize": 10
+                      }
+                    }
+                  ]
+                }
+              ],
+              "maxSize": 10
+            }
+          }
+        ]
+      }
+    ],
     "maxSize": 30
   },
   "currentArea": "Start",

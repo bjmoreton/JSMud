@@ -8,7 +8,10 @@
   "currentX": 0,
   "currentY": 0,
   "currentZ": 0,
-  "inventory": [],
+  "inventory": {
+    "items": [],
+    "maxSize": 30
+  },
   "currentArea": "Start",
   "currentSection": "Start"
 }

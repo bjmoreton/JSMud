@@ -2,7 +2,7 @@ class Item {
     static ItemTypes = {}
 
     static addItemType(type) {
-        Item.ItemTypes[type.toString()] = type;
+        if (!Item.ItemTypes[type.toString()]) Item.ItemTypes[type.toString()] = type;
     }
 
     static deserialize(data) {
@@ -42,9 +42,13 @@ class Item {
         this.vNum = parseInt(vNum);
         this.name = name;
         this.nameDisplay = nameDisplay;
-        if(this.nameDisplay === undefined) this.nameDisplay = this.name;
+        if (this.nameDisplay === undefined) this.nameDisplay = this.name;
         this.description = description;
         this.itemType = Item.stringToItemType(itemType);
+    }
+
+    copy() {
+        return new Item(this.vNum, this.name, this.nameDisplay, this.description, this.itemType);
     }
 }
 

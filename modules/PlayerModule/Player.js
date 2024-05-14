@@ -47,6 +47,7 @@ class Player {
     disconnect(save) {
         if (save === true) this.save();
         this.socket.end();
+        global.mudServer.emit('playerDisconnected', this);
     }
 
     getFilePath() {

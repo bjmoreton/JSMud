@@ -36,7 +36,6 @@ const ItemModule = {
 
         // Create a new item
         const newItem = new Item.ItemTypes[itemType](vNumInt, name, name, '', itemType);
-        console.log(newItem);
 
         // Add to the global items list
         ItemModule.itemsList.set(vNumInt, newItem);
@@ -105,9 +104,11 @@ const ItemModule = {
                 // Accessing the nested data structure
                 const itemInfo = item.data;
                 if (itemInfo) {
-                    const itemObj = new Item(parseInt(item.vNum), itemInfo.name, itemInfo.nameDisplay, itemInfo.description, itemInfo.itemType);
-                    ItemModule.mudServer.emit('itemLoaded', itemObj, item);
-                    ItemModule.itemsList.set(parseInt(item.vNum), itemObj);
+                    let itemObj = {};
+
+                    if (Item.stringToItemType(itemInfo.itemType) === Item.ItemTypes.Key) itemObj.item = new Key(parseInt(item.vNum), itemInfo.name, itemInfo.nameDisplay, itemInfo.description, itemInfo.itemType);
+                    else ItemModule.mudServer.emit('itemLoaded', itemObj, item);
+                    ItemModule.itemsList.set(parseInt(item.vNum), itemObj.item);
                 }
             });
 
@@ -124,10 +125,14 @@ const ItemModule = {
     },
 
     onPlayerLoggedIn: (player) => {
-        // const dustyKey = ItemModule.getItemByVNum(0);
-        // for(let i = 0; i < 2; i++) player.inventory.addItem(dustyKey.vNum, dustyKey, true);
-        // const bronzeKey = ItemModule.getItemByVNum(1);
-        // for (let i = 0; i < 2; i++) player.inventory.addItem(bronzeKey.vNum, bronzeKey, true);
+        // for (let i = 0; i < 2; i++) {
+        // const dustyKey = ItemModule.getItemByVNum(0).copy();
+        // player.inventory.addItem(dustyKey.vNum, dustyKey, true);
+        // }
+        // for (let i = 0; i < 2; i++) {
+        // const bronzeKey = ItemModule.getItemByVNum(1).copy();
+        // player.inventory.addItem(bronzeKey.vNum, bronzeKey, true);
+        // }
     },
 
     registerEvents() {

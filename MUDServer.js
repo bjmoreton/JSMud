@@ -107,15 +107,6 @@ class MUDServer extends EventEmitter {
         });
     }
 
-    findCommand(command) {
-        for (const [key, cmd] of this.commands) {
-            if (cmd.aliases.includes(command.toLowerCase()) || cmd.command === command.toLowerCase()) {
-                return cmd;
-            }
-        }
-        return null; // Command not found
-    }
-
     // Function to find a player by their username
     findPlayerByUsername(username) {
         if (username != null && username != '') {
@@ -126,23 +117,6 @@ class MUDServer extends EventEmitter {
             }
         }
         return null; // Return null if no player is found with the given username
-    }
-
-    handleCommand(player, command) {
-        if (command == undefined || command == "") return;
-
-        // Split string by spaces, leaving spaces inside quotes alone
-        const commandParts = command.match(/(?:[^\s"]+|"[^"]*")+/g);
-        // Remove quotes from each part
-        const cleanedParts = commandParts.map(part => part.replace(/^"|"$/g, ''));
-        const [cmdName, ...args] = cleanedParts;
-        const handler = this.findCommand(cmdName);
-
-        if (handler) {
-            handler.execute(player, args);
-        } else {
-            player.send('Unknown command!');
-        }
     }
 
     hotBoot(player) {

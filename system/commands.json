@@ -384,5 +384,17 @@
     "action": "Item.load",
     "command": "loaditems",
     "modLevel": 85
+  },
+  {
+    "aliases": [],
+    "action": "Inventory.putItem",
+    "command": "put",
+    "modLevel": 0
+  },
+  {
+    "aliases": [],
+    "action": "Inventory.putAllItems",
+    "command": "put all",
+    "modLevel": 0
   }
 ]

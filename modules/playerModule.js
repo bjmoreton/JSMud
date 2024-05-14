@@ -30,10 +30,14 @@ const PlayerModule = {
             const cleanedData = data.toString().trim();
             if (!player.hasStatus(Player.Statuses.Editing)) {
                 if (player.loggedIn) {
-                    if (!cleanedData.startsWith('/')) PlayerModule.mudServer.emit('handleCommand', player, cleanedData);
-                    else {
-                        const emoteData = cleanedData.startsWith('/') ? cleanedData.replace('/', '') : cleanedData;
-                        PlayerModule.mudServer.emit('handleEmote', player, emoteData);
+                    const eventObj = { handled: false };
+                    PlayerModule.mudServer.emit('handleCommand', player, cleanedData, eventObj);
+                    if (!eventObj.handled) {
+                        PlayerModule.mudServer.emit('handleEmote', player, cleanedData, eventObj);
+                    }
+
+                    if (!eventObj.handled) {
+                        player.send(`Unknown command`);
                     }
                 } else PlayerModule.mudServer.emit('handleLogin', player, cleanedData);
             } else player.textEditor.processInput(cleanedData);
@@ -59,7 +63,7 @@ const PlayerModule = {
             Object.setPrototypeOf(p.textEditor, updatedTextEditor.__proto__);
         });
     },
-    
+
     onHotBootBefore: () => {
         PlayerModule.saveAllPlayers();
         PlayerModule.mudServer.removeListener('hotBootAfter', PlayerModule.onHotBootAfter);
@@ -79,7 +83,7 @@ const PlayerModule = {
     init: function (mudServer) {
         global.PlayerModule = this;
         this.mudServer = mudServer;
-        
+
         this.mudServer.on('hotBootAfter', this.onHotBootAfter);
         this.mudServer.on('hotBootBefore', this.onHotBootBefore);
         this.mudServer.on('playerConnected', this.onPlayerConnected);

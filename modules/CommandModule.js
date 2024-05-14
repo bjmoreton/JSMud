@@ -139,7 +139,7 @@ const CommandModule = {
         return null; // Command not found
     },
 
-    handleCommand(player, command) {
+    handleCommand(player, command, eventObj) {
         if (command == undefined || command == "") return;
 
         // Split string by spaces, leaving spaces inside quotes alone
@@ -159,9 +159,8 @@ const CommandModule = {
         if (!handler) handler = CommandModule.findCommand(cmdName);
 
         if (handler) {
+            eventObj.handled = true;
             handler.execute(player, args);
-        } else {
-            player.send('Unknown command!');
         }
     },
 

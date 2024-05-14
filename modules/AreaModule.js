@@ -162,7 +162,7 @@ const AreaModule = {
         let message = '';
         if (player.inRoom(room)) {
             room.addPlayer(player);
-            if (enterDirection != Exit.ExitDirections.None) message = `${player.username} entered the room from the ${enterDirection}.`;
+            if (enterDirection && enterDirection != Exit.ExitDirections.None) message = `${player.username} entered the room from the ${enterDirection}.`;
             else message = `${player.username} entered the room.`;
 
             AreaModule.mudServer.emit('sendToRoom', player, message, [player.username]);
@@ -179,7 +179,7 @@ const AreaModule = {
         let message = '';
         if (player.inRoom(room)) {
             room.removePlayer(player);
-            if (enterDirection != Exit.ExitDirections.None) message = `${player.username} left in the ${enterDirection} direction.`;
+            if (enterDirection && enterDirection != Exit.ExitDirections.None) message = `${player.username} left in the ${enterDirection} direction.`;
             else message = `${player.username} left the room.`;
 
             AreaModule.mudServer.emit('sendToRoom', player, message, [player.username]);
@@ -546,11 +546,19 @@ const AreaModule = {
             AreaModule.mudServer.emit('looked', player);
         } else {
             const strToExit = Exit.stringToExit(direction);
-            if (strToExit !== Exit.ExitDirections.None) {
+            let eventObj = { handled: false };
+            if (strToExit && strToExit !== Exit.ExitDirections.None) {
                 const exitRoom = player.currentRoom.getExitByDirection(strToExit);
-                const room = AreaModule.exitToRoom(exitRoom);
-                player.send(`${exitRoom.area.nameDisplay}:${exitRoom.section.nameDisplay}:${room.name}`);
+                if (exitRoom) {
+                    const room = AreaModule.exitToRoom(exitRoom);
+                    player.send(`${exitRoom.area.nameDisplay}:${exitRoom.section.nameDisplay}:${room.name}`);
+                    eventObj.handled = true;
+                }
             } else {
+                AreaModule.mudServer.emit('executedLook', player, args, eventObj);
+            }
+
+            if (!eventObj.handled) {
                 player.send(`You see no ${direction} here!`);
             }
         }

@@ -82,7 +82,7 @@ const EmoteModule = {
             .replace('%t', target?.username);
     },
 
-    handleEmote(player, emote) {
+    handleEmote(player, emote, eventObj) {
         if (emote == undefined || emote == "") return;
 
         // Split string by spaces, leaving spaces inside quotes alone
@@ -104,8 +104,7 @@ const EmoteModule = {
                 EmoteModule.mudServer.emit('sendToRoom', player, EmoteModule.formatEmote(player, targetPlayer, emoteAction.othersSolo), [player?.username, targetPlayer?.username]);
             }
             EmoteModule.mudServer.emit('sendToRoomEmote', player, emoteAction);
-        } else {
-            player.send(`Emote ${emote} doesn't exist!`);
+            eventObj.handled = true;
         }
     },
 
