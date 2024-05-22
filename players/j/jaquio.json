@@ -4,110 +4,101 @@
   "canBuild": false,
   "modLevel": 100,
   "statuses": [
-    "None"
+    {
+      "description": "Standing",
+      "name": "Standing",
+      "type": 2
+    }
   ],
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
-  "currentX": 1,
+  "currentX": 0,
   "currentY": 0,
   "currentZ": 0,
   "inventory": {
     "items": [
       {
-        "vNum": 2,
+        "vNum": 0,
         "data": [
           {
-            "name": "Old brown bag",
-            "nameDisplay": "Old brown bag",
-            "description": "",
-            "itemType": "Container",
-            "inventory": {
-              "items": [
-                {
-                  "vNum": 2,
-                  "data": [
-                    {
-                      "name": "Old brown bag",
-                      "nameDisplay": "Old brown bag",
-                      "description": "",
-                      "itemType": "Container",
-                      "inventory": {
-                        "items": [
-                          {
-                            "vNum": 0,
-                            "data": [
-                              {
-                                "name": "Dusty Key",
-                                "nameDisplay": "Dusty Key",
-                                "description": "An old dusty key.",
-                                "itemType": "Key"
-                              },
-                              {
-                                "name": "Dusty Key",
-                                "nameDisplay": "Dusty Key",
-                                "description": "An old dusty key.",
-                                "itemType": "Key"
-                              },
-                              {
-                                "name": "Dusty Key",
-                                "nameDisplay": "Dusty Key",
-                                "description": "An old dusty key.",
-                                "itemType": "Key"
-                              },
-                              {
-                                "name": "Dusty Key",
-                                "nameDisplay": "Dusty Key",
-                                "description": "An old dusty key.",
-                                "itemType": "Key"
-                              }
-                            ]
-                          },
-                          {
-                            "vNum": 2,
-                            "data": [
-                              {
-                                "name": "Old brown bag",
-                                "nameDisplay": "Old brown bag",
-                                "description": "",
-                                "itemType": "Container",
-                                "inventory": {
-                                  "items": [
-                                    {
-                                      "vNum": 0,
-                                      "data": [
-                                        {
-                                          "name": "Dusty Key",
-                                          "nameDisplay": "Dusty Key",
-                                          "description": "An old dusty key.",
-                                          "itemType": "Key"
-                                        },
-                                        {
-                                          "name": "Dusty Key",
-                                          "nameDisplay": "Dusty Key",
-                                          "description": "An old dusty key.",
-                                          "itemType": "Key"
-                                        }
-                                      ]
-                                    }
-                                  ],
-                                  "maxSize": 10
-                                }
-                              }
-                            ]
-                          }
-                        ],
-                        "maxSize": 10
-                      }
-                    }
-                  ]
-                }
-              ],
-              "maxSize": 10
-            }
+            "rarity": "quest",
+            "items": [
+              {
+                "name": "Sword of Darkness",
+                "nameDisplay": "Sword of Darkness",
+                "itemType": "Equipment",
+                "rarity": {
+                  "name": "quest",
+                  "symbol": "[&YQ&~]",
+                  "weight": 3,
+                  "statReduction": 1,
+                  "statAddition": 1
+                },
+                "vNum": 0,
+                "wearable": true,
+                "layer": 1,
+                "types": [
+                  "weapon"
+                ]
+              },
+              {
+                "name": "Sword of Darkness",
+                "nameDisplay": "Sword of Darkness",
+                "itemType": "Equipment",
+                "rarity": {
+                  "name": "quest",
+                  "symbol": "[&YQ&~]",
+                  "weight": 3,
+                  "statReduction": 1,
+                  "statAddition": 1
+                },
+                "vNum": 0,
+                "wearable": true,
+                "layer": 1,
+                "types": [
+                  "weapon"
+                ]
+              }
+            ]
           }
         ]
       }
     ],
     "maxSize": 30
+  },
+  "eqSlots": {
+    "weapon": {
+      "displayString": "<Wielded>",
+      "name": "Weapon",
+      "eqType": "Equipment",
+      "layers": 1,
+      "items": [
+        {
+          "name": "Sword of Darkness",
+          "nameDisplay": "Sword of Darkness",
+          "itemType": "Equipment",
+          "rarity": {
+            "name": "quest",
+            "symbol": "[&YQ&~]",
+            "weight": 3,
+            "statReduction": 1,
+            "statAddition": 1
+          },
+          "vNum": 0,
+          "wearable": true,
+          "layer": 1,
+          "types": [
+            "weapon"
+          ]
+        }
+      ]
+    },
+    "shield": {
+      "displayString": "<Off-Hand>",
+      "name": "Shield",
+      "eqType": "Equipment",
+      "layers": 1,
+      "items": []
+    }
   },
   "currentArea": "Start",
   "currentSection": "Start"

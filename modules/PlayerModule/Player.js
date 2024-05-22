@@ -1,13 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { parseColors } = require('../../Utils/Color.js');
+const { parseColors } = require('../Mud/Color.js');
 const TextEditor = require('./TextEditor.js');
+const Status = require('./Status.js');
 
 class Player {
-    static Statuses = {
-        None: "None",
-        Editing: "Editing"
-    }
+    static Statuses = new Map();
 
     textEditor = new TextEditor(this);
 
@@ -15,17 +13,21 @@ class Player {
         return this.commands.push(cmds);
     }
 
-    addStatus(statuses) {
-        const statusList = Array.isArray(statuses) ? statuses : statuses.toString().split(',').map(s => s.trim());
+    static addStatus(statusName, statusDescription, statusType) {
+        if (!Player.Statuses.has(statusName.toLowerCase())) {
+            const status = new Status(statusName, statusDescription, statusType);
+            Player.Statuses.set(statusName.toLowerCase(), status);
 
-        statusList.forEach(status => {
-            const resolvedStatus = Player.stringToStatus(status);
-            if (resolvedStatus && !this.statuses.includes(resolvedStatus) && this.validStatus(resolvedStatus)) {
-                this.statuses.push(resolvedStatus);
-            }
-        });
+            return status;
+        }
+    }
 
-        this.removeStatus(Player.Statuses.None);
+    addStatus(statusName) {
+        const resolvedStatus = Player.stringToStatus(statusName)?.copy();
+        if (resolvedStatus && !this.hasStatus(resolvedStatus.name) && Player.validStatus(resolvedStatus.name)) {
+            this.statuses.set(resolvedStatus.name.toLowerCase(), resolvedStatus);
+        }
+        return resolvedStatus;
     }
 
     constructor(socket, username) {
@@ -35,7 +37,7 @@ class Player {
         this.canBuild = false;
         this.loggedIn = false;
         this.modLevel = 0;
-        this.statuses = [Player.Statuses.None];
+        this.statuses = new Map();
         this.workingArea = '';
         this.workingSection = '';
     }
@@ -59,7 +61,6 @@ class Player {
     }
 
     hasStatus(statuses) {
-        // Handle different types of inputs flexibly
         let statusList;
         if (Array.isArray(statuses)) {
             statusList = statuses;
@@ -67,25 +68,31 @@ class Player {
             statusList = statuses.toString().split(',').map(item => item.trim());
         }
 
-        // Check if every status in the list is included in the current statuses
-        return statusList.every(status => {
-            const resolvedStatus = Player.stringToStatus(status);
-            return resolvedStatus && this.statuses.includes(resolvedStatus);
+        return statusList.every(statusName => {
+            const resolvedStatus = Player.stringToStatus(statusName);
+            return resolvedStatus && this.statuses.has(resolvedStatus.name.toLowerCase());
         });
     }
 
     load() {
         try {
-            // Read the JSON file synchronously
             const jsonFilePath = this.getFilePath();
             const playerData = fs.readFileSync(jsonFilePath, 'utf-8');
-
-            // Parse the JSON data
             const playerObject = JSON.parse(playerData);
 
-            // Assign the player data to the player object
             Object.assign(this, playerObject);
-            this.setStatus(this.statuses);
+            const statusLength = this.statuses.length;
+            this.statuses = new Map();
+            if (statusLength === 0) {
+                this.addStatus('standing');
+            } else {
+                playerObject.statuses.forEach(status => {
+                    if(Player.validStatus(status.name)) {
+                        const statusObj = Status.deserialize(status);
+                        this.statuses.set(statusObj.name.toLowerCase(), statusObj);
+                    }
+                });
+            }
 
             global.mudServer.emit('playerLoaded', this, playerObject);
             return this;
@@ -98,40 +105,32 @@ class Player {
 
     removeStatus(statuses) {
         const statusList = Array.isArray(statuses) ? statuses : statuses.toString().split(',').map(item => item.trim());
-
-        // Filter out the statuses to be removed from the currentStatus array
-        statusList.forEach(status => {
-            const resolvedStatus = Player.stringToStatus(status);
-            if (this.statuses.includes(resolvedStatus)) {
-                this.statuses = this.statuses.filter(s => s !== resolvedStatus);
+        statusList.forEach(statusName => {
+            const resolvedStatus = Player.stringToStatus(statusName);
+            if (resolvedStatus) {
+                this.statuses.delete(resolvedStatus.name.toLowerCase());
             }
         });
-
-        if(this.statuses.length === 0) this.statuses.push(Player.Statuses.None);
     }
 
     save() {
-        // Exclude the properties you want to ignore
-        const { socket, send, connectionStatus, loggedIn, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
+        const { socket, connectionStatus, loggedIn, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
+        playerData.statuses = Array.from(this.statuses.values()).map(status => status.serialize());
         global.mudServer.emit('playerSaved', this, playerData);
         const filePath = this.getFilePath();
-        // Generate the directory path
         const directoryPath = path.dirname(filePath);
 
-        // Check if the directory exists, and create it if not
         if (!fs.existsSync(directoryPath)) {
             fs.mkdirSync(directoryPath, { recursive: true });
         }
 
-        // Write player data to file in JSON format
         fs.writeFileSync(filePath, JSON.stringify(playerData, null, 2));
-
         this.send("Saved!");
     }
 
     send(message) {
         try {
-            if (!this.hasStatus(Player.Statuses.Editing)) this.socket.write(`${parseColors(message)}\r\n`);
+            if (!this.hasStatus('editing')) this.socket.write(`${parseColors(message)}\r\n`);
         } catch (error) {
             console.log(`${this.username} failed to receive ${message}`);
             console.log(error);
@@ -147,27 +146,26 @@ class Player {
         }
     }
 
-    setStatus(statuses) {
-        this.statuses = [];
-        for (const status of statuses.toString().split(',').map(item => item.trim())) {
-            if (this.validStatus(status)) this.statuses.push(Player.stringToStatus(status));
-        }
-
-        if (this.statuses.length === 0) this.statuses.push(Player.Statuses.None);
+    static validStatus(statusName) {
+        return Player.Statuses.has(statusName.toLowerCase());
     }
 
-    validStatus(status) {
-        return Object.values(Player.Statuses).includes(status);
+    /**
+     * Method to get a comma-separated string of player statuses in lowercase
+     * @returns {string} A comma-separated string of player statuses in lowercase
+     */
+    static getStatusesArray(statuses) {
+        return Array.from(statuses.values()).map(status => status.name.toLowerCase()).join(', ');
     }
 
     static stringToStatus(statusString) {
         const normalizedInput = statusString.toLowerCase();
-        for (const key in Player.Statuses) {
-            if (key.toLowerCase() === normalizedInput) {
-                return Player.Statuses[key];
+        for (const status of Player.Statuses.values()) {
+            if (status.name.toLowerCase() === normalizedInput) {
+                return status;
             }
         }
-        return null; // Return null if no matching state is found
+        return null;
     }
 }
 

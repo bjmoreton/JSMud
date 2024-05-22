@@ -1,0 +1,16 @@
+[
+  {
+    "displayString": "<Wielded>",
+    "name": "Weapon",
+    "eqType": "Equipment",
+    "layers": 1,
+    "items": []
+  },
+  {
+    "displayString": "<Off-Hand>",
+    "name": "Off-Hand",
+    "eqType": "Equipment",
+    "layers": 1,
+    "items": []
+  }
+]

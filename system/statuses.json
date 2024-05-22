@@ -1,0 +1,17 @@
+[
+  {
+    "description": "Editing something...",
+    "name": "Editing",
+    "type": 2
+  },
+  {
+    "description": "Standing",
+    "name": "Standing",
+    "type": 2
+  },
+  {
+    "description": "Is shivering",
+    "name": "Cold",
+    "type": 1
+  }
+]

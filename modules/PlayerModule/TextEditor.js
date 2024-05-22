@@ -1,4 +1,5 @@
-const { parseColors } = require('../../Utils/Color.js');
+const { parseColors } = require('../Mud/Color.js');
+const { isNumber } = require('../Mud/Helpers.js');
 
 class TextEditor {
     constructor(player) {
@@ -37,6 +38,7 @@ class TextEditor {
             this.lineIndex = 0;
         }
         this.player.sendRAW("Type /c to clear all text, /g # to goto a line number.");
+        this.player.sendRAW("Type /i # to insert a line at that line number.");
         this.player.sendRAW("Type /q to quit, /s to save, /t to see text.");
         this.player.sendRAW("Enter your text:");
         return new Promise((resolve, reject) => {
@@ -54,7 +56,7 @@ class TextEditor {
     }
 
     cancelEditing() {
-        this.resolveInputPromise(this.defaultValue); // Resolve the promise with null to indicate cancellation
+        this.resolveInputPromise(null); // Resolve the promise with null to indicate cancellation
         this.player.removeStatus('editing');
     }
 
@@ -68,9 +70,17 @@ class TextEditor {
                 this.lineIndex = 0;
             } else if (cmd === '/g') {
                 this.lineIndex = parseInt(value);
-                if (this.lineIndex == NaN) this.lineIndex = 0;
+                if (!isNumber(this.lineIndex) == NaN) this.lineIndex = 0;
                 if (this.lineIndex > this.textValues.length) this.lineIndex = this.textValues.length;
                 this.player.sendRAW(`At line ${parseColors(`&g${this.lineIndex}`)}`);
+            } else if (cmd === '/i') {
+                const insertIndex = parseInt(value);
+                if (!isNumber(insertIndex) || insertIndex < 0 || insertIndex > this.textValues.length) {
+                    this.player.sendRAW("Invalid line number for insertion.");
+                } else {
+                    this.textValues.splice(insertIndex, 0, '');
+                    this.player.sendRAW(`Inserted blank line at ${parseColors(`&g${insertIndex}`)}`);
+                }
             } else if (cmd === '/q') {
                 this.cancelEditing();
             } else if (cmd === '/s') {

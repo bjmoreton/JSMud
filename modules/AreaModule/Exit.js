@@ -1,4 +1,4 @@
-const { getAllFunctionProperties } = require("../../Utils/helpers");
+const { getAllFunctionProperties } = require("../Mud/Helpers");
 class Exit {
     static ExitDirections = {
         Down: "Down",
@@ -173,6 +173,10 @@ class Exit {
         return this.hasState(Exit.ExitStates.Opened);
     }
 
+    isUnlocked() {
+        return this.hasState(Exit.ExitStates.Unlocked);
+    }
+
     async lock(player, args) {
         try {
             if (!this.isLocked()) {
@@ -218,6 +222,7 @@ class Exit {
                     this.addState(Exit.ExitStates.Opened);
                     this.removeState(Exit.ExitStates.Closed);
                     player.send(`You open the door.`);
+                    return true;
                 } else {
                     player.send(`You couldn't open the door!`);
                 }
@@ -227,6 +232,8 @@ class Exit {
         } catch (error) {
             console.error(error);
         }
+
+        return false;
     }
 
     static oppositeExit(direction) {
@@ -305,14 +312,21 @@ class Exit {
 
     async sendToExit(player, message) {
         if (this.progs !== undefined && this.progs['onmessage'] && this.requiresPassword()) {
-            await eval(this.progs['onmessage']);
+            try {
+                await eval(this.progs['onmessage']);
+            } catch (error) {
+                console.error(error);
+            }
         }
     }
 
     async sendToExitEmote(player, emote) {
-
         if (this.progs !== undefined && this.progs['onemote'] && this.requiresEmote()) {
-            await eval(this.progs['onemote']);
+            try {
+                await eval(this.progs['onemote']);
+            } catch (error) {
+                console.error(error);
+            }
         }
     }
 
@@ -352,21 +366,23 @@ class Exit {
     }
 
     async unlock(player, args) {
+        const [bypass] = args
         try {
             if (this.isLocked()) {
-                if (this.requiresKey()) {
-                    let unlocked = true;
-                    if (this.progs !== undefined && this.progs['onunlock']) {
+                let unlocked = true;
+                if (this.progs !== undefined && this.progs['onunlock'] && !bypass) {
+                    try {
                         await eval(this.progs['onunlock']);
+                    } catch (error) {
+                        console.error(error);
                     }
+                }
 
-                    if (unlocked) {
-                        this.addState(Exit.ExitStates.Unlocked);
-                        this.removeState(Exit.ExitStates.Locked);
-                        player.send(`You unlock the door.`);
-                    } else {
-                        player.send(`You couldn't seem to unlock the door!`);
-                    }
+                if (unlocked) {
+                    this.addState(Exit.ExitStates.Unlocked);
+                    this.removeState(Exit.ExitStates.Locked);
+                    player.send(`You unlock the door.`);
+                    return true;
                 } else {
                     player.send(`You couldn't seem to unlock the door!`);
                 }
@@ -376,6 +392,8 @@ class Exit {
         } catch (error) {
             console.error(error);
         }
+
+        return false;
     }
 
     validExitState(state) {

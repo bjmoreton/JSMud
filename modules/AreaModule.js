@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { isNumber } = require('../Utils/helpers.js');
+const { isNumber, isValidString } = require('./Mud/Helpers.js');
 const Area = require('./AreaModule/Area.js');
 const Exit = require('./AreaModule/Exit.js');
 const Room = require('./AreaModule/Room.js');
@@ -9,8 +9,8 @@ const Section = require('./AreaModule/Section.js');
 // Constants
 const AREAS_DIR = path.join(__dirname, '../areas');
 const ROOM_TEMPLATE = path.join(__dirname, '../system', 'templates', 'room.template');
-const MUD_MAP_SIZE_Y = 3; // Grid X size
-const MUD_MAP_SIZE_X = 6; // Grid Y size
+const MUD_MAP_SIZE_Y = 3; // Grid Y size
+const MUD_MAP_SIZE_X = 7; // Grid X size
 
 // Area Module
 const AreaModule = {
@@ -177,7 +177,7 @@ const AreaModule = {
      */
     onExitedRoom(player, enterDirection, room) {
         let message = '';
-        if (player.inRoom(room)) {
+        if (player?.inRoom(room)) {
             room.removePlayer(player);
             if (enterDirection && enterDirection != Exit.ExitDirections.None) message = `${player.username} left in the ${enterDirection} direction.`;
             else message = `${player.username} left the room.`;
@@ -278,15 +278,15 @@ const AreaModule = {
      * Handle hotboot before event.
      */
     onBeforeHotboot(player) {
-        AreaModule.mudServer.removeListener('enteredRoom', AreaModule.onEnteredRoom);
-        AreaModule.mudServer.removeListener('exitedRoom', AreaModule.onExitedRoom);
-        AreaModule.mudServer.removeListener('hotBootAfter', AreaModule.onAfterHotboot);
-        AreaModule.mudServer.removeListener('hotBootBefore', AreaModule.onBeforeHotboot);
-        AreaModule.mudServer.removeListener('playerDisconnected', AreaModule.onPlayerDisconnected);
-        AreaModule.mudServer.removeListener('playerLoggedIn', AreaModule.onPlayerLoggedIn);
-        AreaModule.mudServer.removeListener('playerSaved', AreaModule.onPlayerSaved);
-        AreaModule.mudServer.removeListener('sendToRoom', AreaModule.onSendToRoom);
-        AreaModule.mudServer.removeListener('sendToRoomEmote', AreaModule.onSendToRoomEmote);
+        AreaModule.mudServer.off('enteredRoom', AreaModule.onEnteredRoom);
+        AreaModule.mudServer.off('exitedRoom', AreaModule.onExitedRoom);
+        AreaModule.mudServer.off('hotBootAfter', AreaModule.onAfterHotboot);
+        AreaModule.mudServer.off('hotBootBefore', AreaModule.onBeforeHotboot);
+        AreaModule.mudServer.off('playerDisconnected', AreaModule.onPlayerDisconnected);
+        AreaModule.mudServer.off('playerLoggedIn', AreaModule.onPlayerLoggedIn);
+        AreaModule.mudServer.off('playerSaved', AreaModule.onPlayerSaved);
+        AreaModule.mudServer.off('sendToRoom', AreaModule.onSendToRoom);
+        AreaModule.mudServer.off('sendToRoomEmote', AreaModule.onSendToRoomEmote);
     },
 
     /**
@@ -376,7 +376,7 @@ const AreaModule = {
 
         while (queue.length > 0) {
             const { room, x, y, z } = queue.shift();
-            const symbol = room === currentRoom ? "&g@&~" : `${room.symbol}&~`;
+            const symbol = room === currentRoom ? "&g@&~" : (room.players.size > 0 ? "&P@&~" : `${room.symbol}&~`);
 
             if (!roomMap.has(x)) {
                 roomMap.set(x, new Map());
@@ -422,6 +422,20 @@ const AreaModule = {
             mapString += "|\r\n";
         }
 
+        // Calculate the width of the map
+        const mapWidth = maxX - minX + 1;
+        const coordinateString = `(${player.currentX}, ${player.currentY}, ${player.currentZ})`;
+
+        // Calculate total padding needed to center the coordinate string
+        const totalPadding = Math.max(0, mapWidth - coordinateString.length);
+        const leftPadding = Math.floor(totalPadding / 2);
+        const rightPadding = totalPadding - leftPadding;
+
+        // Create the centered coordinate line
+        const coordinateLine = " ".repeat(leftPadding) + coordinateString + " ".repeat(rightPadding) + "|\r\n";
+
+        // Append the centered coordinate line to the map string
+        mapString += coordinateLine;
         return mapString;
     },
 
@@ -470,16 +484,6 @@ const AreaModule = {
         const area = AreaModule.getAreaByName(exitRoom.area);
         const section = area?.getSectionByName(exitRoom.section);
         return section?.getRoomByCoordinates(exitRoom.x, exitRoom.y, exitRoom.z) || null;
-    },
-
-    /**
-     * Save all areas.
-     * @param {object} player - The player object.
-     */
-    save(player) {
-        AreaModule.areaList.forEach(area => {
-            area.save(player, AREAS_DIR, true);
-        });
     },
 
     /**
@@ -543,6 +547,13 @@ const AreaModule = {
             roomTemplate.forEach(string => {
                 player.send(`${string}`);
             });
+            player.currentRoom.players.forEach(p => {
+                if (p === player) return;
+                player.send(`You see ${p.username}.`);
+                for (const [name, status] of p.statuses) {
+                    player.send(`\t- ${status.description}`);
+                }
+            });
             AreaModule.mudServer.emit('looked', player);
         } else {
             const strToExit = Exit.stringToExit(direction);
@@ -565,49 +576,11 @@ const AreaModule = {
     },
 
     /**
-     * Execute the "area" command.
-     * @param {object} player - The player object.
-     * @param {array} args - The command arguments.
-     */
-    async executeArea(player, args) {
-        const [cmdName, ...data] = args;
-        const foundArea = player.workingArea;
-
-        if (foundArea || cmdName.toLowerCase() == 'create' || cmdName.toLowerCase() == 'work') {
-            switch (cmdName?.toLowerCase()) {
-                case 'create':
-                    await AreaModule.createArea(player, data);
-                    break;
-                case 'delete':
-                    await AreaModule.deleteArea(player, data);
-                    break;
-                case 'edit':
-                    await AreaModule.editArea(player, foundArea, data);
-                    break;
-                case 'save':
-                    foundArea.save(player, AREAS_DIR);
-                    break;
-                case 'setsymbol':
-                    foundArea.blankSymbol = data.join(' ');
-                    break;
-                case 'work':
-                    AreaModule.setWorkingArea(player, data);
-                    break;
-                default:
-                    player.send(`Usage: area <create | delete | edit | save | setsymbol | work>`);
-                    break;
-            }
-        } else {
-            player.send(`Usage: area <create | delete | edit | save | setsymbol | work>`);
-        }
-    },
-
-    /**
      * Create a new area.
      * @param {object} player - The player object.
      * @param {array} data - The command arguments.
      */
-    async createArea(player, data) {
+    createArea(player, data) {
         const [areaName] = data;
         if (areaName) {
             if (!AreaModule.areaList.has(areaName.toLowerCase())) {
@@ -617,7 +590,7 @@ const AreaModule = {
                 player.send(`Area ${areaName} already exists!`);
             }
         } else {
-            player.send(`Usage: area create areaname`);
+            player.send(`Usage: createarea areaname`);
         }
     },
 
@@ -645,60 +618,86 @@ const AreaModule = {
                 }
             }
         } else {
-            player.send(`Usage: area delete areaname fromMemory`);
+            player.send(`Usage: deletearea areaname fromMemory`);
         }
     },
 
     /**
      * Edit an existing area.
      * @param {object} player - The player object.
-     * @param {Area} area - The area object.
      * @param {array} args - The command arguments.
      */
-    async editArea(player, area, args) {
+    async editArea(player, args) {
+        if (!player.workingArea) {
+            player.send(`Must set a working area first!`);
+            return;
+        }
         const [editCmd, ...values] = args;
-        const editKeys = ['description', 'name', 'namedisplay'];
-        const oldName = area.name;
+        const area = player.workingArea;
 
         if (editCmd !== undefined && editCmd !== "") {
             const value = values?.join(' ');
-            let textValue = '';
+            let textValue = value;
 
-            if (editKeys.includes(editCmd.toLowerCase())) {
-                textValue = value || await player.textEditor.startEditing(area.propertyByString(editCmd));
+            switch (editCmd?.toLowerCase()) {
+                case "description":
+                    textValue = await player.textEditor.startEditing(area.propertyByString(area.description));
+                    area.description = textValue;
+                    break;
+                case "name":
+                    if (isValidString(textValue)) {
+                        const oldName = area.name;
 
-                if (textValue != null) {
-                    switch (editCmd?.toLowerCase()) {
-                        case "description":
-                            area.description = textValue;
-                            break;
-                        case "name":
-                            if (!AreaModule.areaList.has(textValue.toLowerCase())) {
-                                area.name = textValue;
-                                AreaModule.areaList.delete(oldName);
-                                AreaModule.areaList.set(area.name.toLowerCase(), area);
-                                area.delete(player, AREAS_DIR, false);
-                            } else {
-                                player.send(`Area ${textValue} already exists!`);
-                                return;
-                            }
-                            break;
-                        case "namedisplay":
-                            area.nameDisplay = textValue;
-                            break;
-                        default:
-                            player.send(`Usage: area edit <description | name | namedisplay>`);
-                            break;
+                        if (!AreaModule.areaList.has(textValue.toLowerCase())) {
+                            area.name = textValue;
+                            AreaModule.areaList.delete(oldName);
+                            AreaModule.areaList.set(area.name.toLowerCase(), area);
+                            area.delete(player, AREAS_DIR, false);
+                        } else {
+                            player.send(`Area ${textValue} already exists!`);
+                            return;
+                        }
+                    } else {
+                        player.send(`Must provide a new area name!`);
+                        return;
                     }
-                    area.save(player, AREAS_DIR);
-                } else {
-                    player.send(`Edit canceled!`);
-                }
-            } else {
-                player.send(`Usage: area edit <description | name | namedisplay>`);
+                    break;
+                case "namedisplay":
+                    if (isValidString(textValue)) {
+                        area.nameDisplay = textValue;
+                    } else {
+                        player.send(`Must provide a new area display name!`);
+                        return;
+                    }
+                    break;
+                case 'setsymbol':
+                    area.blankSymbol = textValue;
+                    break;
+                default:
+                    player.send(`Usage: editarea <description | name | namedisplay | setsymbol>`);
+                    return;
+            }
+            player.workingArea.changed = true;
+        } else {
+            player.send(`Usage: editarea <description | name | namedisplay | setsymbol>`);
+        }
+    },
+
+    /**
+     * Set the working area for the player.
+     * @param {object} player - The player object.
+     * @param {array} data - The command arguments.
+     */
+    saveArea(player, data) {
+        if (player.workingArea) {
+            try {
+                player.workingArea.save(player, AREAS_DIR);
+            } catch (error) {
+                player.send(`Failed to save area!`);
+                console.error(error);
             }
         } else {
-            player.send(`Usage: area edit <description | name | namedisplay>`);
+            player.send(`Must set a working area first!`);
         }
     },
 
@@ -709,11 +708,15 @@ const AreaModule = {
      */
     setWorkingArea(player, data) {
         const [workAreaName] = data;
-        if (AreaModule.areaList.has(workAreaName?.toLowerCase())) {
-            player.workingArea = AreaModule.areaList.get(workAreaName?.toLowerCase());
-            player.send(`Working area set to ${workAreaName}.`);
+        if (isValidString(workAreaName)) {
+            if (AreaModule.areaList.has(workAreaName?.toLowerCase())) {
+                player.workingArea = AreaModule.areaList.get(workAreaName?.toLowerCase());
+                player.send(`Working area set to ${workAreaName}.`);
+            } else {
+                player.send(`Area ${workAreaName} doesn't exist!`);
+            }
         } else {
-            player.send(`Area ${workAreaName} doesn't exist!`);
+            player.send(`Usage: workarea areaname`);
         }
     },
 
@@ -860,48 +863,16 @@ const AreaModule = {
     },
 
     /**
-     * Execute the "section" command.
-     * @param {object} player - The player object.
-     * @param {array} args - The command arguments.
-     */
-    async executeSection(player, args) {
-        const [cmdName, ...data] = args;
-        const foundArea = player.workingArea;
-
-        if (foundArea || cmdName?.toLowerCase() === 'create' || cmdName.toLowerCase() === 'work') {
-            switch (cmdName?.toLowerCase()) {
-                case 'create':
-                    await AreaModule.createSection(player, foundArea, data);
-                    break;
-                case 'delete':
-                    await AreaModule.deleteSection(player, foundArea, data);
-                    break;
-                case 'edit':
-                    await AreaModule.editSection(player, foundArea, data);
-                    break;
-                case 'work':
-                    AreaModule.setWorkingSection(player, foundArea, data);
-                    break;
-                default:
-                    player.send(`Usage: section <create | delete | edit | work>`);
-                    break;
-            }
-        } else {
-            player.send(`Usage: section <create | delete | edit | work>`);
-        }
-    },
-
-    /**
      * Create a new section.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
      * @param {array} data - The command arguments.
      */
-    async createSection(player, foundArea, data) {
+    async createSection(player, data) {
         const [sectionName, vSize] = data;
+        const foundArea = player.workingArea;
 
         if (sectionName === undefined || vSize === undefined) {
-            player.send(`Usage: section create name vSize`);
+            player.send(`Usage: createsection name vSize`);
             return;
         }
 
@@ -913,7 +884,7 @@ const AreaModule = {
         const newSection = foundArea.getSectionByName(sectionName);
 
         if (!newSection) {
-            if (isNumber(parseInt(vSize))) {
+            if (isNumber(vSize)) {
                 foundArea.addSection(sectionName, parseInt(vSize));
                 player.send(`Section ${sectionName} added successfully!`);
             } else {
@@ -927,27 +898,24 @@ const AreaModule = {
     /**
      * Delete an existing section.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
      * @param {array} data - The command arguments.
      */
-    async deleteSection(player, foundArea, data) {
+    async deleteSection(player, data) {
         const [sectionToDelete] = data;
-
+        const foundArea = player.workingArea;
         if (!foundArea) {
             player.send(`Working area not set!`);
             return;
         }
 
         if (sectionToDelete !== undefined) {
-            if (player.hasCommand('section delete') || player.modLevel >= 80) {
-                const reallyDelete = await player.textEditor.showPrompt(`Really delete section ${sectionToDelete}? yes/no `);
+            const reallyDelete = await player.textEditor.showPrompt(`Really delete section ${sectionToDelete}? yes/no `);
 
-                if (reallyDelete.toLowerCase() === 'y' || reallyDelete.toLowerCase() === 'yes') {
-                    foundArea.sections.delete(sectionToDelete.toLowerCase());
-                    player.send(`Section ${sectionToDelete} deleted successfully.`);
-                } else {
-                    player.send(`Section ${sectionToDelete} wasn't deleted.`);
-                }
+            if (reallyDelete.toLowerCase() === 'y' || reallyDelete.toLowerCase() === 'yes') {
+                foundArea.sections.delete(sectionToDelete.toLowerCase());
+                player.send(`Section ${sectionToDelete} deleted successfully.`);
+            } else {
+                player.send(`Section ${sectionToDelete} wasn't deleted.`);
             }
         } else {
             player.send(`Usage: section delete sectionname`);
@@ -957,11 +925,11 @@ const AreaModule = {
     /**
      * Edit an existing section.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
      * @param {array} data - The command arguments.
      */
-    async editSection(player, foundArea, data) {
+    async editSection(player, data) {
         const [editWhat, ...newValue] = data;
+        const foundArea = player.workingArea;
 
         if (!foundArea) {
             player.send(`Working area not set!`);
@@ -1004,18 +972,22 @@ const AreaModule = {
                     break;
             }
         } else {
-            player.send(`Usage: section edit <name> value`);
+            player.send(`Usage: editsection <name> value`);
         }
     },
 
     /**
      * Set the working section for the player.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
      * @param {array} data - The command arguments.
      */
-    setWorkingSection(player, foundArea, data) {
+    setWorkingSection(player, data) {
         const [workSection] = data;
+        const foundArea = player.workingArea;
+        if (!foundArea) {
+            player.send(`Working area not set!`);
+            return;
+        }
 
         if (foundArea.sections.has(workSection.toLowerCase())) {
             player.workingSection = foundArea.sections.get(workSection.toLowerCase());
@@ -1026,67 +998,24 @@ const AreaModule = {
     },
 
     /**
-     * Execute the "room" command.
-     * @param {object} player - The player object.
-     * @param {array} args - The command arguments.
-     */
-    async executeRoom(player, args) {
-        const [cmdName, ...data] = args;
-        const foundArea = player.workingArea;
-
-        if (foundArea) {
-            const foundSection = player.workingSection;
-
-            if (foundSection) {
-                switch (cmdName?.toLowerCase()) {
-                    case 'addexit':
-                        AreaModule.addRoomExit(player, foundArea, foundSection, data);
-                        break;
-                    case 'addtexit':
-                        AreaModule.addTeleportExit(player, data);
-                        break;
-                    case 'create':
-                        AreaModule.createRoom(player, foundArea, foundSection, data);
-                        break;
-                    case 'delete':
-                        await AreaModule.deleteRoom(player, foundSection, data);
-                        break;
-                    case 'edit':
-                        await AreaModule.editRoom(player, foundSection, data);
-                        break;
-                    case 'editexit':
-                        await AreaModule.editExit(player, data);
-                        break;
-                    case 'removeexit':
-                        AreaModule.removeRoomExit(player, foundSection, data);
-                        break;
-                    case "savestate":
-                        await AreaModule.saveRoomState(player);
-                        break;
-                    case 'setsymbol':
-                        player.currentRoom.symbol = data.join(' ');
-                        break;
-                    default:
-                        player.send(`Usage: room <create | delete | edit | addexit | removeexit | savestate | setsymbol>`);
-                        break;
-                }
-            } else {
-                player.send(`Working section not set!`);
-            }
-        } else {
-            player.send(`Working area not set!`);
-        }
-    },
-
-    /**
      * Create a new room.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
-     * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    createRoom(player, foundArea, foundSection, data) {
+    createRoom(player, data) {
         const [x, y, z] = data;
+        const foundArea = player.workingArea;
+        const foundSection = player.workingSection;
+
+        if (!foundArea) {
+            player.send(`Working area not set!`);
+            return;
+        }
+
+        if (!foundSection) {
+            player.send(`Working section not set!`);
+            return;
+        }
 
         if (x !== undefined && y !== undefined && z !== undefined) {
             const foundRoom = foundSection.getRoomByCoordinates(x, y, z);
@@ -1096,48 +1025,68 @@ const AreaModule = {
                 player.send(`Room already exists at ${x}, ${y}, ${z}!`);
             }
         } else {
-            player.send(`Usage: room create x y z`);
+            player.send(`Usage: createroom x y z`);
         }
     },
 
     /**
      * Delete an existing room.
      * @param {object} player - The player object.
-     * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    async deleteRoom(player, foundSection, data) {
+    async deleteRoom(player, data) {
         const [x, y, z] = data;
+        const foundArea = player.workingArea;
+        const foundSection = player.workingSection;
+
+        if (!foundArea) {
+            player.send(`Working area not set!`);
+            return;
+        }
+
+        if (!foundSection) {
+            player.send(`Working section not set!`);
+            return;
+        }
 
         if (x !== undefined && y !== undefined && z !== undefined) {
-            if (player.hasCommand('room delete') || player.modLevel >= 80) {
-                const reallyDelete = await player.textEditor.showPrompt(`Really delete room ${x}, ${y}, ${z}? yes/no `);
+            const reallyDelete = await player.textEditor.showPrompt(`Really delete room ${x}, ${y}, ${z}? yes/no `);
 
-                if (reallyDelete.toLowerCase() === 'y' || reallyDelete.toLowerCase() === 'yes') {
-                    foundSection.deleteRoom(player, x, y, z);
-                } else {
-                    player.send(`Room ${x}, ${y}, ${z} wasn't deleted.`);
-                }
+            if (reallyDelete.toLowerCase() === 'y' || reallyDelete.toLowerCase() === 'yes') {
+                foundSection.deleteRoom(player, x, y, z);
+            } else {
+                player.send(`Room ${x}, ${y}, ${z} wasn't deleted.`);
             }
         } else {
-            player.send(`Usage: room delete x y z`);
+            player.send(`Usage: deleteroom x y z`);
         }
     },
 
     /**
      * Edit an existing room.
      * @param {object} player - The player object.
-     * @param {Section} foundSection - The section object.
      * @param {array} args - The command arguments.
      */
-    async editRoom(player, foundSection, args) {
+    async editRoom(player, args) {
         let room = player.currentRoom;
-        if (args.length === 1) {
-            await AreaModule.editRoomProperties(player, room, args);
-        } else {
-            const [editCmd, x, y, z, ...values] = args;
+        const foundArea = player.workingArea;
+        const foundSection = player.workingSection;
 
-            if (x !== undefined && y !== undefined && z !== undefined) {
+        if (!foundArea) {
+            player.send(`Working area not set!`);
+            return;
+        }
+
+        if (!foundSection) {
+            player.send(`Working section not set!`);
+            return;
+        }
+        const [editCmd, x, y, z, ...values] = args;
+
+        if (editCmd) {
+            if (!isNumber(x) || !isNumber(y) || !isNumber(z)) {
+                await AreaModule.editRoomProperties(player, room, args);
+            } else {
                 room = foundSection.getRoomByCoordinates(x, y, z);
 
                 if (room) {
@@ -1146,16 +1095,16 @@ const AreaModule = {
                 } else {
                     player.send(`Room doesn't exist!`);
                 }
-            } else {
-                player.send(`Usage: room ${editCmd} x y z`);
             }
+        } else {
+            player.send(`Usage: editroom <description | name | symbol> {x y z} [...values]`);
+            player.send(`x y and z are optional. Used for editing a room without being in it.`);
         }
     },
 
     /**
      * Edits the properties or scripts of an exit based on user input.
      * @param {Player} player - The player performing the edit.
-     * @param {Section} foundSection - The section where the exit is located.
      * @param {Array<string>} args - Arguments provided by the player which include the exit direction, the type of edit, and additional parameters.
      * @async
      * @returns {Promise<void>} Nothing is returned, but messages are sent to the player based on the outcome of the operation.
@@ -1163,7 +1112,7 @@ const AreaModule = {
     async editExit(player, args) {
         const [editDirection, editOption, ...editValues] = args;
         if (!editDirection || !editOption) {
-            player.send("Usage: room editexit <direction> <option> [...values]");
+            player.send(`Usage: editexit [direction] <script | state> [...values]`);
             return;
         }
 
@@ -1182,13 +1131,13 @@ const AreaModule = {
 
         switch (editOption.toLowerCase()) {
             case 'script':
-                await this.editExitScript(player, editExit, editValues);
+                await AreaModule.editExitScript(player, editExit, editValues);
                 break;
             case 'state':
-                this.editExitState(player, editExit, editValues);
+                AreaModule.editExitState(player, editExit, editValues);
                 break;
             default:
-                player.send("Invalid option. Use 'script' or 'state'.");
+                player.send(`Usage: editexit [direction] <script | state> <add | edit | remove> [...values]`);
                 break;
         }
     },
@@ -1203,9 +1152,12 @@ const AreaModule = {
      */
     async editExitScript(player, exit, editValues) {
         const [command, onEvent] = editValues;
-        if (!command || !onEvent) {
-            player.send("Usage: room editexit script <add | edit | remove> <event>");
+        if (!command) {
+            player.send(`Usage: editexit ${exit.direction} script <add | edit | remove> [event]`);
             return;
+        }
+        if (!onEvent) {
+            player.send(`Usage: editexit ${exit.direction} script ${command} [event]`);
         }
 
         const eventName = onEvent.toLowerCase();
@@ -1218,7 +1170,7 @@ const AreaModule = {
                     return;
                 }
                 const newScript = await player.textEditor.startEditing('');
-                if (newScript.trim() === '') {
+                if (newScript === null || newScript.trim() === '') {
                     player.send("Script creation canceled or empty script provided.");
                     return;
                 }
@@ -1232,7 +1184,7 @@ const AreaModule = {
                     return;
                 }
                 const updatedScript = await player.textEditor.startEditing(exit.progs[eventName]);
-                if (updatedScript.trim() === '') {
+                if (newScript === null || updatedScript.trim() === '') {
                     player.send("Script editing canceled or empty script provided.");
                     return;
                 }
@@ -1250,7 +1202,7 @@ const AreaModule = {
                 player.send(`${onEvent} removed successfully.`);
                 break;
             default:
-                player.send("Invalid command. Use 'add', 'edit', or 'remove'.");
+                player.send(`Usage: editexit ${exit.direction} script <add | edit | remove> [event]`);
                 break;
         }
     },
@@ -1262,10 +1214,10 @@ const AreaModule = {
      * @param {Array<string>} editValues - Commands and parameters for state management such as 'add', 'remove', 'save', 'showstate', or 'showdefaultstate'.
      * @returns {void} Sends feedback to the player about the outcome of the state change operations.
      */
-    editExitState(player, exit, editValues) {
+    async editExitState(player, exit, editValues) {
         const [action, ...states] = editValues;
         if (!action) {
-            player.send("Usage: room editexit state <add | defaults | remove | save | show>");
+            player.send("Usage: room editexit state <add | defaults | remove | save | setdefault | show>");
             return;
         }
 
@@ -1286,6 +1238,9 @@ const AreaModule = {
                 exit.saveState();
                 player.send("State saved successfully.");
                 break;
+            case "setdefault":
+                await AreaModule.saveRoomExitState(player, exit);
+                break;
             case 'show':
                 player.send(exit.currentState.join(', '));
                 break;
@@ -1293,7 +1248,7 @@ const AreaModule = {
                 player.send(exit.initialState.join(', '));
                 break;
             default:
-                player.send("Invalid action. Use 'add', 'defaults', 'remove', 'save', or 'show'.");
+                player.send("Usage: room editexit state <add | defaults | remove | save | setdefault | show>");
                 break;
         }
     },
@@ -1306,52 +1261,109 @@ const AreaModule = {
      */
     async editRoomProperties(player, room, args) {
         const [editCmd, ...values] = args;
-        const editKeys = ['description', 'name'];
 
         if (editCmd !== undefined && editCmd !== "") {
             const value = values?.join(' ');
-            let textValue = '';
-
-            if (editKeys.includes(editCmd.toLowerCase())) {
-                textValue = value || await player.textEditor.startEditing(room.propertyByString(editCmd));
-
-                if (textValue != null) {
-                    switch (editCmd?.toLowerCase()) {
-                        case "description":
-                            room.description = textValue;
-                            break;
-                        case "name":
-                            room.name = textValue;
-                            break;
-                        default:
-                            player.send(`Usage: room edit <description | name>`);
-                            break;
+            let textValue = value;
+            switch (editCmd?.toLowerCase()) {
+                case "description":
+                    textValue = await player.textEditor.startEditing(textValue.length === 0 ? room.description : textValue);
+                    if (textValue === null) {
+                        player.send(`Edit canceled`);
+                        return;
                     }
-                } else {
-                    player.send(`Edit canceled!`);
-                }
-            } else {
-                player.send(`Usage: room edit <description | name>`);
+                    room.description = textValue;
+                    break;
+                case "name":
+                    room.name = textValue;
+                    break;
+                case "setdefault":
+                    await AreaModule.saveRoomState(player, room);
+                    break;
+                case "script":
+                    await AreaModule.editRoomScripts(player, values)
+                    break;
+                case 'symbol':
+                    player.currentRoom.symbol = textValue;
+                    break;
+                default:
+                    player.send(`Usage: editroom <description | name | script | symbol> {x y z} [...values]`);
+                    player.send(`x y and z are optional. Used for editing a room without being in it.`);
+                    return;
             }
+            player.send(`Room updated successfully!`);
         } else {
-            player.send(`Usage: room edit <description | name>`);
+            player.send(`Usage: editroom <description | name | script | symbol> {x y z} [...values]`);
+            player.send(`x y and z are optional. Used for editing a room without being in it.`);
+        }
+    },
+
+    async editRoomScripts(player, args) {
+        const [command, onEvent] = args;
+        if (!command) {
+            player.send(`Usage: editroom script <add | edit | remove> [event]`);
+            return;
+        }
+        if (!onEvent) {
+            player.send(`Usage: editroom script ${command} [event]`);
+        }
+
+        const eventName = onEvent.toLowerCase();
+        if (!player.currentRoom.progs) player.currentRoom.progs = {};
+
+        switch (command.toLowerCase()) {
+            case 'add':
+                if (player.currentRoom.progs[eventName]) {
+                    player.send(`${onEvent} already exists.`);
+                    return;
+                }
+                const newScript = await player.textEditor.startEditing('');
+                if (newScript === null || newScript.trim() === '') {
+                    player.send("Script creation canceled or empty script provided.");
+                    return;
+                }
+                player.currentRoom.progs[eventName] = newScript;
+                player.send(`${onEvent} added successfully.`);
+                break;
+            case 'edit':
+                if (!player.currentRoom.progs[eventName]) {
+                    player.send(`No existing script for ${onEvent} to edit.`);
+                    return;
+                }
+                const updatedScript = await player.textEditor.startEditing(player.currentRoom.progs[eventName]);
+                if (newScript === null || updatedScript.trim() === '') {
+                    player.send("Script editing canceled or empty script provided.");
+                    return;
+                }
+                player.currentRoom.progs[eventName] = updatedScript;
+                player.send(`${onEvent} edited successfully.`);
+                break;
+            case 'remove':
+                if (!player.currentRoom.progs[eventName]) {
+                    player.send(`No existing script for ${onEvent} to remove.`);
+                    return;
+                }
+                delete player.currentRoom.progs[eventName];
+                player.send(`${onEvent} removed successfully.`);
+                break;
+            default:
+                player.send(`Usage: editroom script <add | edit | remove> [event]`);
+                break;
         }
     },
 
     /**
      * Add an exit to the current room.
      * @param {object} player - The player object.
-     * @param {Area} foundArea - The area object.
-     * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    addRoomExit(player, foundArea, foundSection, data) {
+    addRoomExit(player, data) {
         const [direction] = data;
 
         if (direction !== undefined) {
-            player.currentRoom.addExit(player, foundArea, foundSection, direction);
+            player.currentRoom.addExit(player, player.currentRoom.area, player.currentRoom.section, direction);
         } else {
-            player.send(`Usage: room addexit direction`);
+            player.send(`Usage: addexit direction`);
         }
     },
 
@@ -1365,7 +1377,7 @@ const AreaModule = {
         const fromRoom = player.currentRoom;
 
         if (toArea !== undefined && toSection !== undefined && toX !== undefined && toY !== undefined && toZ !== undefined && toDirection !== undefined) {
-            if (!isNumber(parseInt(toX)) || !isNumber(parseInt(toY)) || !isNumber(parseInt(toZ))) {
+            if (!isNumber(toX) || !isNumber(toY) || !isNumber(toZ)) {
                 player.send(`Invalid x, y, or z!`);
                 return;
             }
@@ -1404,10 +1416,9 @@ const AreaModule = {
     /**
      * Remove an exit from the current room.
      * @param {object} player - The player object.
-     * @param {Section} foundSection - The section object.
      * @param {array} data - The command arguments.
      */
-    removeRoomExit(player, foundSection, data) {
+    removeRoomExit(player, data) {
         const [direction] = data;
         const fromRoom = player.currentRoom;
 
@@ -1416,7 +1427,7 @@ const AreaModule = {
             if (exit) {
                 const exitArea = AreaModule.getAreaByName(exit.area.name);
                 const exitSection = exitArea.getSectionByName(exit.section.name);
-                fromRoom.removeExit(player, foundSection, direction, exitArea, exitSection, exit.x, exit.y, exit.z);
+                fromRoom.removeExit(player, player.currentRoom.section, direction, exitArea, exitSection, exit.x, exit.y, exit.z);
             } else {
                 player.send(`Exit not found in that direction!`);
             }
@@ -1425,7 +1436,19 @@ const AreaModule = {
         }
     },
 
-    async saveRoomState(player) {
+    async saveRoomExitState(player, exit) {
+        const reallyOverwrite = await player.textEditor.showPrompt(`Overwrite existing exit state? yes/no `);
+
+        if (reallyOverwrite.toLowerCase() === 'y' || reallyOverwrite.toLowerCase() === 'yes') {
+            exit.saveState();
+            AreaModule.mudServer.emit('roomExitStateSaved', player, player.currentRoom, exit);
+            player.send(`Room exit state overwritten successfully.`);
+        } else {
+            player.send(`Room exit state wasn't overwritten.`);
+        }
+    },
+
+    async saveRoomState(player, room) {
         const reallyOverwrite = await player.textEditor.showPrompt(`Overwrite existing room state? yes/no `);
 
         if (reallyOverwrite.toLowerCase() === 'y' || reallyOverwrite.toLowerCase() === 'yes') {

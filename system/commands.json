@@ -84,14 +84,6 @@
   },
   {
     "aliases": [
-      "hf"
-    ],
-    "action": "Helpfile.executeEdit",
-    "command": "helpfile",
-    "modLevel": 65
-  },
-  {
-    "aliases": [
       "rlhfs"
     ],
     "action": "Helpfile.executeReloadHelpfiles",
@@ -103,24 +95,6 @@
     "action": "Area.executeLook",
     "command": "look",
     "modLevel": 0
-  },
-  {
-    "aliases": [],
-    "action": "Area.executeRoom",
-    "command": "room",
-    "modLevel": 65
-  },
-  {
-    "aliases": [],
-    "action": "Area.executeSection",
-    "command": "section",
-    "modLevel": 65
-  },
-  {
-    "aliases": [],
-    "action": "Area.executeArea",
-    "command": "area",
-    "modLevel": 65
   },
   {
     "aliases": [],
@@ -343,12 +317,6 @@
   },
   {
     "aliases": [],
-    "action": "Area.save",
-    "command": "saveareas",
-    "modLevel": 90
-  },
-  {
-    "aliases": [],
     "action": "Item.removeItem",
     "command": "removeitem",
     "modLevel": 90
@@ -396,5 +364,313 @@
     "action": "Inventory.putAllItems",
     "command": "put all",
     "modLevel": 0
+  },
+  {
+    "aliases": [
+      "addeqslot"
+    ],
+    "action": "Equipment.addEquipmentSlot",
+    "command": "addequipmentslot",
+    "modLevel": 85
+  },
+  {
+    "aliases": [
+      "saveeqslots"
+    ],
+    "action": "Equipment.save",
+    "command": "saveequipmentslots",
+    "modLevel": 85
+  },
+  {
+    "aliases": [
+      "areacreate"
+    ],
+    "action": "Area.createArea",
+    "command": "createarea",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "areadelete"
+    ],
+    "action": "Area.deleteArea",
+    "command": "deletearea",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "areaedit"
+    ],
+    "action": "Area.editArea",
+    "command": "editarea",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "areawork"
+    ],
+    "action": "Area.setWorkingArea",
+    "command": "workarea",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "areasave"
+    ],
+    "action": "Area.saveArea",
+    "command": "savearea",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "helpfilecreate",
+      "createhf",
+      "hfcreate"
+    ],
+    "action": "Helpfile.createHelpfile",
+    "command": "createhelpfile",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "helpfiledelete",
+      "hfdelete",
+      "deletehf"
+    ],
+    "action": "Helpfile.deleteHelpfile",
+    "command": "deletehelpfile",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "helpfileedit",
+      "edithf",
+      "hfedit"
+    ],
+    "action": "Helpfile.editHelpfile",
+    "command": "edithelpfile",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "sectioncreate"
+    ],
+    "action": "Area.createSection",
+    "command": "createsection",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "sectiondelete"
+    ],
+    "action": "Area.deleteSection",
+    "command": "deletesection",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "sectionedit"
+    ],
+    "action": "Area.editSection",
+    "command": "editsection",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "sectionwork"
+    ],
+    "action": "Area.setWorkingSection",
+    "command": "worksection",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "roomcreate"
+    ],
+    "action": "Area.createRoom",
+    "command": "createroom",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "roomdelete"
+    ],
+    "action": "Area.deleteRoom",
+    "command": "deleteroom",
+    "modLevel": 70
+  },
+  {
+    "aliases": [
+      "roomedit"
+    ],
+    "action": "Area.editRoom",
+    "command": "editroom",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "exitedit"
+    ],
+    "action": "Area.editExit",
+    "command": "editexit",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "exitadd"
+    ],
+    "action": "Area.addRoomExit",
+    "command": "addexit",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "exittadd",
+      "addteleport",
+      "teleportadd"
+    ],
+    "action": "Area.addTeleportExit",
+    "command": "addtexit",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "exitremove",
+      "exitdelete",
+      "deleteexit"
+    ],
+    "action": "Area.removeRoomExit",
+    "command": "removeexit",
+    "modLevel": 65
+  },
+  {
+    "aliases": [
+      "itemspawn"
+    ],
+    "action": "Item.spawnItem",
+    "command": "spawnitem",
+    "modLevel": 85
+  },
+  {
+    "aliases": [
+      "vnumlookup",
+      "lookvnum",
+      "vnumlook"
+    ],
+    "action": "Item.executeLookupVNum",
+    "command": "lookupvnum",
+    "modLevel": 50
+  },
+  {
+    "aliases": [
+      "statadd"
+    ],
+    "action": "Stat.addStat",
+    "command": "addstat",
+    "modLevel": 90
+  },
+  {
+    "aliases": [
+      "statsave",
+      "savestats"
+    ],
+    "action": "Stat.save",
+    "command": "statssave",
+    "modLevel": 90
+  },
+  {
+    "aliases": [
+      "statsshow"
+    ],
+    "action": "Stat.showStats",
+    "command": "showstats",
+    "modLevel": 90
+  },
+  {
+    "aliases": [
+      "statusessave"
+    ],
+    "action": "Player.saveStatuses",
+    "command": "savestatuses",
+    "modLevel": 75
+  },
+  {
+    "aliases": [
+      "statusesload"
+    ],
+    "action": "Player.loadStatuses",
+    "command": "loadstatuses",
+    "modLevel": 75
+  },
+  {
+    "aliases": [
+      "statusadd"
+    ],
+    "action": "Player.addStatus",
+    "command": "addstatus",
+    "modLevel": 75
+  },
+  {
+    "aliases": [
+      "statusremove"
+    ],
+    "action": "Player.removeStatus",
+    "command": "removestatus",
+    "modLevel": 75
+  },
+  {
+    "aliases": [
+      "statremove"
+    ],
+    "action": "Stat.removeStat",
+    "command": "removestat",
+    "modLevel": 90
+  },
+  {
+    "aliases": [],
+    "action": "Equipment.wear",
+    "command": "wear",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "wear all"
+    ],
+    "action": "Equipment.wearAll",
+    "command": "wearall",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "rem"
+    ],
+    "action": "Equipment.remove",
+    "command": "remove",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "rem all"
+    ],
+    "action": "Equipment.removeAll",
+    "command": "remove all",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "eq",
+      "euqipment"
+    ],
+    "action": "Equipment.showEquipment",
+    "command": "showequipment",
+    "modLevel": 0
+  },
+  {
+    "aliases": [
+      "editeqslot"
+    ],
+    "action": "Equipment.editEquipmentSlot",
+    "command": "editequipmentslot",
+    "modLevel": 85
   }
 ]

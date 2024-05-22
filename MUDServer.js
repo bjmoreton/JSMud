@@ -1,9 +1,9 @@
-const { parseColors } = require('./Utils/Color.js');
+const { parseColors } = require('./modules/Mud/Color.js');
 const EventEmitter = require('events');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
-const { generateRandomString } = require('./Utils/helpers.js');
+const { generateRandomString } = require('./modules/Mud/Helpers.js');
 
 // Core MUD logic
 class MUDServer extends EventEmitter {
@@ -51,14 +51,43 @@ class MUDServer extends EventEmitter {
 
     commandExist(command) { return this.commands.includes(command); }
 
+    on(event, listener) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(listener);
+    }
+
     emit(event, ...args) {
-        // console.log('EVENT:', event);
-        super.emit(event, ...args);
+        if (!this.events[event] || this.events[event].length === 0) {
+            return false;
+        }
+
+        let eventHandled = false;
+
+        for (const listener of this.events[event]) {
+            if (eventHandled) {
+                break; // If an event has been handled, ignore subsequent events
+            }
+            if (listener(...args) === true) {
+                eventHandled = true;
+            }
+        }
+
+        return eventHandled;
+    }
+
+    off(event, listener) {
+        if (!this.events[event]) return;
+
+        this.events[event] = this.events[event].filter(l => l !== listener);
     }
 
     constructor() {
         super();
+        this.events = {};
         global.mudServer = this;
+        this.hotbooting = false;
         this.loadConfig();
         this.loadModules();
         this.loadBanList();
@@ -120,6 +149,7 @@ class MUDServer extends EventEmitter {
     }
 
     hotBoot(player) {
+        global.mudServer.hotbooting = true;
         global.mudServer.players.forEach(p => {
             p.send('Performing hotboot...');
         });
@@ -130,6 +160,7 @@ class MUDServer extends EventEmitter {
             p.send('Hotboot finished');
         });
         global.mudServer.emit('hotBootAfter', player);
+        global.mudServer.hotbooting = false;
     }
 
     isBanned(arg) {

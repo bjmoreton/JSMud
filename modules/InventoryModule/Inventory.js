@@ -1,11 +1,12 @@
-const { isNumber } = require("../../Utils/helpers");
+const Item = require("../ItemModule/Item");
+const { isNumber } = require("../Mud/Helpers");
 
 /**
  * Represents a player's inventory.
  * Extends the Map class to store items with their vNum as keys.
  * 
  * @class Inventory
- * @extends {Map<number, Array<Object>>}
+ * @extends {Map<number, Map<string, Array<Object>>>}
  */
 class Inventory extends Map {
     /**
@@ -14,10 +15,6 @@ class Inventory extends Map {
      */
     constructor(maxSize = 30) {
         super();
-        /**
-         * Maximum number of items allowed in the inventory.
-         * @type {number}
-         */
         this.maxSize = maxSize;
     }
 
@@ -31,15 +28,20 @@ class Inventory extends Map {
      */
     addItem(vNum, item, bypass = false) {
         const vNumParsed = parseInt(vNum);
+        const rarity = item.rarity.name.toLowerCase();
+
         if (isNumber(vNumParsed)) {
             if (this.actualSize() + 1 <= this.maxSize || bypass) {
-                if (this.has(vNumParsed)) {
-                    this.get(vNumParsed).push(item);
-                } else {
-                    const itemArray = [];
-                    itemArray.push(item);
-                    this.set(vNumParsed, itemArray);
+                if (!this.has(vNumParsed)) {
+                    this.set(vNumParsed, new Map());
                 }
+
+                const rarityMap = this.get(vNumParsed);
+                if (!rarityMap.has(rarity)) {
+                    rarityMap.set(rarity, []);
+                }
+
+                rarityMap.get(rarity).push(item);
                 return true;
             }
         }
@@ -48,24 +50,42 @@ class Inventory extends Map {
     }
 
     /**
+     * Creates a deep copy of this Inventory instance, including all entries and the maxSize property.
+     * @returns {Inventory} A new Inventory instance with duplicated entries and properties.
+     */
+    copy() {
+        const newInventory = new Inventory(this.maxSize);
+        this.forEach((rarityMap, vNum) => {
+            const newRarityMap = new Map();
+            rarityMap.forEach((items, rarity) => {
+                newRarityMap.set(rarity, items.map(item => item.copy()));
+            });
+            newInventory.set(vNum, newRarityMap);
+        });
+        return newInventory;
+    }
+
+    /**
      * Searches through all entries to find containers whose names include a specified substring.
-     * Assumes that the storage structure is a Map where each entry's key is a vNum and the value is an array of item objects.
+     * Assumes that the storage structure is a Map where each entry's key is a vNum and the value is a map of rarity to item arrays.
      * Each item is expected to have a name and an inventory property to qualify as a container.
      *
      * @param {string} itemName - The name or partial name to search for in container names.
      * @returns {Array} An array of all containers matching the specified name.
      *
      * @example
-     * // Assume a Map where each vNum corresponds to an array of item objects
+     * // Assume a Map where each vNum corresponds to a map of rarity to item arrays
      * const containers = inventory.findAllContainersByName('box');
      * console.log(containers); // logs all items with 'box' in their name that have an inventory property
      */
-    findAllContainersByName = function (itemName) {
+    findAllContainersByName(itemName) {
         let foundItems = [];
-        for (let [vNum, items] of this.entries()) {
-            for (let item of items) {
-                if (item.name.toLowerCase().includes(itemName.toLowerCase()) && item.inventory) {
-                    foundItems.push(item);
+        for (let rarityMap of this.values()) {
+            for (let items of rarityMap.values()) {
+                for (let item of items) {
+                    if (item.name.toLowerCase().includes(itemName.toLowerCase()) && item.inventory) {
+                        foundItems.push(item);
+                    }
                 }
             }
         }
@@ -88,40 +108,47 @@ class Inventory extends Map {
      */
     findAllItemsByName(itemName) {
         let foundItems = [];
-        for (let [vNum, items] of this.entries()) {
-            for (let item of items) {
-                if (itemName === undefined || item.name.toLowerCase().includes(itemName.toLowerCase())) {
-                    foundItems.push(item);
+        for (let rarityMap of this.values()) {
+            for (let items of rarityMap.values()) {
+                for (let item of items) {
+                    if (itemName === undefined || item.name.toLowerCase().includes(itemName.toLowerCase())) {
+                        foundItems.push(item);
+                    }
                 }
             }
         }
         return foundItems;
-    };
+    }
 
     /**
      * Removes a specific item from the inventory based on its object reference.
-     * Assumes that each `vNum` in the inventory maps to an array of item objects.
+     * Assumes that each `vNum` in the inventory maps to a map of rarity to item arrays.
      * 
      * @param {Object} targetItem - The item object to remove. This should be the exact object stored in the inventory.
      * @returns {boolean} True if the item was successfully removed, otherwise false.
      * 
      * @example
      * // Assuming an item exists in the inventory with a `vNum` of 123
-     * const itemToRemove = inventory.get(123).find(item => item.id === specificId);
+     * const itemToRemove = inventory.get(123).get('common').find(item => item.id === specificId);
      * const result = inventory.removeItem(itemToRemove);
      * console.log(result); // true if removed, false otherwise
      */
     removeItem(targetItem) {
-        // Assume we use 'vNum' as the key to access the items in the inventory
-        const items = this.get(targetItem.vNum);
-        if (items && items.length > 0) {
-            const index = items.findIndex(item => item === targetItem);
-            if (index !== -1) {
-                items.splice(index, 1);  // Remove the item at the found index
-                if (items.length === 0) {
-                    this.delete(targetItem.vNum);  // If no items left, remove the key from the map
+        const itemsByRarity = this.get(targetItem.vNum);
+        if (itemsByRarity) {
+            const items = itemsByRarity.get(targetItem.rarity.name.toLowerCase());
+            if (items && items.length > 0) {
+                const index = items.findIndex(item => item === targetItem);
+                if (index !== -1) {
+                    items.splice(index, 1);  // Remove the item at the found index
+                    if (items.length === 0) {
+                        itemsByRarity.delete(targetItem.rarity.name.toLowerCase());
+                        if (itemsByRarity.size === 0) {
+                            this.delete(targetItem.vNum);  // If no items left, remove the key from the map
+                        }
+                    }
+                    return true;
                 }
-                return true;
             }
         }
         return false;
@@ -133,9 +160,12 @@ class Inventory extends Map {
      * @returns {Array<Object>} - Returns an array of objects representing the inventory items.
      */
     serialize() {
-        let items = Array.from(this.entries()).map(([vNum, itemList]) => ({
+        let items = Array.from(this.entries()).map(([vNum, rarityMap]) => ({
             vNum: parseInt(vNum),
-            data: itemList.map(item => item?.serialize())
+            data: Array.from(rarityMap.entries()).map(([rarity, itemList]) => ({
+                rarity,
+                items: itemList.map(item => item?.serialize())
+            }))
         }));
 
         // Return as an object including maxSize
@@ -149,8 +179,10 @@ class Inventory extends Map {
      */
     actualSize() {
         let sizeActual = 0;
-        for (const [key, value] of this.entries()) {
-            sizeActual += value.length;
+        for (let rarityMap of this.values()) {
+            for (let items of rarityMap.values()) {
+                sizeActual += items.length;
+            }
         }
         return parseInt(sizeActual);
     }
@@ -160,13 +192,12 @@ class Inventory extends Map {
      * 
      * @returns {boolean} - Returns true if the inventory is full, false otherwise.
      */
-    full = () => { return this.actualSize() === this.maxSize; }
+    get isFull() { return this.actualSize() === this.maxSize; }
 
     /**
      * Deserializes a JSON string into an Inventory object.
      * 
      * @static
-     * @param {Object} player - The player owning the inventory.
      * @param {string} data - A JSON string representing the inventory data.
      * @param {number} [maxSize=30] - Maximum number of items allowed in the inventory.
      * @returns {Inventory} - Returns an Inventory object.
@@ -177,13 +208,20 @@ class Inventory extends Map {
         const items = invObj.items;
 
         try {
-            items.forEach(item => {
-                item.data.forEach(newItem => {
-                    const addItem = global.ItemModule.getItemByVNum(item.vNum).copy();
-                    global.mudServer.emit('inventoryItemDeserialized', newItem, addItem);
-                    inventory.addItem(parseInt(item.vNum), addItem, true);
+            if (items) {
+                items.forEach(item => {
+                    item.data.forEach(({ rarity, items }) => {
+                        items.forEach(newItem => {
+                            const itemType = Item.stringToItemType(newItem.itemType);
+                            const itemObj = itemType.deserialize(item.vNum, newItem);
+                            if (itemObj.inventory && newItem.inventory) {
+                                itemObj.inventory = Inventory.deserialize(JSON.stringify(newItem.inventory), newItem.inventory.maxSize);
+                            }
+                            inventory.addItem(parseInt(item.vNum), itemObj, true);
+                        });
+                    });
                 });
-            });
+            }
         } catch (error) {
             console.error("Failed to deserialize inventory:", error);
             return new Inventory(maxSize); // Optionally return an empty inventory on failure

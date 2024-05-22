@@ -6,7 +6,7 @@ class RoomState {
     }
 
     constructor(defaultState) {
-        this.flags = defaultState.flags ?? RoomState.Flags.None;
+        this.flags = defaultState?.flags ?? RoomState.Flags.None;
     }
 }
 

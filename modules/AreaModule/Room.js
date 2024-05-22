@@ -1,4 +1,4 @@
-const { isNumber } = require("../../Utils/helpers");
+const { isNumber } = require("../Mud/Helpers");
 const Exit = require("./Exit");
 const RoomState = require("./RoomState");
 
@@ -91,8 +91,15 @@ class Room {
         }
     }
 
-    addPlayer(player) {
+    async addPlayer(player) {
         if (player) this.players.set(player.username, player);
+        if (this.progs !== undefined && this.progs['onenter']) {
+            try {
+                await eval(this.progs['onenter']);
+            } catch (error) {
+                console.error(error);
+            }
+        }
     }
 
     // Method to get an exit by direction
@@ -100,8 +107,15 @@ class Room {
         return this.exits.get(exitDirection);
     }
 
-    removePlayer(player) {
+    async removePlayer(player) {
         if (player) this.players.delete(player.username);
+        if (this.progs !== undefined && this.progs['onexit']) {
+            try {
+                await eval(this.progs['onexit']);
+            } catch (error) {
+                console.error(error);
+            }
+        }
     }
 
     sendToRoomEmote(player, emote) {
@@ -117,7 +131,7 @@ class Room {
             }
         });
         this.exits?.forEach(exit => {
-            exit.sendToExit(player, message);
+            exit.sendToExit(player, messagePlain);
         });
     }
 

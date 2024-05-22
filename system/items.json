@@ -2,29 +2,22 @@
   {
     "vNum": 0,
     "data": {
-      "name": "Dusty Key",
-      "description": "An old dusty key.",
-      "itemType": "Key"
-    }
-  },
-  {
-    "vNum": 1,
-    "data": {
-      "name": "Bronze Key",
-      "description": "A key made of Bronze.",
-      "itemType": "Key"
-    }
-  },
-  {
-    "vNum": 2,
-    "data": {
-      "name": "Old brown bag",
-      "description": "",
-      "itemType": "Container",
-      "inventory": {
-        "items": [],
-        "maxSize": 10
-      }
+      "name": "Sword of Darkness",
+      "nameDisplay": "Sword of Darkness",
+      "itemType": "equipment",
+      "rarity": {
+        "name": "trash",
+        "symbol": "[&zT&~]",
+        "weight": 9,
+        "statReduction": 0.9,
+        "statAddition": 0
+      },
+      "vNum": 0,
+      "wearable": true,
+      "layer": 1,
+      "types": [
+        "weapon"
+      ]
     }
   }
 ]

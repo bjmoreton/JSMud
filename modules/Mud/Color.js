@@ -72,7 +72,7 @@ const Colors = {
         retString = retString.replace(/&Y/g, Colors.brightYellow);
         retString = retString.replace(/&~/g, Colors.reset);
 
-        return retString + Colors.reset;
+        return `${retString}${Colors.reset}`;
     }
 
   module.exports = { Colors, parseColors };

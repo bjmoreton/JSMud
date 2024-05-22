@@ -1,5 +1,16 @@
+Mud/Color
+Mud/Helpers
+Mud/ServerCommand
+Mud/StoppableInterval
+StatModule/Stat
+StatModule
 ItemModule/Item
+ItemModule/Key
 ItemModule
+EquipmentModule/Equipment
+EquipmentModule/EquipmentSlot
+EquipmentModule/Weapon
+EquipmentModule
 InventoryModule/Container
 InventoryModule/Inventory
 InventoryModule
@@ -17,5 +28,4 @@ PlayerModule
 LoginModule
 EmoteModule/Emote
 EmoteModule
-Mud/ServerCommand
 CommandModule

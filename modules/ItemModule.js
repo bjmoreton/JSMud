@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const Item = require('./ItemModule/Item');
-const { isNumber } = require('../Utils/helpers');
+const { isNumber, sendNestedKeys } = require('./Mud/Helpers');
 const Key = require('./ItemModule/Key');
 
 // Inventory module
@@ -19,33 +19,41 @@ const ItemModule = {
     addItem(player, args) {
         // Check if necessary arguments are present
         if (args.length < 2) {
-            player.send("Usage: addItem name itemType");
+            player.send("Usage: addItem [name] [itemType]");
             return;
         }
 
         const [name, itemType] = args;
         const lastEntry = Array.from(ItemModule.itemsList.entries())[ItemModule.itemsList.size - 1];
-        const lastItemVNum = lastEntry[0];
+        const lastItemVNum = lastEntry ? lastEntry[0] : -1;
         const vNumInt = parseInt(lastItemVNum) + 1;
 
         // Validate item number
-        if (isNaN(vNumInt)) {
+        if (!isNumber(vNumInt)) {
             player.send("Invalid item number.");
             return;
         }
 
+        const itemTypeConstructor = Item.stringToItemType(itemType);
+        if (!itemTypeConstructor) {
+            player.send(`Invalid Item type!`);
+            player.send(`Valid types:` + Item.getItemTypesArray());
+            return;
+        }
+
         // Create a new item
-        const newItem = new Item.ItemTypes[itemType](vNumInt, name, name, '', itemType);
+        const newItem = new itemTypeConstructor(vNumInt, name, name, itemType);
 
         // Add to the global items list
         ItemModule.itemsList.set(vNumInt, newItem);
 
-        player.send(`Item added: ${newItem.name} (Type: ${newItem.itemType})`);
+        player.send(`Item added: vNum: ${vNumInt} ${newItem.name} (Type: ${newItem.itemType})`);
     },
 
     async editItem(player, args) {
-        const [vNum, editWhat, value] = args;
+        const [vNum, editWhat, value, ...data] = args;
         const vNumInt = parseInt(vNum);
+        const eventObj = { args: args, handled: false, saved: true };
 
         // Check if the item number is valid and if the item exists
         if (!isNumber(vNumInt) || !ItemModule.itemsList.has(vNumInt)) {
@@ -61,57 +69,85 @@ const ItemModule = {
 
         if (editWhat !== undefined) {
             switch (editWhat.toLowerCase()) {
+                case "desc":
                 case "description":
-                    const editorValue = await player.textEditor.startEditing(itemToEdit.description);
-                    itemToEdit.description = editorValue;
+                    const description = await player.textEditor.startEditing(itemToEdit.description);
+                    itemToEdit.description = description?.trim();
+                    break;
+                case "grounddesc":
+                case "grounddescription":
+                    const groundDescription = await player.textEditor.startEditing(itemToEdit.groundDescription);
+                    itemToEdit.groundDescription = groundDescription?.trim();
+                    break;
+                case "flags":
+                    ItemModule.editItemFlags(player, itemToEdit, value, data);
                     break;
                 case "name":
-                    if (value === undefined || value == '') {
+                    if (value === undefined || value?.trim() == '') {
                         player.send('Must specify an item name!');
                         return;
                     }
-                    itemToEdit.name = value;
+                    itemToEdit.name = value?.trim();
                     break;
-                case "type":
-                    if (Item.getItemTypesArray().includes(value?.toLowerCase())) {
-                        itemToEdit.itemType = Item.stringToItemType(value);
-                    } else {
-                        player.send(`Invalid type!`);
-                        player.send(`Valid types: ${Item.getItemTypesArray()}`);
+                default:
+                    await ItemModule.mudServer.emit('editItem', player, itemToEdit, eventObj)
+                    if (!eventObj.handled) {
+                        player.send(`Usage: editItem vNum <description | flags | name>`);
                         return;
                     }
-                    break;
             }
 
-            player.send(`Item editted successfully!`);
-            ItemModule.updatePlayersItems();
+            if (eventObj.saved) player.send(`Item editted successfully!`);
         } else {
-            player.send(`Usage: editItem vNum <description | name | type>`);
+            player.send(`Usage: editItem vNum <description | flags | name>`);
+        }
+    },
+
+    editItemFlags(player, item, action, data) {
+        switch (action.toLowerCase()) {
+            case "add":
+                item.addFlag(...data);
+                player.send(`New flags: ${item.flags}`);
+                break;
+            case "remove":
+                item.removeFlag(...data);
+                player.send(`New flags: ${item.flags}`);
+                break;
+            default:
+                player.send(`Usage: editItem vNum flags <add | remove>`);
+                player.send(`Valid flags: ${Item.getItemFlagsArray()}`);
+                break;
+        }
+    },
+
+    executeLookupVNum(player, args) {
+        const [vNum] = args;
+
+        if (isNumber(vNum)) {
+            const foundItem = ItemModule.getItemByVNum(vNum);
+            if (foundItem) sendNestedKeys(player, foundItem);
         }
     },
 
     getItemByVNum(vNum) {
-        if (isNumber(parseInt(vNum))) return ItemModule.itemsList.get(parseInt(vNum));
+        if (isNumber(vNum)) return ItemModule.itemsList.get(parseInt(vNum));
     },
 
     load(player) {
         try {
             const data = fs.readFileSync(ItemModule.ITEMS_PATH, 'utf8');
             const itemsData = JSON.parse(data);
-            Item.addItemType(Key);
             ItemModule.mudServer.emit('itemsLoading', player);
             itemsData.forEach(item => {
                 // Accessing the nested data structure
                 const itemInfo = item.data;
                 if (itemInfo) {
-                    let itemObj = {};
-
-                    if (Item.stringToItemType(itemInfo.itemType) === Item.ItemTypes.Key) itemObj.item = new Key(parseInt(item.vNum), itemInfo.name, itemInfo.nameDisplay, itemInfo.description, itemInfo.itemType);
-                    else ItemModule.mudServer.emit('itemLoaded', itemObj, item);
-                    ItemModule.itemsList.set(parseInt(item.vNum), itemObj.item);
+                    const itemType = Item.stringToItemType(itemInfo.itemType);
+                    const itemObj = itemType.deserialize(item.vNum, itemInfo);
+                    ItemModule.mudServer.emit('itemDeserialized', player, itemObj, itemInfo);
+                    ItemModule.itemsList.set(parseInt(item.vNum), itemObj);
                 }
             });
-
             console.log("Items loaded successfully.");
             if (player) player.send("Items loaded successfully.");
         } catch (err) {
@@ -124,27 +160,24 @@ const ItemModule = {
         ItemModule.removeEvents();
     },
 
+    onItemsLoading() {
+        Item.addItemType(Key);
+    },
+
     onPlayerLoggedIn: (player) => {
-        // for (let i = 0; i < 2; i++) {
-        // const dustyKey = ItemModule.getItemByVNum(0).copy();
-        // player.inventory.addItem(dustyKey.vNum, dustyKey, true);
-        // }
-        // for (let i = 0; i < 2; i++) {
-        // const bronzeKey = ItemModule.getItemByVNum(1).copy();
-        // player.inventory.addItem(bronzeKey.vNum, bronzeKey, true);
-        // }
+
     },
 
     registerEvents() {
         ItemModule.mudServer.on('hotBootBefore', ItemModule.onHotBootBefore);
+        ItemModule.mudServer.on('itemsLoading', ItemModule.onItemsLoading);
         ItemModule.mudServer.on('playerLoggedIn', ItemModule.onPlayerLoggedIn);
-        ItemModule.mudServer.on('updatePlayerItems', ItemModule.updatePlayerItems);
     },
 
     removeEvents() {
-        ItemModule.mudServer.removeListener('hotBootBefore', ItemModule.onHotBootBefore);
-        ItemModule.mudServer.removeListener('playerLoggedIn', ItemModule.onPlayerLoggedIn);
-        ItemModule.mudServer.removeListener('updatePlayerItems', ItemModule.updatePlayerItems);
+        ItemModule.mudServer.off('hotBootBefore', ItemModule.onHotBootBefore);
+        ItemModule.mudServer.off('itemsLoading', ItemModule.onItemsLoading);
+        ItemModule.mudServer.off('playerLoggedIn', ItemModule.onPlayerLoggedIn);
     },
 
     async removeItem(player, args) {
@@ -156,7 +189,6 @@ const ItemModule = {
 
             if (deleteForSure.toLowerCase() == 'y' || deleteForSure == 'yes') {
                 ItemModule.itemsList.delete(parseInt(vNum));
-                ItemModule.updatePlayersItems();
                 player.send(`${item.name} deleted successfully.`);
             } else {
                 player.send(`${item.name} wasn't deleted.`);
@@ -182,34 +214,42 @@ const ItemModule = {
             const itemData = {
                 vNum: parseInt(vNum),
                 data: {
-                    name: item.name,
-                    description: item.description,
-                    itemType: item.itemType.toString()
+                    ...item.serialize()
                 }
             };
-            ItemModule.mudServer.emit('itemSerialized', item, itemData);
             itemsArray.push(itemData);
         }
         return itemsArray; // Pretty-print the JSON
     },
 
-    updatePlayerItems(player, inventory) {
-        for (const [key, items] of inventory.entries()) {
-            const updatedItem = ItemModule.getItemByVNum(key);
-            if (updatedItem) {
-                items.forEach(item => {
-                    let itemCopy = { ...item };
-                    Object.assign(item, updatedItem);
-                    ItemModule.mudServer.emit('updatePlayerItem', player, item, itemCopy, updatedItem);
-                });
-            } else inventory.delete(key);
+    spawnItem(player, args) {
+        const [vNum, weightOffset, ...rarityNames] = args;
+        if (args === 0) {
+            player.send(`Usage: spawnItem [vNum] [weightOffset] [...Rarities]`);
+            return;
         }
-    },
 
-    updatePlayersItems() {
-        ItemModule.mudServer.players.forEach(player => {
-            ItemModule.updatePlayerItems(player, player.inventory);
-        });
+        if (!isNumber(vNum)) {
+            player.send(`Invalid item vNum!`);
+            return;
+        }
+
+        if (!isNumber(weightOffset)) {
+            player.send(`Invalid weightOffset enter 0 for none.`);
+            return;
+        }
+
+        const rarity = Item.getRandomRarity(parseInt(weightOffset), ...rarityNames);
+        if (!rarity) {
+            player.send(`No valid rarities found!`);
+            return;
+        }
+
+        const item = ItemModule.getItemByVNum(vNum).copy();
+        item.rarity = rarity;
+        ItemModule.mudServer.emit('createdItem', player, item);
+        player.send(`You create ${item.displayString} out of thin air!`);
+        player.inventory.addItem(item.vNum, item);
     }
 }
 

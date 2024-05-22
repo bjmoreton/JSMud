@@ -4,7 +4,11 @@
   "canBuild": false,
   "modLevel": 0,
   "statuses": [
-    "None"
+    {
+      "description": "Standing",
+      "name": "Standing",
+      "type": 2
+    }
   ],
   "password": "$2b$10$GQrlzANWw2snWuZe75pj8OrLI3nbRItKJjII2sqMNNc//OjZGrPu2",
   "currentX": 0,
@@ -13,6 +17,14 @@
   "inventory": {
     "items": [],
     "maxSize": 30
+  },
+  "eqSlots": {
+    "weapon": {
+      "name": "Weapon",
+      "eqType": "Weapon",
+      "layers": 1,
+      "items": []
+    }
   },
   "currentArea": "Start",
   "currentSection": "Start"

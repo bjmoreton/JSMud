@@ -1,4 +1,4 @@
-const { formatDate, formatTime } = require("../../Utils/helpers");
+const { formatDate, formatTime } = require("../Mud/Helpers");
 const fs = require('fs');
 const path = require('path');
 const Section = require("./Section");
@@ -58,7 +58,8 @@ class Area {
     save(player, dir, showOutput = true) {
         // Set last update timestamp
         const currentDate = new Date();
-        this.lastUpdate = formatDate(currentDate) + ' ' + formatTime(currentDate);
+        if(this.changed === true) this.lastUpdate = formatDate(currentDate) + ' ' + formatTime(currentDate);
+
         const filePath = path.join(dir, this.name + '.json');
 
         try {
@@ -128,6 +129,7 @@ class Area {
 
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
             if (showOutput) player.send(`Area ${this.name} saved!`);
+            this.changed = false;
         } catch (error) {
             player.send(`Error saving area ${this.name}!`);
             console.log(`Error saving area ${this.name}!`, error);

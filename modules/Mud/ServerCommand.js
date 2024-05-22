@@ -9,7 +9,7 @@ class ServerCommand {
 
     execute(player, args) {
         if (player.hasCommand(this.command) || player.modLevel >= this.modLevel) {
-            this.handler(player, args);
+            if(this.handler) this.handler(player, args);
         }
     }
 }

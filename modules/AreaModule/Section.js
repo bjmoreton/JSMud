@@ -1,4 +1,4 @@
-const { inRange } = require("../../Utils/helpers");
+const { inRange } = require("../Mud/Helpers");
 const Exit = require("./Exit");
 const Room = require("./Room");
 

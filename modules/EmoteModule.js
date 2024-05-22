@@ -86,9 +86,9 @@ const EmoteModule = {
         if (emote == undefined || emote == "") return;
 
         // Split string by spaces, leaving spaces inside quotes alone
-        const commandParts = emote.match(/(?:[^\s"]+|"[^"]*")+/g);
+        const emoteParts = emote.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
         // Remove quotes from each part
-        const cleanedParts = commandParts.map(part => part.replace(/^"|"$/g, ''));
+        const cleanedParts = emoteParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [emoteName, ...args] = cleanedParts;
         const emoteAction = EmoteModule.emotesList.get(emoteName);
 
@@ -136,8 +136,8 @@ const EmoteModule = {
     },
 
     removeEvents() {
-        EmoteModule.mudServer.removeListener('handleEmote', EmoteModule.handleEmote);
-        EmoteModule.mudServer.removeListener('hotBootBefore', EmoteModule.onHotBootBefore);
+        EmoteModule.mudServer.off('handleEmote', EmoteModule.handleEmote);
+        EmoteModule.mudServer.off('hotBootBefore', EmoteModule.onHotBootBefore);
     },
 
     save(player, args) {

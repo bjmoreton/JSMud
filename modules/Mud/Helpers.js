@@ -1,6 +1,22 @@
 const bcrypt = require('bcrypt');
 
 /**
+ * Adds missing properties from a source object to a destination object.
+ * @param {Object} source - The object to copy properties from.
+ * @param {Object} destination - The object to copy properties to.
+ */
+function addMissingProperties(source, destination) {
+    // Iterate over each property in the source object
+    for (const key in source) {
+        // Check if the property exists in the destination object
+        if (!(key in destination)) {
+            // If the property does not exist, copy it from the source
+            destination[key] = source[key];
+        }
+    }
+}
+
+/**
  * Formats a date object into a string in MM/DD/YYYY format.
  * @param {Date} date - The date object to format.
  * @returns {string} Formatted date as a string.
@@ -22,6 +38,17 @@ function formatTime(date) {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * Generates a random number between low and high inclusive.
+ *
+ * @param {number} low - The lower bound (inclusive).
+ * @param {number} high - The upper bound (inclusive).
+ * @returns {number} A random number between low and high inclusive.
+ */
+function getRandomNumberInclusive(low, high) {
+    return Math.floor(Math.random() * (high - low + 1)) + low;
 }
 
 /**
@@ -71,7 +98,57 @@ function inRange(value, low, high) {
  * @returns {boolean} True if the value is a number and not NaN, false otherwise.
  */
 function isNumber(value) {
-    return typeof value === 'number' && !Number.isNaN(value);
+    return !Number.isNaN(parseInt(value));
+}
+
+function isValidString(string) {
+    if (!string || (typeof string === 'string' && string.trim().length === 0)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+/**
+ * Recursively sends keys and values from a nested object to the player.
+ * @param {Object} player - The player object.
+ * @param {Object} obj - The object to be traversed.
+ * @param {string} [prefix=''] - The prefix for the current key path (used for nested objects).
+ */
+function sendNestedKeys(player, obj, prefix = '') {
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            const value = obj[key];
+            const formattedKey = prefix ? `${prefix}.${key}` : key;
+
+            if (typeof value === 'object' && value !== null) {
+                // Recursively handle nested objects
+                sendNestedKeys(player, value, formattedKey);
+            } else {
+                // Send the key-value pair to the player
+                player.send(`${formattedKey}: ${value}`);
+            }
+        }
+    }
+}
+
+function stringToBoolean(str) {
+    if (typeof str !== 'string') {
+        return false;
+    }
+
+    switch (str.trim().toLowerCase()) {
+        case "true":
+        case "yes":
+        case "1":
+            return true;
+        case "false":
+        case "no":
+        case "0":
+            return false;
+        default:
+            return false;
+    }
 }
 
 /**
@@ -90,4 +167,4 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { formatTime, formatDate, generateRandomString, hashPassword, inRange, isNumber, verifyPassword };
+module.exports = { addMissingProperties, formatTime, formatDate, getRandomNumberInclusive, generateRandomString, hashPassword, inRange, isNumber, isValidString, sendNestedKeys, stringToBoolean, verifyPassword };

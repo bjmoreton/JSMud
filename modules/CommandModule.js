@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const ServerCommand = require('./Mud/ServerCommand.js');
-const { isNumber } = require('../Utils/helpers.js');
+const { isNumber } = require('./Mud/Helpers.js');
 
 const CommandModule = {
     COMMANDS_PATH: path.join(__dirname, '../system', 'commands.json'),
@@ -21,7 +21,7 @@ const CommandModule = {
             return;
         }
 
-        if (!isNumber(parseInt(cmdLevel))) {
+        if (!isNumber(cmdLevel)) {
             player.send(`modLevel invalid!`);
             return;
         }
@@ -66,7 +66,7 @@ const CommandModule = {
                 break;
             case 'aliases':
                 const [aliasAction, ...aliases] = cmdData;
-                switch (aliasAction.toLowerCase()) {
+                switch (aliasAction?.toLowerCase()) {
                     case 'add':
                         aliases.forEach(alias => {
                             const existingAlias = cmd.aliases.find(a => a === alias);
@@ -141,11 +141,11 @@ const CommandModule = {
 
     handleCommand(player, command, eventObj) {
         if (command == undefined || command == "") return;
-
         // Split string by spaces, leaving spaces inside quotes alone
-        const commandParts = command.match(/(?:[^\s"]+|"[^"]*")+/g);
+        //const commandParts = command.match(/(?:[^\s"]+|"[^"]*")+/g);
+        const commandParts = command.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
         // Remove quotes from each part
-        const cleanedParts = commandParts.map(part => part.replace(/^"|"$/g, ''));
+        const cleanedParts = commandParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [cmdName, ...args] = cleanedParts;
         let handler = undefined;
         if (args.length > 0) {
@@ -207,7 +207,7 @@ const CommandModule = {
 
         const cmd = CommandModule.findCommand(cmdName);
         if (!cmd) {
-            player.send(`Command ${cmd} doesn't exist!`);
+            player.send(`Command ${cmdName} doesn't exist!`);
             return;
         }
 
@@ -216,8 +216,8 @@ const CommandModule = {
     },
 
     removeEvents() {
-        CommandModule.mudServer.removeListener('handleCommand', CommandModule.handleCommand);
-        CommandModule.mudServer.removeListener('hotBootBefore', CommandModule.onHotBootBefore);
+        CommandModule.mudServer.off('handleCommand', CommandModule.handleCommand);
+        CommandModule.mudServer.off('hotBootBefore', CommandModule.onHotBootBefore);
     },
 
     registerCommand(name, handler) {

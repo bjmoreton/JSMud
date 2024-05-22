@@ -3,7 +3,7 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/13/2024 23:08:11",
+  "lastUpdate": "05/15/2024 18:03:39",
   "sections": {
     "Start": {
       "area": "Start",
@@ -23,39 +23,7 @@
           "defaultState": {
             "flags": 0,
             "inventory": {
-              "items": [
-                {
-                  "vNum": 2,
-                  "data": [
-                    {
-                      "name": "Old brown bag",
-                      "nameDisplay": "Old brown bag",
-                      "description": "",
-                      "itemType": "Container",
-                      "inventory": {
-                        "items": {
-                          "vNum": 0,
-                          "data": [
-                            {
-                              "name": "Dusty Key",
-                              "nameDisplay": "Dusty Key",
-                              "description": "An old dusty key.",
-                              "itemType": "Key"
-                            },
-                            {
-                              "name": "Dusty Key",
-                              "nameDisplay": "Dusty Key",
-                              "description": "An old dusty key.",
-                              "itemType": "Key"
-                            }
-                          ]
-                        },
-                        "maxSize": 10
-                      }
-                    }
-                  ]
-                }
-              ],
+              "items": [],
               "maxSize": 20
             }
           },
@@ -93,11 +61,20 @@
               "section": "Test",
               "direction": "North",
               "initialState": [
-                "Opened"
+                "CanClose",
+                "CanLock",
+                "Emote",
+                "Password",
+                "Key",
+                "Closed",
+                "Locked"
               ],
               "x": 0,
               "y": -9,
               "z": 0,
+              "progs": {
+                "onmessage": "if(message.toLowerCase() === 'open please') {\r\n this.unlock(player, [true]); if(this.isUnlocked()) {\r\nthis.open(player);\r\n}\r\n}"
+              },
               "teleport": true
             }
           ]
@@ -198,11 +175,20 @@
               "section": "Start",
               "direction": "South",
               "initialState": [
-                "Opened"
+                "CanClose",
+                "CanLock",
+                "Emote",
+                "Password",
+                "Key",
+                "Closed",
+                "Locked"
               ],
               "x": 0,
               "y": 0,
               "z": 0,
+              "progs": {
+                "onmessage": "if(message.toLowerCase() === 'open please') {\r\n this.unlock(player, [true]); if(this.isUnlocked()) {\r\nthis.open(player);\r\n}\r\n}"
+              },
               "teleport": true
             },
             {

@@ -1,7 +1,7 @@
 // Importing necessary modules
 const fs = require('fs');
 const path = require('path');
-const { formatDate, formatTime } = require('../../Utils/helpers.js');
+const { formatDate, formatTime } = require('../Mud/Helpers.js');
 
 // HelpFile class definition
 class Helpfile {

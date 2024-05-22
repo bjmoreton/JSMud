@@ -1,4 +1,4 @@
-const { hashPassword, verifyPassword } = require("../Utils/helpers");
+const { hashPassword, verifyPassword } = require("./Mud/Helpers");
 
 // login module
 const LoginModule = {
@@ -105,8 +105,8 @@ const LoginModule = {
         await LoginModule.handleLogin(player, data);
     },
     handleHotbootBefore: function () {
-        LoginModule.mudServer.removeListener('handleLogin', LoginModule.handleLoginCB);
-        LoginModule.mudServer.removeListener('hotBootBefore', LoginModule.handleHotbootBefore);
+        LoginModule.mudServer.off('handleLogin', LoginModule.handleLoginCB);
+        LoginModule.mudServer.off('hotBootBefore', LoginModule.handleHotbootBefore);
     },
     init: function (mudServer) {
         global.LoginModule = this;
