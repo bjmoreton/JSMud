@@ -1,7 +1,25 @@
 const Item = require("../ItemModule/Item");
 const { addMissingProperties } = require("../Mud/Helpers");
 
+/**
+ * Class representing equipment, extending the Item class.
+ */
 class Equipment extends Item {
+    /**
+     * Create an Equipment item.
+     * @param {number} vNum - The virtual number of the item.
+     * @param {string} name - The name of the item.
+     * @param {string} nameDisplay - The display name of the item.
+     * @param {string} itemType - The type of the item.
+     */
+    constructor(vNum, name, nameDisplay, itemType) {
+        super(vNum, name, nameDisplay, itemType);
+    }
+
+    /**
+     * Add equipment types to the item.
+     * @param {...string} types - The types to add.
+     */
     addEQType(...types) {
         types.forEach(type => {
             type = type?.toLowerCase();
@@ -12,10 +30,10 @@ class Equipment extends Item {
         });
     }
 
-    constructor(vNum, name, nameDisplay, itemType) {
-        super(vNum, name, nameDisplay, itemType);
-    }
-
+    /**
+     * Copy the equipment item.
+     * @returns {Equipment} A copy of the equipment item.
+     */
     copy() {
         const baseItem = super.copy();
         const copiedItem = new Equipment(this.vNum, this.name, this.nameDisplay, this.itemType);
@@ -27,8 +45,13 @@ class Equipment extends Item {
         return copiedItem;
     }
 
+    /**
+     * Deserialize data into an Equipment item.
+     * @param {number} vNum - The virtual number of the item.
+     * @param {Object} data - The data to deserialize.
+     * @returns {Equipment} The deserialized equipment item.
+     */
     static deserialize(vNum, data) {
-        // Data should already be an object, so no need to parse it
         const baseItem = super.deserialize(vNum, data);
         const deserializedItem = new Equipment(vNum, data.name, data.nameDisplay, data.itemType);
         deserializedItem.wearable = data.wearable;
@@ -38,13 +61,20 @@ class Equipment extends Item {
         return deserializedItem;
     }
 
-    // Method to get a comma-separated string of equipmwnr types in lowercase
+    /**
+     * Get a comma-separated string of equipment types in lowercase.
+     * @returns {string[]} An array of equipment types in lowercase.
+     */
     static getEquipmentTypesArray() {
-        // Extract the values from the EquipmentTypes object, convert them to lowercase, and join them into a string
         return Object.values(Equipment.EquipmentTypes)
-            .map(type => type.toLowerCase());  // Convert each type to lowercase
+            .map(type => type.toLowerCase());
     }
 
+    /**
+     * Check if the item has specified equipment types.
+     * @param {...string} types - The types to check.
+     * @returns {boolean} True if the item has all specified types, otherwise false.
+     */
     hasEQType(...types) {
         if (!this.equipmentTypes) return false;
 
@@ -64,6 +94,10 @@ class Equipment extends Item {
         return true;
     }
 
+    /**
+     * Remove specified equipment types from the item.
+     * @param {...string} types - The types to remove.
+     */
     removeEQType(...types) {
         types.forEach(type => {
             type = type?.toLowerCase();
@@ -77,16 +111,29 @@ class Equipment extends Item {
         });
     }
 
+    /**
+     * Serialize the equipment item.
+     * @returns {Object} The serialized data of the equipment item.
+     */
     serialize() {
         let serializedItem = super.serialize();
         serializedItem = {
             ...serializedItem,
         };
         addMissingProperties(this, serializedItem);
-        return serializedItem
+        return serializedItem;
     }
 
+    /**
+     * Get the string representation of the class.
+     * @returns {string} The string representation of the class.
+     */
     static toString() { return 'Equipment'; }
+
+    /**
+     * Get the lowercase string representation of the class.
+     * @returns {string} The lowercase string representation of the class.
+     */
     static toLowerCase() { return Equipment.toString().toLowerCase(); }
 }
 

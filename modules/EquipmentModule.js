@@ -204,7 +204,7 @@ const EquipmentModule = {
             const slot = playerData.eqSlots[eqSlot];
             if (EquipmentModule.hasEquipmentSlot(slot.name)) {
                 const slotObj = EquipmentSlot.deserialize(slot);
-                player.eqSlots[slotObj.name.toLowerCase()] = slotObj;
+                if (slotObj) player.eqSlots[slotObj.name.toLowerCase()] = slotObj;
             } else { // Slot has been removed or failed to load
                 // Remove items from data back into inventory.
             }
@@ -215,6 +215,7 @@ const EquipmentModule = {
 
     onPlayerSaved(player, playerData) {
         playerData.eqSlots = {};
+        console.log(player.eqSlots);
         for (const key in player.eqSlots) {
             playerData.eqSlots[key] = player.eqSlots[key].serialize();
         }

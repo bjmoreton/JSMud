@@ -92,9 +92,9 @@
         }
       ]
     },
-    "shield": {
+    "off-hand": {
       "displayString": "<Off-Hand>",
-      "name": "Shield",
+      "name": "Off-Hand",
       "eqType": "Equipment",
       "layers": 1,
       "items": []

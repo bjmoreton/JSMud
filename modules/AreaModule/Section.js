@@ -2,7 +2,18 @@ const { inRange } = require("../Mud/Helpers");
 const Exit = require("./Exit");
 const Room = require("./Room");
 
+/**
+ * Class representing a section of an area.
+ */
 class Section {
+    /**
+     * Create a Section.
+     * @param {Object} area - The area to which the section belongs.
+     * @param {string} name - The name of the section.
+     * @param {string} nameDisplay - The display name of the section.
+     * @param {string} description - The description of the section.
+     * @param {number} vSize - The vertical size of the section.
+     */
     constructor(area, name, nameDisplay, description, vSize) {
         this.area = area;
         this.description = description;
@@ -12,7 +23,16 @@ class Section {
         this.vSize = vSize;
     }
 
-    // Method to add a room
+    /**
+     * Adds a room to the section.
+     * @param {Object} player - The player adding the room.
+     * @param {Object} area - The area to which the room belongs.
+     * @param {Object} section - The section to which the room belongs.
+     * @param {number} x - The x-coordinate of the room.
+     * @param {number} y - The y-coordinate of the room.
+     * @param {number} z - The z-coordinate of the room.
+     * @returns {Room|null} The newly added room, or null if out of range.
+     */
     addRoom(player, area, section, x, y, z) {
         if (inRange(x, -this.vSize, this.vSize) &&
             inRange(y, -this.vSize, this.vSize) &&
@@ -27,6 +47,13 @@ class Section {
         }
     }
 
+    /**
+     * Deletes a room from the section.
+     * @param {Object} player - The player requesting the deletion.
+     * @param {number} x - The x-coordinate of the room.
+     * @param {number} y - The y-coordinate of the room.
+     * @param {number} z - The z-coordinate of the room.
+     */
     deleteRoom(player, x, y, z) {
         const room = this.getRoomByCoordinates(x, y, z);
 
@@ -40,7 +67,13 @@ class Section {
         }
     }
 
-    // Method to find a room by coordinates
+    /**
+     * Finds a room by its coordinates.
+     * @param {number} x - The x-coordinate of the room.
+     * @param {number} y - The y-coordinate of the room.
+     * @param {number} z - The z-coordinate of the room.
+     * @returns {Room|undefined} The room if found, otherwise undefined.
+     */
     getRoomByCoordinates(x, y, z) {
         return this.rooms.get(`${x},${y},${z}`);
     }

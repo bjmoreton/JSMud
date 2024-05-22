@@ -1,7 +1,14 @@
 const { parseColors } = require('../Mud/Color.js');
 const { isNumber } = require('../Mud/Helpers.js');
 
+/**
+ * Class representing a text editor for a player.
+ */
 class TextEditor {
+    /**
+     * Create a TextEditor.
+     * @param {Player} player - The player using the text editor.
+     */
     constructor(player) {
         this.player = player;
         this.textValues = [];
@@ -13,6 +20,12 @@ class TextEditor {
         this.defaultValue = '';
     }
 
+    /**
+     * Show a prompt to the player.
+     * @param {string} prompt - The prompt message to show.
+     * @param {boolean} [colors=false] - Whether to parse colors in the prompt message.
+     * @returns {Promise<string>} A promise that resolves with the player's input.
+     */
     showPrompt(prompt, colors = false) {
         this.isPrompt = true;
         this.player.addStatus('editing');
@@ -27,6 +40,11 @@ class TextEditor {
         });
     }
 
+    /**
+     * Start editing text.
+     * @param {string} defaultValue - The default value to pre-fill the editor with.
+     * @returns {Promise<string>} A promise that resolves with the edited text.
+     */
     startEditing(defaultValue) {
         this.player.addStatus('editing');
         this.defaultValue = defaultValue;
@@ -50,16 +68,26 @@ class TextEditor {
         });
     }
 
+    /**
+     * Save the edited text.
+     */
     saveText() {
-        this.resolveInputPromise(this.textValues.join('\r\n')); // Resolve the promise with the edited text
+        this.resolveInputPromise(this.textValues.join('\r\n'));
         this.player.removeStatus('editing');
     }
 
+    /**
+     * Cancel the text editing.
+     */
     cancelEditing() {
-        this.resolveInputPromise(null); // Resolve the promise with null to indicate cancellation
+        this.resolveInputPromise(null);
         this.player.removeStatus('editing');
     }
 
+    /**
+     * Process player input for the text editor.
+     * @param {string} input - The input from the player.
+     */
     processInput(input) {
         const inputString = input.toLowerCase();
 
@@ -105,7 +133,7 @@ class TextEditor {
         } else if (this.isPrompt) {
             this.player.removeStatus('editing');
             this.isPrompt = false;
-            this.resolveInputPromise(input); // Resolve the promise with the edited text
+            this.resolveInputPromise(input);
         }
     }
 }

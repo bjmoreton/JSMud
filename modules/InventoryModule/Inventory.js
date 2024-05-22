@@ -15,6 +15,10 @@ class Inventory extends Map {
      */
     constructor(maxSize = 30) {
         super();
+        /**
+         * The maximum number of items allowed in the inventory.
+         * @type {number}
+         */
         this.maxSize = maxSize;
     }
 
@@ -72,11 +76,6 @@ class Inventory extends Map {
      *
      * @param {string} itemName - The name or partial name to search for in container names.
      * @returns {Array} An array of all containers matching the specified name.
-     *
-     * @example
-     * // Assume a Map where each vNum corresponds to a map of rarity to item arrays
-     * const containers = inventory.findAllContainersByName('box');
-     * console.log(containers); // logs all items with 'box' in their name that have an inventory property
      */
     findAllContainersByName(itemName) {
         let foundItems = [];
@@ -100,11 +99,6 @@ class Inventory extends Map {
      * @param {string} itemName - The name or partial name to search for in the item names.
      * @returns {Array} An array of all items that match the search criteria. If no items match,
      *                  an empty array is returned.
-     *
-     * @example
-     * // Assume the collection has items with names "Sword of Truth", "Sword of Lies", and "Shield of Honor"
-     * const swords = inventory.findAllItemsByName("sword");
-     * console.log(swords); // Outputs information about "Sword of Truth" and "Sword of Lies"
      */
     findAllItemsByName(itemName) {
         let foundItems = [];
@@ -126,12 +120,6 @@ class Inventory extends Map {
      * 
      * @param {Object} targetItem - The item object to remove. This should be the exact object stored in the inventory.
      * @returns {boolean} True if the item was successfully removed, otherwise false.
-     * 
-     * @example
-     * // Assuming an item exists in the inventory with a `vNum` of 123
-     * const itemToRemove = inventory.get(123).get('common').find(item => item.id === specificId);
-     * const result = inventory.removeItem(itemToRemove);
-     * console.log(result); // true if removed, false otherwise
      */
     removeItem(targetItem) {
         const itemsByRarity = this.get(targetItem.vNum);

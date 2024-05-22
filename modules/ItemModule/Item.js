@@ -1,3 +1,6 @@
+/**
+ * Class representing an item.
+ */
 class Item {
     static ItemFlags = {};
     static ItemTypes = {};
@@ -6,6 +9,25 @@ class Item {
         trash: { name: "trash", symbol: "[&zT&~]", weight: 9 }
     };
 
+    /**
+     * Create an Item.
+     * @param {number} vNum - The virtual number of the item.
+     * @param {string} name - The name of the item.
+     * @param {string} nameDisplay - The display name of the item.
+     * @param {string} itemType - The type of the item.
+     */
+    constructor(vNum, name, nameDisplay, itemType) {
+        this.vNum = parseInt(vNum);
+        this.name = name;
+        this.nameDisplay = nameDisplay;
+        if (this.nameDisplay === undefined || this.nameDisplay === '') this.nameDisplay = this.name;
+        this.itemType = Item.stringToItemType(itemType);
+    }
+
+    /**
+     * Add flags to the item.
+     * @param {...string} flags - The flags to add.
+     */
     addFlag(...flags) {
         if (!this.flags) this.flags = [];
 
@@ -19,32 +41,43 @@ class Item {
         });
     }
 
+    /**
+     * Add item flags.
+     * @static
+     * @param {...string} flags - The flags to add.
+     */
     static addItemFlag(...flags) {
         flags.forEach(flag => {
             Item.ItemFlags[flag.toLowerCase()] = flag.toLowerCase();
         });
     }
 
+    /**
+     * Add item rarities.
+     * @static
+     * @param {...Object} rarities - The rarities to add.
+     */
     static addItemRarities(...rarities) {
         rarities.forEach(rarity => {
             Item.ItemRarities[rarity.name.toLowerCase()] = rarity;
         });
     }
 
+    /**
+     * Add item types.
+     * @static
+     * @param {...string} types - The types to add.
+     */
     static addItemType(...types) {
         types.forEach(type => {
             Item.ItemTypes[type.toLowerCase()] = type;
         });
     }
 
-    constructor(vNum, name, nameDisplay, itemType) {
-        this.vNum = parseInt(vNum);
-        this.name = name;
-        this.nameDisplay = nameDisplay;
-        if (this.nameDisplay === undefined || this.nameDisplay === '') this.nameDisplay = this.name;
-        this.itemType = Item.stringToItemType(itemType);
-    }
-
+    /**
+     * Copy the item.
+     * @returns {Item} A copy of the item.
+     */
     copy() {
         const copiedItem = new Item(this.vNum, this.name, this.nameDisplay, this.itemType);
         copiedItem.flags = this.flags;
@@ -54,9 +87,14 @@ class Item {
         return copiedItem;
     }
 
+    /**
+     * Deserialize data into an Item.
+     * @static
+     * @param {number} vNum - The virtual number of the item.
+     * @param {Object} data - The data to deserialize.
+     * @returns {Item} The deserialized item.
+     */
     static deserialize(vNum, data) {
-
-        // Data should already be an object, so no need to parse it
         const itemType = Item.stringToItemType(data.itemType);
         const deserializedItem = new itemType(vNum, data.name, data.nameDisplay, data.itemType);
         deserializedItem.flags = data.flags;
@@ -68,6 +106,10 @@ class Item {
         return deserializedItem;
     }
 
+    /**
+     * Get the display string of the item.
+     * @returns {string} The display string of the item.
+     */
     get displayString() {
         return `${this.rarity.symbol} ${this.nameDisplay}`;
     }
@@ -81,19 +123,14 @@ class Item {
     static getRandomRarity(weightOffsets = {}, ...rarityNames) {
         const allRarities = Object.values(Item.ItemRarities);
 
-        // Convert rarityNames to lowercase for case-insensitive comparison
         const lowerCaseRarityNames = rarityNames.map(name => name.toLowerCase());
 
-        // Filter rarities if specific names are provided
         const rarities = lowerCaseRarityNames.length > 0
             ? allRarities.filter(r => lowerCaseRarityNames.includes(r.name.toLowerCase()))
             : allRarities;
 
-
-        // If no rarities match, return null or handle it as needed
         if (rarities.length === 0) return null;
 
-        // Calculate total weight with offsets applied
         const totalWeight = rarities.reduce((acc, rarity) => {
             const offset = weightOffsets[rarity.name.toLowerCase()] || 0;
             return acc + (rarity.weight + offset);
@@ -114,6 +151,11 @@ class Item {
         return Item.ItemRarities.trash;
     }
 
+    /**
+     * Check if the item has specified flags.
+     * @param {...string} flags - The flags to check.
+     * @returns {boolean} True if the item has all specified flags, otherwise false.
+     */
     hasFlag(...flags) {
         if (!this.flags) return false;
 
@@ -131,36 +173,55 @@ class Item {
         return true;
     }
 
-    // Method to get a comma-separated string of item flags in lowercase
+    /**
+     * Get a comma-separated string of item flags in lowercase.
+     * @static
+     * @returns {string[]} An array of item flags in lowercase.
+     */
     static getItemFlagsArray() {
-        // Extract the values from the ItemFlags object, convert them to lowercase, and join them into a string
         return Object.values(Item.ItemFlags)
-            .map(flag => flag.toLowerCase());  // Convert each flag to lowercase
+            .map(flag => flag.toLowerCase());
     }
 
-    // Method to get a comma-separated string of item rarities in lowercase
+    /**
+     * Get a comma-separated string of item rarities in lowercase.
+     * @static
+     * @returns {string[]} An array of item rarities in lowercase.
+     */
     static getItemRaritiesArray() {
-        // Extract the values from the ItemRarities object, convert them to lowercase, and join them into a string
         return Object.values(Item.ItemRarities)
-            .map(rarity => rarity.name.toLowerCase());  // Convert each rarity to lowercase
+            .map(rarity => rarity.name.toLowerCase());
     }
 
-    // Method to get a comma-separated string of item types in lowercase
+    /**
+     * Get a comma-separated string of item types in lowercase.
+     * @static
+     * @returns {string[]} An array of item types in lowercase.
+     */
     static getItemTypesArray() {
-        // Extract the values from the ItemTypes object, convert them to lowercase, and join them into a string
         return Object.values(Item.ItemTypes)
-            .map(type => type.name.toLowerCase());  // Convert each type to lowercase
+            .map(type => type.toLowerCase());
     }
 
+    /**
+     * Get an item rarity by name.
+     * @static
+     * @param {string} name - The name of the rarity.
+     * @returns {Object|null} The rarity object if found, otherwise null.
+     */
     static getRarityByName(name) {
         for (const [key, val] of Object.entries(Item.ItemRarities)) {
             if (val.name.toLowerCase() === name.toLowerCase()) {
                 return Item.ItemRarities[key];
             }
         }
-        return null; // Or handle the case where the value is not found
+        return null;
     }
 
+    /**
+     * Remove specified flags from the item.
+     * @param {...string} flags - The flags to remove.
+     */
     removeFlag(...flags) {
         if (!this.flags) this.flags = [];
 
@@ -170,14 +231,17 @@ class Item {
             if (flagValue && this.hasFlag(flag)) {
                 const index = this.flags.indexOf(flagValue);
                 if (index !== -1) {
-                    this.flags.splice(index, 1); // Remove the flag from the flags array
+                    this.flags.splice(index, 1);
                 }
             }
         });
     }
 
+    /**
+     * Serialize the item.
+     * @returns {Object} The serialized data of the item.
+     */
     serialize() {
-        // Return an object instead of stringifying it here
         return {
             name: this.name,
             nameDisplay: this.nameDisplay,
@@ -189,18 +253,24 @@ class Item {
         };
     }
 
-    // Method to convert string to ItemType
+    /**
+     * Convert a string to an item type.
+     * @static
+     * @param {string} itemTypeString - The item type string to convert.
+     * @returns {Object|null} The item type if found, otherwise null.
+     */
     static stringToItemType(itemTypeString) {
         if (!itemTypeString || itemTypeString === '') return null;
-        
+
         const normalizedInput = itemTypeString.toLowerCase();
         for (const key in Item.ItemTypes) {
             if (key.toLowerCase() === normalizedInput) {
                 return Item.ItemTypes[key];
             }
         }
-        return null; // Return null if no matching state is found
+        return null;
     }
 }
 
 module.exports = Item;
+

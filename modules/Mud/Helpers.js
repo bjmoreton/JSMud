@@ -6,11 +6,8 @@ const bcrypt = require('bcrypt');
  * @param {Object} destination - The object to copy properties to.
  */
 function addMissingProperties(source, destination) {
-    // Iterate over each property in the source object
     for (const key in source) {
-        // Check if the property exists in the destination object
         if (!(key in destination)) {
-            // If the property does not exist, copy it from the source
             destination[key] = source[key];
         }
     }
@@ -101,6 +98,11 @@ function isNumber(value) {
     return !Number.isNaN(parseInt(value));
 }
 
+/**
+ * Checks if a string is valid (not empty or only whitespace).
+ * @param {string} string - The string to check.
+ * @returns {boolean} True if the string is valid, false otherwise.
+ */
 function isValidString(string) {
     if (!string || (typeof string === 'string' && string.trim().length === 0)) {
         return false;
@@ -122,16 +124,19 @@ function sendNestedKeys(player, obj, prefix = '') {
             const formattedKey = prefix ? `${prefix}.${key}` : key;
 
             if (typeof value === 'object' && value !== null) {
-                // Recursively handle nested objects
                 sendNestedKeys(player, value, formattedKey);
             } else {
-                // Send the key-value pair to the player
                 player.send(`${formattedKey}: ${value}`);
             }
         }
     }
 }
 
+/**
+ * Converts a string to a boolean.
+ * @param {string} str - The string to convert.
+ * @returns {boolean} The converted boolean value.
+ */
 function stringToBoolean(str) {
     if (typeof str !== 'string') {
         return false;
@@ -167,4 +172,17 @@ async function verifyPassword(plaintextPassword, hashedPassword) {
     }
 }
 
-module.exports = { addMissingProperties, formatTime, formatDate, getRandomNumberInclusive, generateRandomString, hashPassword, inRange, isNumber, isValidString, sendNestedKeys, stringToBoolean, verifyPassword };
+module.exports = {
+    addMissingProperties,
+    formatTime,
+    formatDate,
+    getRandomNumberInclusive,
+    generateRandomString,
+    hashPassword,
+    inRange,
+    isNumber,
+    isValidString,
+    sendNestedKeys,
+    stringToBoolean,
+    verifyPassword
+};

@@ -3,15 +3,40 @@ const fs = require('fs');
 const path = require('path');
 const { formatDate, formatTime } = require('../Mud/Helpers.js');
 
-// HelpFile class definition
+/**
+ * Class representing a help file.
+ */
 class Helpfile {
+    /**
+     * Create a Helpfile.
+     * @param {string} title - The title of the help file.
+     */
     constructor(title) {
+        /**
+         * The title of the help file.
+         * @type {string}
+         */
         this.title = title;
+
+        /**
+         * The display title of the help file.
+         * @type {string}
+         */
         this.titleDisplay = title;
+
+        /**
+         * The keywords associated with the help file.
+         * @type {string[]}
+         */
         this.keywords = [];
     }
 
-    // Method to delete a help file
+    /**
+     * Delete the help file.
+     * @param {Object} player - The player requesting the deletion.
+     * @param {string} dir - The directory where the help file is located.
+     * @param {boolean} [showOutput=true] - Whether to show output to the player.
+     */
     delete(player, dir, showOutput = true) {
         const filePath = path.join(dir, this.title + '.json');
         fs.unlink(filePath, (err) => {
@@ -26,7 +51,12 @@ class Helpfile {
         });
     }
 
-    // Method to save a help file
+    /**
+     * Save the help file.
+     * @param {Object} player - The player requesting the save.
+     * @param {string} dir - The directory where the help file should be saved.
+     * @param {boolean} [showOutput=true] - Whether to show output to the player.
+     */
     save(player, dir, showOutput = true) {
         // Set author and last update timestamp
         this.author = player.username;

@@ -1,7 +1,16 @@
 const Item = require("../ItemModule/Item");
 const { isNumber, addMissingProperties } = require("../Mud/Helpers");
 
+/**
+ * Class representing an equipment slot.
+ */
 class EquipmentSlot {
+    /**
+     * Create an EquipmentSlot.
+     * @param {string} name - The name of the equipment slot.
+     * @param {string} eqType - The equipment type.
+     * @param {number} [layers=1] - The number of layers allowed in the slot.
+     */
     constructor(name, eqType, layers = 1) {
         if (!isNumber(layers)) layers = 1;
         this.name = name;
@@ -10,6 +19,10 @@ class EquipmentSlot {
         this.items = new Map();
     }
 
+    /**
+     * Copy the equipment slot.
+     * @returns {EquipmentSlot} A copy of the equipment slot.
+     */
     copy() {
         const copiedItem = new EquipmentSlot(this.name, this.eqType.toString(), this.layers);
         copiedItem.items = new Map();
@@ -18,8 +31,12 @@ class EquipmentSlot {
         return copiedItem;
     }
 
+    /**
+     * Deserialize data into an EquipmentSlot.
+     * @param {Object} data - The data to deserialize.
+     * @returns {EquipmentSlot} The deserialized equipment slot.
+     */
     static deserialize(data) {
-        // Data should already be an object, so no need to parse it
         const deserializedItem = new EquipmentSlot(data.name, data.eqType, data.layers);
         deserializedItem.displayString = data.displayString;
         deserializedItem.items = new Map();
@@ -34,29 +51,33 @@ class EquipmentSlot {
         return deserializedItem;
     }
 
+    /**
+     * Equip an item in the equipment slot.
+     * @param {Object} item - The item to equip.
+     * @returns {string|boolean} A message indicating the result of the equip action, or true if successful.
+     */
     equip(item) {
         if (this.items.size <= this.layers) {
-            // Check if the item is already in the equipment slot
             if (!this.items.has(item.vNum)) {
-                // Check if there is a higher layer equipped
                 for (let equippedItem of this.items.values()) {
                     if (equippedItem.layer > item.layer) {
                         return `Must remove ${equippedItem.name} (layer ${equippedItem.layer}) first!`;
                     }
                 }
-                // If no conflict, add the item to the slot
                 this.items.set(item.vNum, item);
-                return true; // Successfully equipped
+                return true;
             }
-
-            return `Already wearing ${item.name}!`; // Item is already equipped in this slot
+            return `Already wearing ${item.name}!`;
         } else {
             return `Can't wear anything else there.`;
         }
     }
 
+    /**
+     * Serialize the equipment slot.
+     * @returns {Object} The serialized data of the equipment slot.
+     */
     serialize() {
-        // Return an object instead of stringifying it here
         return {
             displayString: this.displayString,
             name: this.name,
@@ -66,22 +87,22 @@ class EquipmentSlot {
         };
     }
 
+    /**
+     * Unequip an item from the equipment slot.
+     * @param {Object} item - The item to unequip.
+     * @returns {string|boolean} A message indicating the result of the unequip action, or true if successful.
+     */
     unequip(item) {
-        // Check if the item is currently equipped
         if (this.items.has(item.vNum)) {
-            // Check if the item is the highest layer
             for (let equippedItem of this.items.values()) {
                 if (equippedItem.layer > item.layer) {
                     return `Must remove ${equippedItem.name} (layer ${equippedItem.layer}) first!`;
                 }
             }
-
-            // Remove the item from the slot
             this.items.delete(item.vNum);
-            return true; // Successfully unequipped
+            return true;
         }
-
-        return `Not wearing ${item.name}!`; // Item is not equipped in this slot
+        return `Not wearing ${item.name}!`;
     }
 }
 

@@ -5,84 +5,26 @@ const net = require('net');
 const path = require('path');
 const { generateRandomString } = require('./modules/Mud/Helpers.js');
 
-// Core MUD logic
+/**
+ * Class representing a MUD (Multi-User Dungeon) server.
+ * @extends EventEmitter
+ */
 class MUDServer extends EventEmitter {
     static BANS_LIST_PATH = path.join(__dirname, 'system', 'bans.json');
     static CONFIG_PATH = path.join(__dirname, 'system', 'config.json');
     static MODULE_ORDER_FILE = path.join(__dirname, 'system', 'module_order.txt');
     static MUD_TITLE_PATH = path.join(__dirname, 'system', 'mudtitle.txt');
     static MODULES_PATH = path.join(__dirname, 'modules');
+    
     banList = new Map();
     commands = new Map();
     modules = [];
     players = new Map();
     server = net.createServer();
 
-    banPlayer(player, args) {
-        const [banPlayer] = args;
-        if (banPlayer !== undefined) {
-            if (banPlayer.toLowerCase() != player.username.toLowerCase()) {
-                const playerToBan = this.findPlayerByUsername(banPlayer);
-                if (playerToBan != null) {
-                    const socket = playerToBan.socket;
-                    this.banList.set(playerToBan.username, socket.remoteAddress);
-                    this.players.forEach(p => {
-                        if (p.username == player.username) return;
-                        if (p.socket.remoteAddress == socket.remoteAddress) {
-                            this.banList.set(p.username, p.socket.remoteAddress)
-                            p.socket.end();
-                            p.destroy();
-                        }
-                    });
-                    socket.end();
-                    player.destroy();
-                    this.saveBansList();
-                    player.send(`Player ${banPlayer} banned successfully.`);
-                } else {
-                    player.send('You cannot ban yourself!');
-                }
-            } else {
-                player.send(`Player ${banPlayer} doesn't exist!`);
-            }
-        } else {
-            player.send(`A player to ban must be specified!`);
-        }
-    }
-
-    commandExist(command) { return this.commands.includes(command); }
-
-    on(event, listener) {
-        if (!this.events[event]) {
-            this.events[event] = [];
-        }
-        this.events[event].push(listener);
-    }
-
-    emit(event, ...args) {
-        if (!this.events[event] || this.events[event].length === 0) {
-            return false;
-        }
-
-        let eventHandled = false;
-
-        for (const listener of this.events[event]) {
-            if (eventHandled) {
-                break; // If an event has been handled, ignore subsequent events
-            }
-            if (listener(...args) === true) {
-                eventHandled = true;
-            }
-        }
-
-        return eventHandled;
-    }
-
-    off(event, listener) {
-        if (!this.events[event]) return;
-
-        this.events[event] = this.events[event].filter(l => l !== listener);
-    }
-
+    /**
+     * Creates an instance of MUDServer.
+     */
     constructor() {
         super();
         this.events = {};
@@ -92,7 +34,6 @@ class MUDServer extends EventEmitter {
         this.loadModules();
         this.loadBanList();
         this.loadTitle();
-
 
         // Handle player disconnects
         this.on('playerDisconnected', (player) => {
@@ -130,24 +71,125 @@ class MUDServer extends EventEmitter {
             // Player connected, let modules know
             this.emit('playerConnected', socket);
         });
+
         // Handle server errors
         this.server.on('error', err => {
             console.error('Server error:', err);
         });
     }
 
-    // Function to find a player by their username
+    /**
+     * Ban a player.
+     * @param {Player} player - The player issuing the ban.
+     * @param {string[]} args - The arguments for the ban command.
+     */
+    banPlayer(player, args) {
+        const [banPlayer] = args;
+        if (banPlayer !== undefined) {
+            if (banPlayer.toLowerCase() != player.username.toLowerCase()) {
+                const playerToBan = this.findPlayerByUsername(banPlayer);
+                if (playerToBan != null) {
+                    const socket = playerToBan.socket;
+                    this.banList.set(playerToBan.username, socket.remoteAddress);
+                    this.players.forEach(p => {
+                        if (p.username == player.username) return;
+                        if (p.socket.remoteAddress == socket.remoteAddress) {
+                            this.banList.set(p.username, p.socket.remoteAddress);
+                            p.socket.end();
+                            p.destroy();
+                        }
+                    });
+                    socket.end();
+                    player.destroy();
+                    this.saveBansList();
+                    player.send(`Player ${banPlayer} banned successfully.`);
+                } else {
+                    player.send('You cannot ban yourself!');
+                }
+            } else {
+                player.send(`Player ${banPlayer} doesn't exist!`);
+            }
+        } else {
+            player.send(`A player to ban must be specified!`);
+        }
+    }
+
+    /**
+     * Check if a command exists.
+     * @param {string} command - The command to check.
+     * @returns {boolean} True if the command exists, false otherwise.
+     */
+    commandExist(command) { 
+        return this.commands.includes(command); 
+    }
+
+    /**
+     * Add an event listener.
+     * @param {string} event - The event name.
+     * @param {Function} listener - The listener function.
+     */
+    on(event, listener) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(listener);
+    }
+
+    /**
+     * Emit an event.
+     * @param {string} event - The event name.
+     * @param {...any} args - The arguments to pass to the event listeners.
+     * @returns {boolean} True if the event was handled, false otherwise.
+     */
+    emit(event, ...args) {
+        if (!this.events[event] || this.events[event].length === 0) {
+            return false;
+        }
+
+        let eventHandled = false;
+
+        for (const listener of this.events[event]) {
+            if (eventHandled) {
+                break; // If an event has been handled, ignore subsequent events
+            }
+            if (listener(...args) === true) {
+                eventHandled = true;
+            }
+        }
+
+        return eventHandled;
+    }
+
+    /**
+     * Remove an event listener.
+     * @param {string} event - The event name.
+     * @param {Function} listener - The listener function to remove.
+     */
+    off(event, listener) {
+        if (!this.events[event]) return;
+        this.events[event] = this.events[event].filter(l => l !== listener);
+    }
+
+    /**
+     * Find a player by their username.
+     * @param {string} username - The username of the player to find.
+     * @returns {Player|null} The player object if found, otherwise null.
+     */
     findPlayerByUsername(username) {
         if (username != null && username != '') {
             for (let [key, player] of this.players) {
                 if (player.username.toLowerCase() === username.toLowerCase()) {
-                    return player; // Return the player object if found
+                    return player;
                 }
             }
         }
-        return null; // Return null if no player is found with the given username
+        return null;
     }
 
+    /**
+     * Perform a hotboot, reloading modules and the title.
+     * @param {Player} player - The player issuing the hotboot command.
+     */
     hotBoot(player) {
         global.mudServer.hotbooting = true;
         global.mudServer.players.forEach(p => {
@@ -163,21 +205,35 @@ class MUDServer extends EventEmitter {
         global.mudServer.hotbooting = false;
     }
 
+    /**
+     * Check if an address is banned.
+     * @param {Object} arg - The argument to check (player, socket, or address).
+     * @returns {boolean} True if the address is banned, false otherwise.
+     */
     isBanned(arg) {
         return [...this.banList].some(([k, v]) => {
             return arg?.username === k || arg?.socket?.remoteAddress === v || arg?.remoteAddress === v;
         });
     }
 
+    /**
+     * Check if an address is already connected.
+     * @param {string} address - The address to check.
+     * @returns {boolean} True if the address is connected, false otherwise.
+     */
     isConnected(address) {
         return [...this.players].some(([k]) => {
             return k.remoteAddress == address;
         });
     }
 
+    /**
+     * Kick a player.
+     * @param {Player} player - The player issuing the kick command.
+     * @param {string[]} args - The arguments for the kick command.
+     */
     kickPlayer(player, args) {
         const [kickPlayer] = args;
-
         if (kickPlayer !== undefined) {
             const playerToKick = this.findPlayerByUsername(kickPlayer);
             if (playerToKick != null) {
@@ -186,7 +242,6 @@ class MUDServer extends EventEmitter {
                     kickPlayer.save();
                     this.players.forEach(p => {
                         if (p.username == kickPlayer.username) return;
-
                         if (p.socket.remoteAddress == socket.remoteAddress) {
                             p.save();
                             p.socket.end();
@@ -206,22 +261,25 @@ class MUDServer extends EventEmitter {
         }
     }
 
+    /**
+     * Check if a player is logged in.
+     * @param {Player} player - The player to check.
+     * @returns {boolean} True if the player is logged in, false otherwise.
+     */
     loggedIn(player) {
         return [...this.players].some(([k, v]) => {
             return player?.username?.toLowerCase() == v?.username?.toLowerCase() && v?.loggedIn;
         });
     }
 
+    /**
+     * Load the ban list from a JSON file.
+     */
     loadBanList() {
         try {
-            // Read the JSON file synchronously
             const data = fs.readFileSync(MUDServer.BANS_LIST_PATH, 'utf-8');
-
-            // Parse the JSON data
             const banListEntries = JSON.parse(data);
-            // Check if the array is empty
             if (Array.isArray(banListEntries) && banListEntries.length > 0) {
-                // Assign the ban data to the current bans list
                 this.banList = new Map(banListEntries);
             }
             console.log('Bans list loaded');
@@ -230,43 +288,34 @@ class MUDServer extends EventEmitter {
         }
     }
 
+    /**
+     * Load the configuration from a JSON file.
+     */
     loadConfig() {
         try {
-            // Read the JSON file synchronously
             const data = fs.readFileSync(MUDServer.CONFIG_PATH, 'utf-8');
-
-            // Parse the JSON data
             const configData = JSON.parse(data);
-
-            // Assign the configuration data to the current object's properties
             Object.assign(this, configData);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
         }
     }
 
-    // Load modules based on their order listed in the text file
+    /**
+     * Load modules based on their order listed in the text file.
+     */
     loadModules() {
         try {
             this.modules = {};
-            // Read the contents of the text file
             const moduleNames = fs.readFileSync(MUDServer.MODULE_ORDER_FILE, 'utf-8').split('\n');
-
-            // Iterate through each module name and load the corresponding module
             moduleNames.forEach(moduleName => {
-                // Trim any leading or trailing whitespace from the module name
                 moduleName = moduleName.trim();
-
-                // Construct the path to the module file
                 const modulePath = path.join(MUDServer.MODULES_PATH, moduleName + '.js');
-
-                // Load the module
                 this.loadModule(modulePath);
             });
 
             for (const moduleId in this.modules) {
                 const module = this.modules[moduleId];
-
                 if (typeof module.load === 'function') {
                     module.load();
                     console.log(`Module ${module.name} loaded`);
@@ -279,18 +328,15 @@ class MUDServer extends EventEmitter {
         }
     }
 
-    // Function to load a single module
+    /**
+     * Load a single module.
+     * @param {string} modulePath - The path to the module file.
+     */
     loadModule(modulePath) {
-        // Check if the module file exists
         if (fs.existsSync(modulePath)) {
-            // Clear the module cache for the module
             delete require.cache[require.resolve(modulePath)];
-
-            // Require the module
             const module = require(modulePath);
-            // Store it
             this.modules[module.name === undefined ? generateRandomString(10) : module.name] = module;
-            // Initialize the module if an init function is found
             if (typeof module.init === 'function') {
                 module.init(this);
                 console.log(`Module ${module.name} initialized.`);
@@ -300,8 +346,10 @@ class MUDServer extends EventEmitter {
         }
     }
 
+    /**
+     * Load the MUD title from a file.
+     */
     loadTitle() {
-        // Synchronous file reading
         try {
             const dataSync = fs.readFileSync(MUDServer.MUD_TITLE_PATH, 'utf8');
             this.mudTitle = dataSync + '\r\n';
@@ -310,33 +358,52 @@ class MUDServer extends EventEmitter {
         }
     }
 
+    /**
+     * Check if a player's data file exists.
+     * @param {Player} player - The player to check.
+     * @returns {boolean} True if the player's data file exists, false otherwise.
+     */
     playerExist(player) {
         const filePath = player.getFilePath();
         try {
             fs.accessSync(filePath, fs.constants.F_OK);
-            return true; // File exists
+            return true;
         } catch (err) {
-            return false; // File does not exist
+            return false;
         }
     }
 
+    /**
+     * Register a command handler.
+     * @param {Object} handler - The command handler to register.
+     */
     registerCommand(handler) {
         this.commands.set(handler.command.toLowerCase(), handler);
     }
 
+    /**
+     * Reload the configuration.
+     * @param {Player} player - The player issuing the reload command.
+     */
     reloadConfig(player) {
         this.loadConfig();
         player.send('Config reloaded!');
     }
 
+    /**
+     * Reload the MUD title.
+     * @param {Player} player - The player issuing the reload command.
+     */
     reloadTitle(player) {
         this.loadTitle();
         player.send('Title reloaded!');
     }
 
+    /**
+     * Save the ban list to a JSON file.
+     */
     saveBansList() {
         try {
-            // Write player data to file in JSON format
             fs.writeFileSync(MUDServer.BANS_LIST_PATH, JSON.stringify(Array.from(this.banList.entries()), null, 2));
             console.log('Bans list saved!');
         } catch (err) {
@@ -344,16 +411,22 @@ class MUDServer extends EventEmitter {
         }
     }
 
+    /**
+     * Start the MUD server.
+     */
     start() {
         this.server.listen(this.port, () => {
             console.log(`${this.name} server listening on port ${this.port}`);
         });
     }
 
+    /**
+     * Unban a player.
+     * @param {Player} player - The player issuing the unban command.
+     * @param {string[]} args - The arguments for the unban command.
+     */
     unBan(player, args) {
         const [usernameToUnBan] = args;
-
-        // Check if any banned username matches the lowercase input
         const bannedUser = Array.from(this.banList.keys()).find(key => key.toLowerCase() === usernameToUnBan.toLowerCase());
 
         if (!bannedUser) {
@@ -361,8 +434,7 @@ class MUDServer extends EventEmitter {
             return;
         }
         const address = this.banList.get(bannedUser);
-        // Check for any other banned users that match the remote address
-        const otherUsers = Array.from(ms.banList.entries())
+        const otherUsers = Array.from(this.banList.entries())
             .filter(([key, value]) => value.toLowerCase() === address)
             .map(([key, value]) => key);
 

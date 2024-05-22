@@ -3,9 +3,16 @@ const fs = require('fs');
 const path = require('path');
 const Section = require("./Section");
 
+/**
+ * Class representing an Area.
+ */
 class Area {
+    /**
+     * Create an Area.
+     * @param {Object|string} jsonData - The initial data for the area.
+     */
     constructor(jsonData) {
-        this.blankSymbol = '&B~'
+        this.blankSymbol = '&B~';
         this.description = '';
         this.lastUpdate = '';
         this.name = jsonData;
@@ -13,7 +20,7 @@ class Area {
         this.sections = new Map();
 
         if (typeof jsonData === 'string') {
-
+            // Initialization logic for string input
         } else {
             try {
                 Object.assign(this, jsonData);
@@ -23,13 +30,22 @@ class Area {
         }
     }
 
-    // Method to add a section
+    /**
+     * Add a section to the area.
+     * @param {string} name - The name of the section.
+     * @param {number} vSize - The vertical size of the section.
+     */
     addSection(name, vSize) {
         const section = new Section(this.name, name, name, '', vSize);
         this.sections.set(name.toLowerCase(), section);
     }
 
-    // Method to delete area
+    /**
+     * Delete the area.
+     * @param {Object} player - The player requesting the deletion.
+     * @param {string} dir - The directory where the area file is located.
+     * @param {boolean} [showOutput=true] - Whether to show output to the player.
+     */
     delete(player, dir, showOutput = true) {
         const filePath = path.join(dir, this.name + '.json');
         fs.unlink(filePath, (err) => {
@@ -44,21 +60,35 @@ class Area {
         });
     }
 
-    // Method to find a section by name
+    /**
+     * Find a section by name.
+     * @param {string|Object} section - The section name or object.
+     * @returns {Section|undefined} The section if found, otherwise undefined.
+     */
     getSectionByName(section) {
         return this.sections.get(typeof section === 'object' ? section.name?.toLowerCase() : section?.toLowerCase());
     }
 
-    // Method to retrieve area property by string
+    /**
+     * Retrieve an area property by string.
+     * @param {string} property - The property name.
+     * @returns {*} The property value or "Property not found".
+     */
     propertyByString(property) {
         const propertyToLower = property.toLowerCase();
         return this[propertyToLower] || "Property not found";
     }
-    // Method to save area
+
+    /**
+     * Save the area.
+     * @param {Object} player - The player requesting the save.
+     * @param {string} dir - The directory where the area file should be saved.
+     * @param {boolean} [showOutput=true] - Whether to show output to the player.
+     */
     save(player, dir, showOutput = true) {
         // Set last update timestamp
         const currentDate = new Date();
-        if(this.changed === true) this.lastUpdate = formatDate(currentDate) + ' ' + formatTime(currentDate);
+        if (this.changed === true) this.lastUpdate = formatDate(currentDate) + ' ' + formatTime(currentDate);
 
         const filePath = path.join(dir, this.name + '.json');
 
