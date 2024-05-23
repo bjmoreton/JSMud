@@ -1,4 +1,4 @@
-const { inRange } = require("../Mud/Helpers");
+const { inRange, getRandomNumberInclusive } = require("../Mud/Helpers");
 const Exit = require("./Exit");
 const Room = require("./Room");
 
@@ -21,6 +21,15 @@ class Section {
         this.nameDisplay = nameDisplay;
         this.rooms = new Map();
         this.vSize = vSize;
+
+        this.startResetTimer();
+    }
+
+    addResetMsg(msg) {
+        if (!Array.isArray(this.resetMessages)) {
+            this.resetMessages = [];
+        }
+        this.resetMessages.push(msg);
     }
 
     /**
@@ -45,6 +54,13 @@ class Section {
             player.send(`x, y, or z wasn't in range of ${-this.vSize}-${this.vSize}`);
             return null;
         }
+    }
+
+    /**
+     * Clears the sections reset interval.
+     */
+    clearResetTimer() {
+        clearInterval(this.intervalId);
     }
 
     /**
@@ -76,6 +92,39 @@ class Section {
      */
     getRoomByCoordinates(x, y, z) {
         return this.rooms.get(`${x},${y},${z}`);
+    }
+
+    /**
+     * Resets the section's rooms to their default state and sends a reset message.
+     */
+    reset() {
+        this.rooms.forEach(room => {
+            room.flags = room.defaultState.flags;
+            global.mudServer.emit('roomReset', room);
+            // Reset other properties as needed
+        });
+
+        const messages = this.resetMessages;
+        let message = 'You feel a sudden shift as the area resets.';
+        if (messages && Array.isArray(this.resetMessages) && this.resetMessages.length > 0) {
+            message = messages[Math.floor(Math.random() * messages.length)];
+        }
+
+        global.mudServer.emit('sendToSectionMessage', this, message);
+
+        // Reset for a new random interval so it isn't the same from time of creation
+        this.startResetTimer();
+    }
+
+    /**
+     * Sets up a random interval to reset the section periodically.
+     */
+    startResetTimer() {
+        this.clearResetTimer();
+        const minInterval = (isNaN(this.minReset) ? 8 : this.minReset) * 60 * 1000; // 8 minutes in milliseconds
+        const maxInterval = (isNaN(this.maxReset) ? 15 : this.maxReset) * 60 * 1000; // 15 minutes in milliseconds as default
+        const intervalMS = getRandomNumberInclusive(minInterval, maxInterval);
+        if(!isNaN(intervalMS)) this.intervalId = setInterval(() => this.reset(), intervalMS);
     }
 }
 

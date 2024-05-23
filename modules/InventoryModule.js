@@ -362,6 +362,10 @@ const InventoryModule = {
         }
     },
 
+    onRoomReset(room) {
+        room.inventory = { ...room.defaultState.inventory };
+    },
+
     /**
      * Handle room saved event.
      * 
@@ -547,6 +551,7 @@ const InventoryModule = {
         InventoryModule.mudServer.on('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
         InventoryModule.mudServer.on('playerSaved', InventoryModule.onPlayerSaved);
         InventoryModule.mudServer.on('roomLoaded', InventoryModule.onRoomLoaded);
+        InventoryModule.mudServer.on('roomReset', InventoryModule.onRoomReset);
         InventoryModule.mudServer.on('roomSaved', InventoryModule.onRoomSaved);
         InventoryModule.mudServer.on('roomStateSaved', InventoryModule.onRoomStateSaved);
     },
@@ -564,6 +569,7 @@ const InventoryModule = {
         InventoryModule.mudServer.off('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
         InventoryModule.mudServer.off('playerSaved', InventoryModule.onPlayerSaved);
         InventoryModule.mudServer.off('roomLoaded', InventoryModule.onRoomLoaded);
+        InventoryModule.mudServer.off('roomReset', InventoryModule.onRoomReset);
         InventoryModule.mudServer.off('roomSaved', InventoryModule.onRoomSaved);
         InventoryModule.mudServer.off('roomStateSaved', InventoryModule.onRoomStateSaved);
     },

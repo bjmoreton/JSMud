@@ -3,12 +3,15 @@
   "name": "Start",
   "nameDisplay": "Start",
   "description": "",
-  "lastUpdate": "05/15/2024 18:03:39",
+  "lastUpdate": "05/23/2024 02:13:31",
   "sections": {
     "Start": {
       "area": "Start",
       "description": "",
+      "maxReset": 14,
+      "minReset": 7,
       "nameDisplay": "Start",
+      "resetMessages": [],
       "vSize": 10,
       "rooms": [
         {
@@ -150,6 +153,8 @@
     "Test": {
       "area": "Start",
       "description": "",
+      "maxReset": null,
+      "minReset": null,
       "nameDisplay": "Test",
       "vSize": 10,
       "rooms": [

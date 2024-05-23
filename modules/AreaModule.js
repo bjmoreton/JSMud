@@ -76,6 +76,19 @@ const AreaModule = {
         this.mudServer.on('playerSaved', this.onPlayerSaved);
         this.mudServer.on('sendToRoom', this.onSendToRoom);
         this.mudServer.on('sendToRoomEmote', this.onSendToRoomEmote);
+        this.mudServer.on('sendToSectionMessage', this.onSendToSectionMessage);
+    },
+
+    /**
+     * Sends a message to all players in the section.
+     * @param {string} message - The message to send.
+     */
+    onSendToSectionMessage(section, message) {
+        AreaModule.mudServer.players.forEach(player => {
+            if (player.currentSection === section) {
+                player.send(message);
+            }
+        });
     },
 
     /**
@@ -115,6 +128,10 @@ const AreaModule = {
                         const sectionData = areaData.sections[sectionName];
                         const section = new Section(area, sectionName, sectionData.nameDisplay, sectionData.description, sectionData.vSize);
 
+                        section.resetMessages = sectionData.resetMessages;
+                        section.maxReset = parseInt(sectionData.maxReset);
+                        section.minReset = parseInt(sectionData.minReset);
+                        section.startResetTimer();
                         area.sections.set(sectionName.toLowerCase(), section);
 
                         sectionData.rooms.forEach(roomData => {
@@ -214,6 +231,9 @@ const AreaModule = {
         player.currentSection = player.currentArea.getSectionByName(player.currentSection);
         player.currentRoom = player.currentSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
 
+        if (player.workingArea) player.workingArea = AreaModule.getAreaByName(player.workingArea);
+        if (player.workingSection) player.workingSection = player.workingArea.getSectionByName(player.workingSection);
+
         AreaModule.mudServer.emit('enteredRoom', player, Exit.ExitDirections.None, player.currentRoom);
         AreaModule.executeLook(player);
     },
@@ -256,6 +276,7 @@ const AreaModule = {
             Object.setPrototypeOf(area, Area.prototype);
             area.sections.forEach(section => {
                 Object.setPrototypeOf(section, Section.prototype);
+                section.startResetTimer();
                 section.rooms.forEach(room => {
                     Object.setPrototypeOf(room, Room.prototype);
                     room.exits.forEach(exit => {
@@ -282,6 +303,12 @@ const AreaModule = {
      * @param {object} player - The player object.
      */
     onBeforeHotboot(player) {
+        AreaModule.areaList.forEach(area => {
+            area.sections.forEach(section => {
+                section.clearResetTimer();
+            });
+        });
+
         AreaModule.mudServer.off('enteredRoom', AreaModule.onEnteredRoom);
         AreaModule.mudServer.off('exitedRoom', AreaModule.onExitedRoom);
         AreaModule.mudServer.off('hotBootAfter', AreaModule.onAfterHotboot);
@@ -291,6 +318,7 @@ const AreaModule = {
         AreaModule.mudServer.off('playerSaved', AreaModule.onPlayerSaved);
         AreaModule.mudServer.off('sendToRoom', AreaModule.onSendToRoom);
         AreaModule.mudServer.off('sendToRoomEmote', AreaModule.onSendToRoomEmote);
+        AreaModule.mudServer.off('sendToSectionMessage', AreaModule.onSendToSectionMessage);
     },
 
     /**
@@ -977,10 +1005,10 @@ const AreaModule = {
     /**
      * Edit an existing section.
      * @param {object} player - The player object.
-     * @param {array} data - The command arguments.
+     * @param {array} args - The command arguments.
      */
-    async editSection(player, data) {
-        const [editWhat, ...newValue] = data;
+    async editSection(player, args) {
+        const [editWhat, ...data] = args;
         const foundArea = player.workingArea;
 
         if (!foundArea) {
@@ -995,23 +1023,102 @@ const AreaModule = {
             return;
         }
 
-        if (editWhat !== undefined && newValue !== undefined) {
-            const newName = newValue.join(' ');
-            const oldName = foundSection.name;
-
+        if (editWhat !== undefined) {
             switch (editWhat.toLowerCase()) {
+                case 'maxreset':
+                    const [maxResetStr] = data;
+                    const maxReset = parseInt(maxResetStr);
+                    if (maxReset > foundSection?.minReset ?? 0) {
+                        foundSection.maxReset = maxReset;
+                        foundArea.changed = true;
+                        player.send(`maxReset updated successfully.`);
+                    } else {
+                        player.send(`maxReset must be greater than ${foundSection?.minReset ?? 0}!`);
+                        return;
+                    }
+                    break;
+                case 'minreset':
+                    const [minResetStr] = data;
+                    const minReset = parseInt(minResetStr);
+                    if (minReset >= 0) {
+                        foundSection.minReset = minReset;
+                        foundArea.changed = true;
+                        player.send(`minReset updated successfully.`);
+                    } else {
+                        player.send(`minReset must be greater than or equal to 0!`);
+                        return;
+                    }
+                    break;
                 case 'name':
-                    if (newName) {
+                    const newName = data.join(' ').trim();
+                    const oldName = foundSection.name;
+                    if (newName && newName.length !== 0) {
                         if (!foundArea.getSectionByName(newName)) {
                             foundSection.name = newName;
                             foundArea.sections.delete(oldName.toLowerCase());
                             foundArea.sections.set(newName.toLowerCase(), foundSection);
+                            foundArea.changed = true;
                             player.send(`Section renamed successfully.`);
                         } else {
                             player.send(`Section ${newName} already exists!`);
+                            return;
                         }
                     } else {
                         player.send(`Name cannot be blank!`);
+                        return;
+                    }
+                    break;
+                case 'resetmsg':
+                    const [action, ...resetMsgArgs] = data;
+                    const msg = resetMsgArgs.join(' ').trim();
+
+                    switch (action?.toLowerCase()) {
+                        case 'add':
+                            if (msg && msg.length !== 0) {
+                                foundSection.addResetMsg(msg);
+                                player.send(`Message added: "${msg}"`);
+                                foundArea.changed = true;
+                            } else {
+                                player.send(`Message cannot be blank!`);
+                                return;
+                            }
+                            break;
+                        case 'remove':
+                            const indexToRemove = parseInt(msg, 10);
+                            if (!isNaN(indexToRemove) && indexToRemove >= 0 && indexToRemove < foundSection.resetMessages.length) {
+                                const removedMsg = foundSection.resetMessages.splice(indexToRemove, 1);
+                                player.send(`Removed message: "${removedMsg}"`);
+                                foundArea.changed = true;
+                            } else {
+                                player.send(`Invalid index!`);
+                                return;
+                            }
+                            break;
+                        case 'show':
+                            if (!foundSection.resetMessages || foundSection.resetMessages.length === 0) {
+                                player.send(`No reset messages available.`);
+                            } else {
+                                const messagesList = foundSection.resetMessages
+                                    .map((message, index) => `${index}: ${message}`)
+                                    .join('\n');
+                                player.send(`Reset Messages:\n${messagesList}`);
+                            }
+                            break;
+                        default:
+                            player.send(`Invalid action for resetmsg. Use add, remove, or show.`);
+                            break;
+                    }
+                    break;
+                case 'vsize':
+                    const [vSizeStr] = data;
+                    const vSize = parseInt(vSizeStr);
+                    if (vSize >= foundSection.vSize) {
+                        foundSection.vSize = vSize;
+                        foundArea.changed = true;
+                        player.send(`vSize updated successfully.`);
+                    } else {
+                        player.send(`vSize must be greater than ${foundSection.vSize}!`);
+                        return;
                     }
                     break;
                 default:
@@ -1024,7 +1131,8 @@ const AreaModule = {
                     break;
             }
         } else {
-            player.send(`Usage: editsection <name> value`);
+            player.send(`Usage: editsection <name | vsize> [value]`);
+            player.send(`Usage: editsection resetmsg <add | remove | show> [value]`);
         }
     },
 

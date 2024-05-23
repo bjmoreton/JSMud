@@ -99,7 +99,10 @@ class Area {
                 const sectionData = sectionsObj[section.name] = {
                     area: section.area.name,
                     description: section.description,
+                    maxReset: section.maxReset,
+                    minReset: section.minReset,
                     nameDisplay: section.nameDisplay,
+                    resetMessages: section.resetMessages,
                     vSize: section.vSize,
                     rooms: Array.from(section.rooms.values()).map(room => {
                         const roomData = {
