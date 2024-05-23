@@ -14,6 +14,13 @@ const ItemModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     name: "Item",
     itemsList: new Map(),
+    editItemActions: new Map(),
+
+    addEditItemAction(name, useCases = [], action = () => { }) {
+        if (!ItemModule.editItemActions.has(name.toLowerCase())) {
+            ItemModule.editItemActions.set(name.toLowerCase(), { action, useCases });
+        }
+    },
 
     /**
      * Initialize the ItemModule.
@@ -33,16 +40,15 @@ const ItemModule = {
      * @param {Array} args - Arguments for the item.
      */
     addItem(player, args) {
-        // Check if necessary arguments are present
-        if (args.length < 2) {
-            player.send("Usage: addItem [name] [itemType]");
-            return;
-        }
-
         const [name, itemType] = args;
         const lastEntry = Array.from(ItemModule.itemsList.entries())[ItemModule.itemsList.size - 1];
         const lastItemVNum = lastEntry ? lastEntry[0] : -1;
         const vNumInt = parseInt(lastItemVNum) + 1;
+
+        if (!name) {
+            player.send("Must specify an item name!");
+            return;
+        }
 
         // Validate item number
         if (!isNumber(vNumInt)) {
@@ -102,7 +108,9 @@ const ItemModule = {
                     itemToEdit.groundDescription = groundDescription?.trim();
                     break;
                 case "flags":
-                    ItemModule.editItemFlags(player, itemToEdit, value, data);
+                    if (!ItemModule.editItemFlags(player, itemToEdit, value, data)) {
+                        return;
+                    }
                     break;
                 case "name":
                     if (value === undefined || value?.trim() == '') {
@@ -112,16 +120,23 @@ const ItemModule = {
                     itemToEdit.name = value?.trim();
                     break;
                 default:
-                    await ItemModule.mudServer.emit('editItem', player, itemToEdit, eventObj)
-                    if (!eventObj.handled) {
-                        player.send(`Usage: editItem vNum <description | flags | name>`);
+                    if (ItemModule.editItemActions.has(editWhat.toLowerCase())) {
+                        const editAction = ItemModule.editItemActions.get(editWhat.toLowerCase());
+                        await editAction.action(player, itemToEdit, eventObj);
+                    } else {
+                        player.send(`Usage: editItem [vNum] <description | flags | name>`);
                         return;
                     }
             }
 
             if (eventObj.saved) player.send(`Item edited successfully!`);
         } else {
-            player.send(`Usage: editItem vNum <description | flags | name>`);
+            player.send(`Usage: editItem [vNum] <description | flags | name>`);
+            for (const action of ItemModule.editItemActions.values()) {
+                action.useCases.forEach(useCase => {
+                    player.send(`Usage: ${useCase}`);
+                });
+            }
         }
     },
 
@@ -134,7 +149,7 @@ const ItemModule = {
      * @param {Array} data - The flags data.
      */
     editItemFlags(player, item, action, data) {
-        switch (action.toLowerCase()) {
+        switch (action?.toLowerCase()) {
             case "add":
                 item.addFlag(...data);
                 player.send(`New flags: ${item.flags}`);
@@ -146,8 +161,10 @@ const ItemModule = {
             default:
                 player.send(`Usage: editItem vNum flags <add | remove>`);
                 player.send(`Valid flags: ${Item.getItemFlagsArray()}`);
-                break;
+                return false;
         }
+
+        return true;
     },
 
     /**

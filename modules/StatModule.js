@@ -126,6 +126,8 @@ const StatModule = {
             });
             console.log("Stats loaded successfully.");
             if (player) player.send("Stats loaded successfully.");
+            
+            global.ItemModule.addEditItemAction('stats', [`editItem [vNum] stats <add | remove> [stat] [minValue] [maxValue]`], StatModule.editStats);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load stats.");
@@ -164,16 +166,15 @@ const StatModule = {
      * @param {Item} item - The item being edited.
      * @param {Object} eventObj - The event object containing arguments.
      */
-    onEditItem(player, item, eventObj) {
+    editStats(player, item, eventObj) {
         const [vNum, editWhat, action, ...data] = eventObj.args;
-        switch (editWhat.toLowerCase()) {
+        switch (editWhat?.toLowerCase()) {
             case 'stats':
-                eventObj.handled = true;
                 const [stat, ...values] = data;
                 if (!action) {
-                    eventObj.handled = false;
+                    eventObj.saved = false;
                     player.send(`Usage: editItem ${vNum} stats <add | remove> [stat] [minValue] [maxValue]`);
-                    return;
+                    return false;
                 }
                 switch (action.toLowerCase()) {
                     case 'add':
@@ -185,17 +186,18 @@ const StatModule = {
                             if (!isNumber(minValue) || !isNumber(maxValue)) {
                                 eventObj.saved = false;
                                 player.send(`Must provide valid numbers for minValue and maxValue!`);
-                                return;
+                                return false;
                             }
                             minValue = parseInt(minValue);
                             maxValue = parseInt(maxValue);
                             if (maxValue < minValue) {
                                 eventObj.saved = false;
                                 player.send(`Must provide a valid range!`);
-                                return;
+                                return false;
                             }
                             item.stats[statObj.shortName].minValue = minValue;
                             item.stats[statObj.shortName].maxValue = maxValue;
+                            return true;
                         } else {
                             eventObj.saved = false;
                             player.send(`Must provide a valid stat!`);
@@ -203,9 +205,8 @@ const StatModule = {
                             StatModule.getStats().forEach(stats => {
                                 player.send(stats);
                             });
-                            return;
+                            return false;
                         }
-                        break;
                     case 'remove':
                         if (stat && StatModule.hasStat(stat)) {
                             const statObj = StatModule.getStat(stat);
@@ -217,14 +218,14 @@ const StatModule = {
                             StatModule.getStats().forEach(stats => {
                                 player.send(stats);
                             });
-                            return;
+                            return false;
                         }
                         break;
                 }
                 break;
             default:
                 player.send(`Usage: editItem ${vNum} stats <add | remove> [stat] [minValue] [maxValue]`);
-                return;
+                return false;
         }
     },
 
@@ -262,7 +263,6 @@ const StatModule = {
      */
     registerEvents() {
         StatModule.mudServer.on('createdItem', StatModule.onCreatedItem);
-        StatModule.mudServer.on('editItem', StatModule.onEditItem);
         StatModule.mudServer.on('hotBootAfter', StatModule.onHotBootAfter);
         StatModule.mudServer.on('hotBootBefore', StatModule.onHotBootBefore);
         StatModule.mudServer.on('itemDeserialized', StatModule.onItemDeserialized);
@@ -275,7 +275,6 @@ const StatModule = {
      */
     removeEvents() {
         StatModule.mudServer.off('createdItem', StatModule.onCreatedItem);
-        StatModule.mudServer.off('editItem', StatModule.onEditItem);
         StatModule.mudServer.off('hotBootAfter', StatModule.onHotBootAfter);
         StatModule.mudServer.off('hotBootBefore', StatModule.onHotBootBefore);
         StatModule.mudServer.off('itemDeserialized', StatModule.onItemDeserialized);

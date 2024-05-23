@@ -17,54 +17,7 @@
   "currentY": 0,
   "currentZ": 0,
   "inventory": {
-    "items": [
-      {
-        "vNum": 0,
-        "data": [
-          {
-            "rarity": "quest",
-            "items": [
-              {
-                "name": "Sword of Darkness",
-                "nameDisplay": "Sword of Darkness",
-                "itemType": "Equipment",
-                "rarity": {
-                  "name": "quest",
-                  "symbol": "[&YQ&~]",
-                  "weight": 3,
-                  "statReduction": 1,
-                  "statAddition": 1
-                },
-                "vNum": 0,
-                "wearable": true,
-                "layer": 1,
-                "types": [
-                  "weapon"
-                ]
-              },
-              {
-                "name": "Sword of Darkness",
-                "nameDisplay": "Sword of Darkness",
-                "itemType": "Equipment",
-                "rarity": {
-                  "name": "quest",
-                  "symbol": "[&YQ&~]",
-                  "weight": 3,
-                  "statReduction": 1,
-                  "statAddition": 1
-                },
-                "vNum": 0,
-                "wearable": true,
-                "layer": 1,
-                "types": [
-                  "weapon"
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ],
+    "items": [],
     "maxSize": 30
   },
   "eqSlots": {
@@ -79,11 +32,11 @@
           "nameDisplay": "Sword of Darkness",
           "itemType": "Equipment",
           "rarity": {
-            "name": "quest",
-            "symbol": "[&YQ&~]",
-            "weight": 3,
-            "statReduction": 1,
-            "statAddition": 1
+            "name": "uncommon",
+            "statAddition": 0.4,
+            "statReduction": 0.6,
+            "symbol": "[UC]",
+            "weight": 6
           },
           "vNum": 0,
           "wearable": true,

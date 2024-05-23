@@ -308,6 +308,38 @@ const CommandModule = {
             player.send('Error saving commands:', error);
         }
     },
+
+    /**
+     * Shows the list of commands, optionally filtered by a search term, in batches of 5.
+     * 
+     * @param {Player} player - The player requesting the command list.
+     * @param {Array<string>} args - Command arguments (optional search term).
+     */
+    showCommands(player, args) {
+        const batchSize = 5;
+        const searchTerm = args.length > 0 ? args.join(' ').toLowerCase() : null;
+        const commandsArray = Array.from(CommandModule.commands.entries())
+            .filter(([cmdName, cmd]) => cmd.modLevel <= player.modLevel)
+            .map(([cmdName]) => cmdName)
+            .sort();
+        let filteredCommands;
+    
+        if (searchTerm) {
+            filteredCommands = commandsArray.filter(cmd => cmd.toLowerCase().includes(searchTerm.toLowerCase()));
+        } else {
+            filteredCommands = commandsArray;
+        }
+    
+        if (filteredCommands.length === 0) {
+            player.send(`No commands found matching '${searchTerm}'.`);
+            return;
+        }
+    
+        for (let i = 0; i < filteredCommands.length; i += batchSize) {
+            const batch = filteredCommands.slice(i, i + batchSize);
+            player.send(`Commands: ${batch.join(', ')}`);
+        }
+    },
 };
 
 module.exports = CommandModule;

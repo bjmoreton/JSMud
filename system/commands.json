@@ -1,206 +1,207 @@
 [
   {
+    "command": "addcommand",
     "aliases": [],
     "action": "Command.addCommand",
-    "command": "addcommand",
     "modLevel": 80
   },
   {
+    "command": "banplayer",
     "aliases": [
       ""
     ],
     "action": "MUDServer.banPlayer",
-    "command": "banplayer",
     "modLevel": 60
   },
   {
+    "command": "kickplayer",
     "aliases": [
       ""
     ],
     "action": "MUDServer.kickPlayer",
-    "command": "kickplayer",
     "modLevel": 55
   },
   {
+    "command": "hotboot",
     "aliases": [
       "hb"
     ],
     "action": "MUDServer.hotBoot",
-    "command": "hotboot",
     "modLevel": 60
   },
   {
+    "command": "save",
     "aliases": [],
     "action": "Player.playerSave",
-    "command": "save",
     "modLevel": 0
   },
   {
+    "command": "quit",
     "aliases": [
       "disconnect",
       "logout"
     ],
     "action": "Player.playerQuit",
-    "command": "quit",
     "modLevel": 0
   },
   {
+    "command": "savecommands",
     "aliases": [
       "sc"
     ],
     "action": "Command.save",
-    "command": "savecommands",
     "modLevel": 70
   },
   {
+    "command": "loadcommands",
     "aliases": [
       "lc"
     ],
     "action": "Command.load",
-    "command": "loadcommands",
     "modLevel": 70
   },
   {
+    "command": "reloadconfig",
     "aliases": [
       "rc"
     ],
     "action": "MUDServer.reloadConfig",
-    "command": "reloadconfig",
     "modLevel": 60
   },
   {
+    "command": "reloadtitle",
     "aliases": [
       "rt"
     ],
     "action": "MUDServer.reloadTitle",
-    "command": "reloadtitle",
     "modLevel": 60
   },
   {
+    "command": "help",
     "aliases": [],
     "action": "Helpfile.executeHelp",
-    "command": "help",
     "modLevel": 0
   },
   {
+    "command": "reloadhelpfiles",
     "aliases": [
       "rlhfs"
     ],
     "action": "Helpfile.executeReloadHelpfiles",
-    "command": "reloadhelpfiles",
     "modLevel": 60
   },
   {
+    "command": "look",
     "aliases": [],
     "action": "Area.executeLook",
-    "command": "look",
     "modLevel": 0
   },
   {
+    "command": "goto",
     "aliases": [],
     "action": "Area.executeGoto",
-    "command": "goto",
     "modLevel": 60
   },
   {
+    "command": "down",
     "aliases": [
       "d"
     ],
     "action": "Area.executeDown",
-    "command": "down",
     "modLevel": 0
   },
   {
+    "command": "up",
     "aliases": [
       "u"
     ],
     "action": "Area.executeUp",
-    "command": "up",
     "modLevel": 0
   },
   {
+    "command": "east",
     "aliases": [
       "e"
     ],
     "action": "Area.executeEast",
-    "command": "east",
     "modLevel": 0
   },
   {
+    "command": "north",
     "aliases": [
       "n"
     ],
     "action": "Area.executeNorth",
-    "command": "north",
     "modLevel": 0
   },
   {
+    "command": "northeast",
     "aliases": [
       "ne"
     ],
     "action": "Area.executeNorthEast",
-    "command": "northeast",
     "modLevel": 0
   },
   {
+    "command": "northwest",
     "aliases": [
       "nw"
     ],
     "action": "Area.executeNorthWest",
-    "command": "northwest",
     "modLevel": 0
   },
   {
+    "command": "south",
     "aliases": [
       "s"
     ],
     "action": "Area.executeSouth",
-    "command": "south",
     "modLevel": 0
   },
   {
+    "command": "southeast",
     "aliases": [
       "se"
     ],
     "action": "Area.executeSouthEast",
-    "command": "southeast",
     "modLevel": 0
   },
   {
+    "command": "southwest",
     "aliases": [
       "sw"
     ],
     "action": "Area.executeSouthWest",
-    "command": "southwest",
     "modLevel": 0
   },
   {
+    "command": "west",
     "aliases": [
       "w"
     ],
     "action": "Area.executeWest",
-    "command": "west",
     "modLevel": 0
   },
   {
+    "command": "editcommand",
     "aliases": [
       "ecommand",
       "ecmd"
     ],
     "action": "Command.editCommand",
-    "command": "editcommand",
     "modLevel": 80
   },
   {
+    "command": "removecommand",
     "aliases": [
       "remcmd",
       "rcmd"
     ],
     "action": "Command.removeCommand",
-    "command": "removecommand",
     "modLevel": 85
   },
   {
+    "command": "globalchat",
     "aliases": [
       "gc",
       "global",
@@ -208,469 +209,477 @@
       "gchat"
     ],
     "action": "Player.executeGlobalChat",
-    "command": "globalchat",
     "modLevel": 0
   },
   {
+    "command": "loademotes",
     "aliases": [],
     "action": "Emote.load",
-    "command": "loademotes",
     "modLevel": 70
   },
   {
+    "command": "addemote",
     "aliases": [
       "aemote"
     ],
     "action": "Emote.addEmote",
-    "command": "addemote",
     "modLevel": 70
   },
   {
+    "command": "saveemotes",
     "aliases": [],
     "action": "Emote.save",
-    "command": "saveemotes",
     "modLevel": 70
   },
   {
+    "command": "editemote",
     "aliases": [
       "eemote"
     ],
     "action": "Emote.editEmote",
-    "command": "editemote",
     "modLevel": 70
   },
   {
+    "command": "open",
     "aliases": [
       "op"
     ],
     "action": "Area.executeOpen",
-    "command": "open",
     "modLevel": 0
   },
   {
+    "command": "close",
     "aliases": [],
     "action": "Area.executeClose",
-    "command": "close",
     "modLevel": 0
   },
   {
+    "command": "say",
     "aliases": [],
     "action": "Player.executeSay",
-    "command": "say",
     "modLevel": 0
   },
   {
+    "command": "loadareas",
     "aliases": [],
     "action": "Area.load",
-    "command": "loadareas",
     "modLevel": 80
   },
   {
+    "command": "inventory",
     "aliases": [
       "i",
       "items",
       "inv"
     ],
     "action": "Inventory.showInventory",
-    "command": "inventory",
     "modLevel": 0
   },
   {
+    "command": "lock",
     "aliases": [],
     "action": "Area.executeLock",
-    "command": "lock",
     "modLevel": 0
   },
   {
+    "command": "unlock",
     "aliases": [
       "un"
     ],
     "action": "Area.executeUnlock",
-    "command": "unlock",
     "modLevel": 0
   },
   {
+    "command": "additem",
     "aliases": [],
     "action": "Item.addItem",
-    "command": "additem",
     "modLevel": 75
   },
   {
+    "command": "deleteemote",
     "aliases": [],
     "action": "Emote.deleteEmote",
-    "command": "deleteemote",
     "modLevel": 70
   },
   {
+    "command": "edititem",
     "aliases": [
       "ei"
     ],
     "action": "Item.editItem",
-    "command": "edititem",
     "modLevel": 85
   },
   {
+    "command": "saveitems",
     "aliases": [],
     "action": "Item.save",
-    "command": "saveitems",
     "modLevel": 85
   },
   {
+    "command": "removeitem",
     "aliases": [],
     "action": "Item.removeItem",
-    "command": "removeitem",
     "modLevel": 90
   },
   {
+    "command": "drop",
     "aliases": [],
     "action": "Inventory.dropItem",
-    "command": "drop",
     "modLevel": 0
   },
   {
+    "command": "take",
     "aliases": [
       "pick up"
     ],
     "action": "Inventory.takeItem",
-    "command": "take",
     "modLevel": 0
   },
   {
+    "command": "drop all",
     "aliases": [],
     "action": "Inventory.dropAll",
-    "command": "drop all",
     "modLevel": 0
   },
   {
+    "command": "take all",
     "aliases": [],
     "action": "Inventory.takeAllItems",
-    "command": "take all",
     "modLevel": 0
   },
   {
+    "command": "loaditems",
     "aliases": [],
     "action": "Item.load",
-    "command": "loaditems",
     "modLevel": 85
   },
   {
+    "command": "put",
     "aliases": [],
     "action": "Inventory.putItem",
-    "command": "put",
     "modLevel": 0
   },
   {
+    "command": "put all",
     "aliases": [],
     "action": "Inventory.putAllItems",
-    "command": "put all",
     "modLevel": 0
   },
   {
+    "command": "addequipmentslot",
     "aliases": [
       "addeqslot"
     ],
     "action": "Equipment.addEquipmentSlot",
-    "command": "addequipmentslot",
     "modLevel": 85
   },
   {
+    "command": "saveequipmentslots",
     "aliases": [
       "saveeqslots"
     ],
     "action": "Equipment.save",
-    "command": "saveequipmentslots",
     "modLevel": 85
   },
   {
+    "command": "createarea",
     "aliases": [
       "areacreate"
     ],
     "action": "Area.createArea",
-    "command": "createarea",
     "modLevel": 65
   },
   {
+    "command": "deletearea",
     "aliases": [
       "areadelete"
     ],
     "action": "Area.deleteArea",
-    "command": "deletearea",
     "modLevel": 70
   },
   {
+    "command": "editarea",
     "aliases": [
       "areaedit"
     ],
     "action": "Area.editArea",
-    "command": "editarea",
     "modLevel": 65
   },
   {
+    "command": "workarea",
     "aliases": [
       "areawork"
     ],
     "action": "Area.setWorkingArea",
-    "command": "workarea",
     "modLevel": 65
   },
   {
+    "command": "savearea",
     "aliases": [
       "areasave"
     ],
     "action": "Area.saveArea",
-    "command": "savearea",
     "modLevel": 65
   },
   {
+    "command": "createhelpfile",
     "aliases": [
       "helpfilecreate",
       "createhf",
       "hfcreate"
     ],
     "action": "Helpfile.createHelpfile",
-    "command": "createhelpfile",
     "modLevel": 65
   },
   {
+    "command": "deletehelpfile",
     "aliases": [
       "helpfiledelete",
       "hfdelete",
       "deletehf"
     ],
     "action": "Helpfile.deleteHelpfile",
-    "command": "deletehelpfile",
     "modLevel": 70
   },
   {
+    "command": "edithelpfile",
     "aliases": [
       "helpfileedit",
       "edithf",
       "hfedit"
     ],
     "action": "Helpfile.editHelpfile",
-    "command": "edithelpfile",
     "modLevel": 65
   },
   {
+    "command": "createsection",
     "aliases": [
       "sectioncreate"
     ],
     "action": "Area.createSection",
-    "command": "createsection",
     "modLevel": 65
   },
   {
+    "command": "deletesection",
     "aliases": [
       "sectiondelete"
     ],
     "action": "Area.deleteSection",
-    "command": "deletesection",
     "modLevel": 70
   },
   {
+    "command": "editsection",
     "aliases": [
       "sectionedit"
     ],
     "action": "Area.editSection",
-    "command": "editsection",
     "modLevel": 65
   },
   {
+    "command": "worksection",
     "aliases": [
       "sectionwork"
     ],
     "action": "Area.setWorkingSection",
-    "command": "worksection",
     "modLevel": 65
   },
   {
+    "command": "createroom",
     "aliases": [
       "roomcreate"
     ],
     "action": "Area.createRoom",
-    "command": "createroom",
     "modLevel": 65
   },
   {
+    "command": "deleteroom",
     "aliases": [
       "roomdelete"
     ],
     "action": "Area.deleteRoom",
-    "command": "deleteroom",
     "modLevel": 70
   },
   {
+    "command": "editroom",
     "aliases": [
       "roomedit"
     ],
     "action": "Area.editRoom",
-    "command": "editroom",
     "modLevel": 65
   },
   {
+    "command": "editexit",
     "aliases": [
       "exitedit"
     ],
     "action": "Area.editExit",
-    "command": "editexit",
     "modLevel": 65
   },
   {
+    "command": "addexit",
     "aliases": [
       "exitadd"
     ],
     "action": "Area.addRoomExit",
-    "command": "addexit",
     "modLevel": 65
   },
   {
+    "command": "addtexit",
     "aliases": [
       "exittadd",
       "addteleport",
       "teleportadd"
     ],
     "action": "Area.addTeleportExit",
-    "command": "addtexit",
     "modLevel": 65
   },
   {
+    "command": "removeexit",
     "aliases": [
       "exitremove",
       "exitdelete",
       "deleteexit"
     ],
     "action": "Area.removeRoomExit",
-    "command": "removeexit",
     "modLevel": 65
   },
   {
+    "command": "spawnitem",
     "aliases": [
       "itemspawn"
     ],
     "action": "Item.spawnItem",
-    "command": "spawnitem",
     "modLevel": 85
   },
   {
+    "command": "lookupvnum",
     "aliases": [
       "vnumlookup",
       "lookvnum",
       "vnumlook"
     ],
     "action": "Item.executeLookupVNum",
-    "command": "lookupvnum",
     "modLevel": 50
   },
   {
+    "command": "addstat",
     "aliases": [
       "statadd"
     ],
     "action": "Stat.addStat",
-    "command": "addstat",
     "modLevel": 90
   },
   {
+    "command": "statssave",
     "aliases": [
       "statsave",
       "savestats"
     ],
     "action": "Stat.save",
-    "command": "statssave",
     "modLevel": 90
   },
   {
+    "command": "showstats",
     "aliases": [
       "statsshow"
     ],
     "action": "Stat.showStats",
-    "command": "showstats",
     "modLevel": 90
   },
   {
+    "command": "savestatuses",
     "aliases": [
       "statusessave"
     ],
     "action": "Player.saveStatuses",
-    "command": "savestatuses",
     "modLevel": 75
   },
   {
+    "command": "loadstatuses",
     "aliases": [
       "statusesload"
     ],
     "action": "Player.loadStatuses",
-    "command": "loadstatuses",
     "modLevel": 75
   },
   {
+    "command": "addstatus",
     "aliases": [
       "statusadd"
     ],
     "action": "Player.addStatus",
-    "command": "addstatus",
     "modLevel": 75
   },
   {
+    "command": "removestatus",
     "aliases": [
       "statusremove"
     ],
     "action": "Player.removeStatus",
-    "command": "removestatus",
     "modLevel": 75
   },
   {
+    "command": "removestat",
     "aliases": [
       "statremove"
     ],
     "action": "Stat.removeStat",
-    "command": "removestat",
     "modLevel": 90
   },
   {
+    "command": "wear",
     "aliases": [],
     "action": "Equipment.wear",
-    "command": "wear",
     "modLevel": 0
   },
   {
+    "command": "wearall",
     "aliases": [
       "wear all"
     ],
     "action": "Equipment.wearAll",
-    "command": "wearall",
     "modLevel": 0
   },
   {
+    "command": "remove",
     "aliases": [
       "rem"
     ],
     "action": "Equipment.remove",
-    "command": "remove",
     "modLevel": 0
   },
   {
+    "command": "remove all",
     "aliases": [
       "rem all"
     ],
     "action": "Equipment.removeAll",
-    "command": "remove all",
     "modLevel": 0
   },
   {
+    "command": "showequipment",
     "aliases": [
       "eq",
       "euqipment"
     ],
     "action": "Equipment.showEquipment",
-    "command": "showequipment",
     "modLevel": 0
   },
   {
+    "command": "editequipmentslot",
     "aliases": [
       "editeqslot"
     ],
     "action": "Equipment.editEquipmentSlot",
-    "command": "editequipmentslot",
     "modLevel": 85
+  },
+  {
+    "command": "showcommands",
+    "aliases": [
+      "commandsshow",
+      "commands"
+    ],
+    "action": "Command.showCommands",
+    "modLevel": 0
   }
 ]

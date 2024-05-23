@@ -149,6 +149,10 @@ const EquipmentModule = {
             });
             console.log("Equipment slots loaded successfully.");
             if (player) player.send("Equipment slots loaded successfully.");
+
+            global.ItemModule.addEditItemAction('layer', [`editItem [vNum] layer [layer(number)]`], EquipmentModule.editLayer);
+            global.ItemModule.addEditItemAction('type', [`edititem [vNum] type <add | remove> [type]`], EquipmentModule.editType);
+            global.ItemModule.addEditItemAction('wearable', [`editItem [vNum] wearable [true/false]`], EquipmentModule.editWearable);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load equipment slots.");
@@ -156,70 +160,85 @@ const EquipmentModule = {
     },
 
     /**
-     * Event handler for editing an item.
+     * Edits the layer of an item.
      * 
-     * @param {Player} player - The player editing the item.
+     * @param {Player} player - The player executing the command.
      * @param {Item} item - The item being edited.
-     * @param {Object} eventObj - The event object.
+     * @param {Object} eventObj - The event object containing command arguments.
+     * @returns {boolean} - Indicates whether the action was handled successfully.
      */
-    onEditItem(player, item, eventObj) {
+    editLayer(player, item, eventObj) {
         const [vNum, editWhat, action, ...data] = eventObj.args;
-        switch (editWhat.toLowerCase()) {
-            case 'layer':
-                if (!isNumber(action)) {
-                    eventObj.saved = false;
-                    player.send(`Usage: editItem ${vNum} layer [layer]`);
-                    return false;
-                }
-                eventObj.handled = true;
-                const layer = parseInt(action);
-                item.layer = layer;
-                break;
-            case 'type':
-                if (!action) {
-                    player.send(`Usage: edititem ${vNum} type [type]`);
-                    return false;
-                }
+        if (!isNumber(action)) {
+            eventObj.saved = false;
+            player.send(`Usage: editItem ${vNum} layer [layer(number)]`);
+            return false;
+        }
+        const layer = parseInt(action);
+        item.layer = layer;
+        return true;
+    },
 
-                if (!item.types) item.types = [];
-                switch (action.toLowerCase()) {
-                    case 'add':
-                        const types = data;
-                        types.forEach(type => {
-                            if (EquipmentModule.equipmentSlots.has(type.toLowerCase())) {
-                                item.types.push(type.toLowerCase());
-                            }
-                        });
-                        break;
-                    case 'remove':
-                        types.forEach(type => {
-                            const index = item.types.indexOf(type.toLowerCase());
-                            if (index > -1) {
-                                item.types.splice(index, 1);
-                            }
-                        });
-                        break;
-                    default:
-                        return false;
-                }
-                break;
-            case 'wearable':
-                if (!action) {
-                    eventObj.saved = false;
-                    player.send(`Usage: editItem ${vNum} wearable true/false`);
-                    return false;
-                }
-                eventObj.handled = true;
-                const wearable = stringToBoolean(action);
-                if (wearable) {
-                    item.wearable = wearable;
-                }
-                break;
-            default:
-                eventObj.saved = false;
-                return false;
+    /**
+     * Edits the types of an item by adding or removing types.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {Item} item - The item being edited.
+     * @param {Object} eventObj - The event object containing command arguments.
+     * @returns {boolean} - Indicates whether the action was handled successfully.
+     */
+    editType(player, item, eventObj) {
+        const [vNum, editWhat, action, ...data] = eventObj.args;
+
+        if (!action) {
+            player.send(`Usage: edititem ${vNum} type <add | remove> [type]`);
+            return false;
         }
 
+        if (!item.types) item.types = [];
+        switch (action.toLowerCase()) {
+            case 'add':
+                const types = data;
+                types.forEach(type => {
+                    if (EquipmentModule.equipmentSlots.has(type.toLowerCase())) {
+                        item.types.push(type.toLowerCase());
+                    }
+                });
+                return true;
+            case 'remove':
+                types.forEach(type => {
+                    const index = item.types.indexOf(type.toLowerCase());
+                    if (index > -1) {
+                        item.types.splice(index, 1);
+                    }
+                });
+                return true;
+            default:
+                return false;
+        }
+    },
+
+    /**
+     * Edits the wearable property of an item.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {Item} item - The item being edited.
+     * @param {Object} eventObj - The event object containing command arguments.
+     * @returns {boolean} - Indicates whether the action was handled successfully.
+     */
+    editWearable(player, item, eventObj) {
+        const [vNum, editWhat, action, ...data] = eventObj.args;
+
+        if (!action) {
+            eventObj.saved = false;
+            player.send(`Usage: editItem ${vNum} wearable true/false`);
+            return false;
+        }
+        
+        const wearable = stringToBoolean(action);
+        if (wearable) {
+            item.wearable = wearable;
+        }
         return true;
     },
 
@@ -295,7 +314,6 @@ const EquipmentModule = {
      * Register events for the Equipment module.
      */
     registerEvents() {
-        EquipmentModule.mudServer.on('editItem', EquipmentModule.onEditItem);
         EquipmentModule.mudServer.on('hotBootBefore', EquipmentModule.onHotBootAfter);
         EquipmentModule.mudServer.on('hotBootBefore', EquipmentModule.onHotBootBefore);
         EquipmentModule.mudServer.on('itemsLoading', EquipmentModule.onItemsLoading);
@@ -434,7 +452,6 @@ const EquipmentModule = {
      * Remove registered events.
      */
     removeEvents() {
-        EquipmentModule.mudServer.off('editItem', EquipmentModule.onEditItem);
         EquipmentModule.mudServer.off('hotBootBefore', EquipmentModule.onHotBootAfter);
         EquipmentModule.mudServer.off('hotBootBefore', EquipmentModule.onHotBootBefore);
         EquipmentModule.mudServer.off('itemsLoading', EquipmentModule.onItemsLoading);
