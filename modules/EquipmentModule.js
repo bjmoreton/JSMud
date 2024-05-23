@@ -6,12 +6,25 @@ const Item = require('./ItemModule/Item');
 const { isNumber, stringToBoolean } = require('./Mud/Helpers');
 const Equipment = require('./EquipmentModule/Equipment');
 
-// Equipment module
+/**
+ * Equipment module for managing equipment slots and item equipment in the MUD server.
+ * 
+ * @module EquipmentModule
+ */
 const EquipmentModule = {
+    // Module name
     name: "Equipment",
+    // Path to the equipment slots JSON file
     EQ_SLOTS_PATH: path.join(__dirname, '../system', 'eqslots.json'),
+    // Map to store equipment slots
     equipmentSlots: new Map(),
 
+    /**
+     * Add a new equipment slot.
+     * 
+     * @param {Player} player - The player adding the equipment slot.
+     * @param {Array} args - The arguments for adding the equipment slot.
+     */
     addEquipmentSlot(player, args) {
         const [name, eqType, layers] = args;
         if (!name) {
@@ -42,6 +55,11 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Get formatted equipment slots.
+     * 
+     * @returns {Array} - Array of formatted equipment slot strings.
+     */
     getFormattedEquipmentSlots() {
         const keys = Array.from(this.equipmentSlots.keys());
         let result = '';
@@ -58,6 +76,12 @@ const EquipmentModule = {
         return result.split('\n');
     },
 
+    /**
+     * Edit an existing equipment slot.
+     * 
+     * @param {Player} player - The player editing the equipment slot.
+     * @param {Array} args - The arguments for editing the equipment slot.
+     */
     editEquipmentSlot(player, args) {
         const [slot, editWhat, ...data] = args;
         if (!slot) {
@@ -86,18 +110,34 @@ const EquipmentModule = {
         player.send(`Equipment slot saved successfully.`);
     },
 
+    /**
+     * Check if an equipment slot exists.
+     * 
+     * @param {string} slotName - The name of the slot.
+     * @returns {boolean} - True if the slot exists, false otherwise.
+     */
     hasEquipmentSlot(slotName) {
         if (slotName.name) slotName = slotName.name;
 
         return EquipmentModule.equipmentSlots.has(slotName.toLowerCase());
     },
 
+    /**
+     * Initialize the Equipment module.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.EquipmentModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
     },
 
+    /**
+     * Load equipment slots from the JSON file.
+     * 
+     * @param {Player} [player] - The player (optional).
+     */
     load(player) {
         try {
             const data = fs.readFileSync(EquipmentModule.EQ_SLOTS_PATH, 'utf8');
@@ -115,8 +155,15 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Event handler for editing an item.
+     * 
+     * @param {Player} player - The player editing the item.
+     * @param {Item} item - The item being edited.
+     * @param {Object} eventObj - The event object.
+     */
     onEditItem(player, item, eventObj) {
-        const [vNum, editWhat, action, ...data] = eventObj.args
+        const [vNum, editWhat, action, ...data] = eventObj.args;
         switch (editWhat.toLowerCase()) {
             case 'layer':
                 if (!isNumber(action)) {
@@ -134,7 +181,7 @@ const EquipmentModule = {
                     return false;
                 }
 
-                if (!item.types) item.types = []
+                if (!item.types) item.types = [];
                 switch (action.toLowerCase()) {
                     case 'add':
                         const types = data;
@@ -155,6 +202,7 @@ const EquipmentModule = {
                     default:
                         return false;
                 }
+                break;
             case 'wearable':
                 if (!action) {
                     eventObj.saved = false;
@@ -176,28 +224,43 @@ const EquipmentModule = {
     },
 
     onHotBootAfter(player) {
-
+        // Placeholder for hot boot after event handling
     },
 
+    /**
+     * Event handler for hot boot before.
+     */
     onHotBootBefore() {
         EquipmentModule.removeEvents();
     },
 
+    /**
+     * Event handler for items loading.
+     */
     onItemsLoading() {
         // Add weapon item type, etc.
         Item.addItemType(Equipment);
 
+        // Define item rarities
         Item.ItemRarities['trash'].statReduction = .9;
         Item.ItemRarities['quest'].statReduction = 1;
         Item.ItemRarities['trash'].statAddition = 0;
         Item.ItemRarities['quest'].statAddition = 1;
-        Item.addItemRarities({ name: "common", statAddition: .2, statReduction: .8, symbol: "[C]", weight: 8 },
+        Item.addItemRarities(
+            { name: "common", statAddition: .2, statReduction: .8, symbol: "[C]", weight: 8 },
             { name: "uncommon", statAddition: .4, statReduction: .6, symbol: "[UC]", weight: 6 },
             { name: "rare", statAddition: .6, statReduction: .4, symbol: "[R]", weight: 4 },
             { name: "epic", statAddition: .8, statReduction: .2, symbol: "[E]", weight: 2 },
-            { name: "Legendary", statAddition: 1, statReduction: 0, symbol: "[L]", weight: 1 });
+            { name: "Legendary", statAddition: 1, statReduction: 0, symbol: "[L]", weight: 1 }
+        );
     },
 
+    /**
+     * Event handler for player loaded.
+     * 
+     * @param {Player} player - The loaded player.
+     * @param {Object} playerData - The player data.
+     */
     onPlayerLoaded(player, playerData) {
         if (!player.eqSlots) player.eqSlots = {};
         for (const eqSlot in playerData.eqSlots) {
@@ -205,7 +268,7 @@ const EquipmentModule = {
             if (EquipmentModule.hasEquipmentSlot(slot.name)) {
                 const slotObj = EquipmentSlot.deserialize(slot);
                 if (slotObj) player.eqSlots[slotObj.name.toLowerCase()] = slotObj;
-            } else { // Slot has been removed or failed to load
+            } else {
                 // Remove items from data back into inventory.
             }
         }
@@ -213,15 +276,24 @@ const EquipmentModule = {
         EquipmentModule.updatePlayerSlots(player);
     },
 
+    /**
+     * Event handler for player saved.
+     * 
+     * @param {Player} player - The player being saved.
+     * @param {Object} playerData - The player data.
+     * @returns {Object} - The updated player data.
+     */
     onPlayerSaved(player, playerData) {
         playerData.eqSlots = {};
-        console.log(player.eqSlots);
         for (const key in player.eqSlots) {
             playerData.eqSlots[key] = player.eqSlots[key].serialize();
         }
         return playerData;
     },
 
+    /**
+     * Register events for the Equipment module.
+     */
     registerEvents() {
         EquipmentModule.mudServer.on('editItem', EquipmentModule.onEditItem);
         EquipmentModule.mudServer.on('hotBootBefore', EquipmentModule.onHotBootAfter);
@@ -231,6 +303,13 @@ const EquipmentModule = {
         EquipmentModule.mudServer.on('playerSaved', EquipmentModule.onPlayerSaved);
     },
 
+    /**
+     * Remove an item or equipment slot.
+     * 
+     * @param {Player} player - The player removing the item/slot.
+     * @param {Array} args - The arguments for removal.
+     * @returns {boolean} - True if removal was successful, false otherwise.
+     */
     remove(player, args) {
         let [itemOrSlotString] = args;
 
@@ -270,7 +349,7 @@ const EquipmentModule = {
                         if (player.inventory.isFull) {
                             player.send(`Inventory full!`);
                         } else player.send(`Failed to remove ${highestLayeredItem.name}!`);
-                        player.eqSlots[slot].equip(highestLayeredItem);
+                        player.eqSlots[slotName].equip(highestLayeredItem);
                         return false;
                     }
                 } else {
@@ -319,6 +398,12 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Remove all items from equipment slots.
+     * 
+     * @param {Player} player - The player removing all items.
+     * @returns {boolean} - True if all items were removed successfully, false otherwise.
+     */
     removeAll(player) {
         for (let slot in player.eqSlots) {
             if (player.eqSlots[slot].items instanceof Map) {
@@ -345,6 +430,9 @@ const EquipmentModule = {
         return true;
     },
 
+    /**
+     * Remove registered events.
+     */
     removeEvents() {
         EquipmentModule.mudServer.off('editItem', EquipmentModule.onEditItem);
         EquipmentModule.mudServer.off('hotBootBefore', EquipmentModule.onHotBootAfter);
@@ -354,6 +442,11 @@ const EquipmentModule = {
         EquipmentModule.mudServer.off('playerSaved', EquipmentModule.onPlayerSaved);
     },
 
+    /**
+     * Save equipment slots to the JSON file.
+     * 
+     * @param {Player} [player] - The player (optional).
+     */
     save(player) {
         try {
             const serializedData = EquipmentModule.serializeEQSlots();
@@ -367,6 +460,11 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Serialize equipment slots for saving to a file.
+     * 
+     * @returns {Array} - Array of serialized equipment slots.
+     */
     serializeEQSlots() {
         const slotsArray = [];
         for (const [name, data] of EquipmentModule.equipmentSlots.entries()) {
@@ -378,6 +476,12 @@ const EquipmentModule = {
         return slotsArray; // Pretty-print the JSON
     },
 
+    /**
+     * Display the equipment slots and their items.
+     * 
+     * @param {Player} player - The player viewing the equipment.
+     * @param {Array} args - The arguments for showing equipment.
+     */
     showEquipment(player, args) {
         const maxLineLength = 50;
         const tabLength = 4; // Number of spaces for the tab
@@ -420,17 +524,27 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Update all player equipment slots.
+     * 
+     * @param {Player} player - The player.
+     */
     updateAllPlayerSlots(player) {
         EquipmentModule.mudServer.players.forEach(p => {
             EquipmentModule.updatePlayerSlots(p);
         });
     },
 
+    /**
+     * Update the equipment slots for a player.
+     * 
+     * @param {Player} player - The player.
+     */
     updatePlayerSlots(player) {
         for (const key in player.eqSlots) {
             const eqSlot = player.eqSlots[key];
             if (!EquipmentModule.hasEquipmentSlot(key)) {
-                // remove slot and place items back into inventory
+                // Remove slot and place items back into inventory
             }
         }
 
@@ -447,6 +561,13 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Wear an item.
+     * 
+     * @param {Player} player - The player wearing the item.
+     * @param {Array} args - The arguments for wearing the item.
+     * @returns {boolean} - True if the item was worn successfully, false otherwise.
+     */
     wear(player, args) {
         let [itemString, wearSlot] = args;
 
@@ -501,6 +622,12 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Wear all wearable items in the inventory.
+     * 
+     * @param {Player} player - The player wearing the items.
+     * @returns {boolean} - True if items were worn successfully, false otherwise.
+     */
     wearAll(player) {
         const inventoryItems = player.inventory.findAllItemsByName();
 
@@ -544,6 +671,7 @@ const EquipmentModule = {
             return true;
         }
     },
-}
+};
 
+// Export the EquipmentModule
 module.exports = EquipmentModule;

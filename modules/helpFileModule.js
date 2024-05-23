@@ -8,12 +8,21 @@ const { isValidString } = require('./Mud/Helpers.js');
 const HELP_FILES_DIR = path.join(__dirname, '../helpfiles');
 const HELP_FILES_TEMPLATE = path.join(__dirname, '../system', 'templates', 'help.template');
 
-// HelpFiles module
+/**
+ * Helpfile module for managing help files in the MUD server.
+ * 
+ * @module HelpfileModule
+ */
 const HelpfileModule = {
     // Module name
     name: "Helpfile",
 
-    // Method to create a new help file
+    /**
+     * Create a new help file.
+     * 
+     * @param {Player} player - The player creating the help file.
+     * @param {Array} args - The arguments for creating the help file.
+     */
     createHelpfile(player, args) {
         const [helpfileTitle] = args;
         if (isValidString(helpfileTitle)) {
@@ -32,6 +41,12 @@ const HelpfileModule = {
         }
     },
 
+    /**
+     * Delete a help file.
+     * 
+     * @param {Player} player - The player deleting the help file.
+     * @param {Array} args - The arguments for deleting the help file.
+     */
     deleteHelpfile(player, args) {
         const [helpfileTitle] = args;
         const helpfile = HelpfileModule.findHelpfile(helpfileTitle);
@@ -43,7 +58,13 @@ const HelpfileModule = {
         }
     },
 
-    // Method to retrieve helpfile property by string
+    /**
+     * Retrieve helpfile property by string.
+     * 
+     * @param {string} property - The property to retrieve.
+     * @param {Helpfile} foundHelpfile - The helpfile object.
+     * @returns {string} - The property value.
+     */
     helpfilePropertyByString(property, foundHelpfile) {
         switch (property.toLowerCase()) {
             case "description":
@@ -57,7 +78,12 @@ const HelpfileModule = {
         }
     },
 
-    // Method to edit an existing help file
+    /**
+     * Edit an existing help file.
+     * 
+     * @param {Player} player - The player editing the help file.
+     * @param {Array} args - The arguments for editing the help file.
+     */
     async editHelpfile(player, args) {
         // Extract command arguments
         const [helpfile, editCmd, ...values] = args;
@@ -109,12 +135,22 @@ const HelpfileModule = {
         }
     },
 
-    // Method to find a help file by title
+    /**
+     * Find a help file by title.
+     * 
+     * @param {string} helpfileTitle - The title of the help file.
+     * @returns {Helpfile|null} - The found help file or null.
+     */
     findHelpfile(helpfileTitle) {
         return HelpfileModule.HelpfileList.get(helpfileTitle.toLowerCase());
     },
 
-    // Method to display help information
+    /**
+     * Display help information.
+     * 
+     * @param {Player} player - The player requesting help.
+     * @param {Array} args - The arguments for the help command.
+     */
     executeHelp(player, args) {
         const [entry] = args;
 
@@ -148,12 +184,23 @@ const HelpfileModule = {
         }
     },
 
+    /**
+     * Reload help files.
+     * 
+     * @param {Player} player - The player requesting the reload.
+     */
     executeReloadHelpfiles(player) {
         HelpfileModule.loadHelpfiles();
         player.send('Helpfiles reloaded');
     },
 
-    // Method to replace template data with helpfile information
+    /**
+     * Replace template data with helpfile information.
+     * 
+     * @param {string} data - The template data.
+     * @param {Helpfile} helpfile - The helpfile object.
+     * @returns {string} - The replaced data.
+     */
     replaceTemplateData(data, helpfile) {
         const parsedData = data.replace('%titledisplay', helpfile.titleDisplay)
             .replace('%title', helpfile.title)
@@ -164,7 +211,11 @@ const HelpfileModule = {
         return parsedData;
     },
 
-    // Initialization method
+    /**
+     * Initialization method for the HelpfileModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.HelpfileModule = this;
         this.mudServer = mudServer;
@@ -174,7 +225,9 @@ const HelpfileModule = {
     HelpfileList: new Map(),
     Template: [],
 
-    // Method to load help files from directory
+    /**
+     * Load help files from the directory.
+     */
     load: function () {
         try {
             const dataSync = fs.readFileSync(HELP_FILES_TEMPLATE, 'utf8');

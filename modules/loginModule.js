@@ -1,8 +1,18 @@
 const { hashPassword, verifyPassword } = require("./Mud/Helpers");
 
-// login module
+/**
+ * Login module for MUD server.
+ * Handles player login, creation, and password verification.
+ * 
+ * @module LoginModule
+ */
 const LoginModule = {
     name: "Login",
+    
+    /**
+     * Enum for connection status.
+     * @enum {string}
+     */
     ConnectionStatus: {
         ConfirmPassword: 'ConfirmPassword',
         CreatePlayer: 'CreatePlayer',
@@ -11,12 +21,22 @@ const LoginModule = {
         LoggedIn: 'LoggedIn',
         WelcomeScreen: 'WelcomeScreen'
     },
+
+    /**
+     * Handles the login process for a player.
+     * 
+     * @param {Player} player - The player logging in.
+     */
     handleLogin: async function (player) {
-        if (player != undefined && player.connectionStatus == null) {
+        // Set initial connection status if not already set
+        if (player !== undefined && player.connectionStatus == null) {
             player.connectionStatus = this.ConnectionStatus.EnterUsername;
         }
+
+        // Switch case to handle different stages of the login process
         switch (player.connectionStatus) {
             case this.ConnectionStatus.CreatePlayer:
+                // Handle new player creation
                 const newUsername = await player.textEditor.showPrompt('Please enter a character name: ');
                 player.username = newUsername;
                 if (newUsername.indexOf(" ") > -1 || newUsername == null || newUsername.toLowerCase() == 'new') {
@@ -24,14 +44,16 @@ const LoginModule = {
                     player.username = 'Guest';
                     player.connectionStatus = this.ConnectionStatus.CreatePlayer;
                 } else if (LoginModule.mudServer.playerExist(player)) {
-                    player.send("Character name already exist!");
+                    player.send("Character name already exists!");
                     player.username = 'Guest';
                     player.connectionStatus = this.ConnectionStatus.CreatePlayer;
                 } else {
                     player.connectionStatus = this.ConnectionStatus.EnterPassword;
                 }
                 break;
+
             case this.ConnectionStatus.ConfirmPassword:
+                // Confirm password for new player
                 const confirmPassword = await player.textEditor.showPrompt('Confirm password: ');
                 if (confirmPassword === player.password) {
                     player.password = await hashPassword(player.password);
@@ -43,7 +65,9 @@ const LoginModule = {
                     player.connectionStatus = this.ConnectionStatus.EnterPassword;
                 }
                 break;
+
             case this.ConnectionStatus.EnterPassword:
+                // Handle password entry for existing player
                 const password = await player.textEditor.showPrompt('Enter password: ');
                 if (LoginModule.mudServer.playerExist(player)) {
                     player.load();
@@ -60,7 +84,9 @@ const LoginModule = {
                     player.connectionStatus = this.ConnectionStatus.ConfirmPassword;
                 }
                 break;
+
             case this.ConnectionStatus.EnterUsername:
+                // Handle username entry
                 const username = await player.textEditor.showPrompt('Please enter a character name or type new: ');
                 player.username = username;
                 if (username.indexOf(" ") > -1 || username == null) {
@@ -88,26 +114,46 @@ const LoginModule = {
                     } else player.connectionStatus = this.ConnectionStatus.EnterPassword;
                 }
                 break;
+
             case this.ConnectionStatus.WelcomeScreen:
+                // Handle welcome screen display after successful login
                 player.connectionStatus = this.ConnectionStatus.LoggedIn;
                 player.loggedIn = true;
                 LoginModule.mudServer.players.forEach(p => {
-                    if (p.username == player.username || p?.connectionStatus != this.ConnectionStatus.LoggedIn) return;
+                    if (p.username === player.username || p?.connectionStatus !== this.ConnectionStatus.LoggedIn) return;
                     p.send(`Player ${player.username} has logged in.`);
                 });
                 LoginModule.mudServer.emit('playerLoggedIn', player);
                 break;
         }
 
+        // If the player is not logged in, recursively handle login
         if (!player.loggedIn) await this.handleLogin(player);
     },
+
+    /**
+     * Callback function for handling login.
+     * 
+     * @param {Player} player - The player logging in.
+     * @param {string} data - The data input by the player.
+     */
     handleLoginCB: async function (player, data) {
         await LoginModule.handleLogin(player, data);
     },
+
+    /**
+     * Handles actions before a hotboot.
+     */
     handleHotbootBefore: function () {
         LoginModule.mudServer.off('handleLogin', LoginModule.handleLoginCB);
         LoginModule.mudServer.off('hotBootBefore', LoginModule.handleHotbootBefore);
     },
+
+    /**
+     * Initializes the LoginModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.LoginModule = this;
         this.mudServer = mudServer;

@@ -12,7 +12,10 @@ const ROOM_TEMPLATE = path.join(__dirname, '../system', 'templates', 'room.templ
 const MUD_MAP_SIZE_Y = 3; // Grid Y size
 const MUD_MAP_SIZE_X = 7; // Grid X size
 
-// Area Module
+/**
+ * Area Module for managing areas, sections, and rooms.
+ * @module AreaModule
+ */
 const AreaModule = {
     name: "Area",
     areaList: new Map(),
@@ -216,8 +219,8 @@ const AreaModule = {
     },
 
     /**
-     * Add methods to the player
-     * @param {object} player - The player object
+     * Add methods to the player.
+     * @param {object} player - The player object.
      */
     addPlayerMethods(player) {
         player.inRoom = function (room) {
@@ -276,6 +279,7 @@ const AreaModule = {
 
     /**
      * Handle hotboot before event.
+     * @param {object} player - The player object.
      */
     onBeforeHotboot(player) {
         AreaModule.mudServer.off('enteredRoom', AreaModule.onEnteredRoom);
@@ -603,19 +607,17 @@ const AreaModule = {
         const [areaToDelete, fromMemory] = data;
         const deleteArea = AreaModule.getAreaByName(areaToDelete);
         if (areaToDelete !== undefined && fromMemory !== undefined) {
-            if (player.hasCommand('area delete') || player.modLevel >= 80) {
-                if (deleteArea) {
-                    const reallyDelete = await player.textEditor.showPrompt(`Really delete area ${areaToDelete}? yes/no `);
+            if (deleteArea) {
+                const reallyDelete = await player.textEditor.showPrompt(`Really delete area ${areaToDelete}? yes/no `);
 
-                    if (reallyDelete.toLowerCase() == 'y' || reallyDelete.toLowerCase() == 'yes') {
-                        deleteArea.delete(player, AREAS_DIR);
-                        if (fromMemory.toLowerCase() == 'true' || fromMemory == 't') AreaModule.areaList.delete(areaToDelete);
-                    } else {
-                        player.send(`Area ${areaToDelete} wasn't deleted.`);
-                    }
+                if (reallyDelete.toLowerCase() == 'y' || reallyDelete.toLowerCase() == 'yes') {
+                    deleteArea.delete(player, AREAS_DIR);
+                    if (fromMemory.toLowerCase() == 'true' || fromMemory == 't') AreaModule.areaList.delete(areaToDelete);
                 } else {
-                    player.send(`Area ${areaToDelete} doesn't exist!`);
+                    player.send(`Area ${areaToDelete} wasn't deleted.`);
                 }
+            } else {
+                player.send(`Area ${areaToDelete} doesn't exist!`);
             }
         } else {
             player.send(`Usage: deletearea areaname fromMemory`);
@@ -822,42 +824,92 @@ const AreaModule = {
         }
     },
 
+    /**
+     * Execute the "north" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeNorth(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.North);
     },
 
+    /**
+     * Execute the "south" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeSouth(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.South);
     },
 
+    /**
+     * Execute the "east" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeEast(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.East);
     },
 
+    /**
+     * Execute the "west" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeWest(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.West);
     },
 
+    /**
+     * Execute the "northeast" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeNorthEast(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.NorthEast);
     },
 
+    /**
+     * Execute the "northwest" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeNorthWest(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.NorthWest);
     },
 
+    /**
+     * Execute the "southeast" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeSouthEast(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.SouthEast);
     },
 
+    /**
+     * Execute the "southwest" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeSouthWest(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.SouthWest);
     },
 
+    /**
+     * Execute the "up" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeUp(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.Up);
     },
 
+    /**
+     * Execute the "down" command.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     executeDown(player, args) {
         AreaModule.movePlayer(player, Exit.ExitDirections.Down);
     },
@@ -1298,6 +1350,11 @@ const AreaModule = {
         }
     },
 
+    /**
+     * Handles the editing of room scripts.
+     * @param {object} player - The player object.
+     * @param {array} args - The command arguments.
+     */
     async editRoomScripts(player, args) {
         const [command, onEvent] = args;
         if (!command) {
@@ -1436,6 +1493,11 @@ const AreaModule = {
         }
     },
 
+    /**
+     * Save the state of a room exit.
+     * @param {object} player - The player object.
+     * @param {Exit} exit - The exit object.
+     */
     async saveRoomExitState(player, exit) {
         const reallyOverwrite = await player.textEditor.showPrompt(`Overwrite existing exit state? yes/no `);
 
@@ -1448,6 +1510,11 @@ const AreaModule = {
         }
     },
 
+    /**
+     * Save the state of a room.
+     * @param {object} player - The player object.
+     * @param {Room} room - The room object.
+     */
     async saveRoomState(player, room) {
         const reallyOverwrite = await player.textEditor.showPrompt(`Overwrite existing room state? yes/no `);
 

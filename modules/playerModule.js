@@ -1,3 +1,4 @@
+// Importing necessary modules
 const fs = require('fs');
 const path = require('path');
 const { formatTime } = require('./Mud/Helpers.js');
@@ -5,10 +6,22 @@ const Player = require('./PlayerModule/Player.js');
 const Status = require('./PlayerModule/Status.js');
 const TextEditor = require('./PlayerModule/TextEditor.js');
 
+/**
+ * Player module for MUD server.
+ * Handles player statuses, commands, and events related to players.
+ * 
+ * @module PlayerModule
+ */
 const PlayerModule = {
     STATUSES_PATH: path.join(__dirname, '../system', 'statuses.json'),
     name: "Player",
 
+    /**
+     * Adds a new status to the player statuses list.
+     * 
+     * @param {Player} player - The player adding the status.
+     * @param {Array<string>} args - Status arguments (name, type).
+     */
     async addStatus(player, args) {
         let [statusName, statusType] = args;
         try {
@@ -18,7 +31,7 @@ const PlayerModule = {
             }
 
             if (Player.validStatus(statusName)) {
-                player.send(`Status already exist!`);
+                player.send(`Status already exists!`);
                 return;
             }
 
@@ -30,7 +43,7 @@ const PlayerModule = {
             }
 
             const description = await player.textEditor.startEditing('');
-            if (!description && description?.trim() === '') {
+            if (!description || description.trim() === '') {
                 player.send('Invalid status description!');
                 return;
             }
@@ -42,6 +55,12 @@ const PlayerModule = {
         }
     },
 
+    /**
+     * Executes a global chat message.
+     * 
+     * @param {Player} player - The player sending the message.
+     * @param {Array<string>} args - Message arguments.
+     */
     executeGlobalChat(player, args) {
         const message = args.join(' ');
         const currentDate = new Date();
@@ -49,6 +68,12 @@ const PlayerModule = {
         PlayerModule.mudServer.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${message}`);
     },
 
+    /**
+     * Executes a say command for the player.
+     * 
+     * @param {Player} player - The player saying the message.
+     * @param {Array<string>} args - Message arguments.
+     */
     executeSay(player, args) {
         const message = args.join(' ');
 
@@ -56,6 +81,11 @@ const PlayerModule = {
         PlayerModule.mudServer.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
     },
 
+    /**
+     * Handles player connection.
+     * 
+     * @param {Socket} socket - The player's socket connection.
+     */
     onPlayerConnected: (socket) => {
         const player = new Player(socket, 'Guest');
         PlayerModule.mudServer.players.set(socket, player);
@@ -91,11 +121,15 @@ const PlayerModule = {
         });
 
     },
+
+    /**
+     * Handles actions to be taken after a hot boot.
+     */
     onHotBootAfter: () => {
         PlayerModule.saveAllPlayers();
 
-        updatedTextEditor = new TextEditor();
-        updatedPlayer = new Player();
+        const updatedTextEditor = new TextEditor();
+        const updatedPlayer = new Player();
 
         PlayerModule.mudServer.players.forEach(p => {
             Object.setPrototypeOf(p, updatedPlayer.__proto__);
@@ -103,6 +137,9 @@ const PlayerModule = {
         });
     },
 
+    /**
+     * Handles actions to be taken before a hot boot.
+     */
     onHotBootBefore: () => {
         PlayerModule.saveAllPlayers();
         PlayerModule.mudServer.off('hotBootAfter', PlayerModule.onHotBootAfter);
@@ -111,6 +148,13 @@ const PlayerModule = {
         PlayerModule.mudServer.off('sendToAll', PlayerModule.onSendToAll);
     },
 
+    /**
+     * Sends a message to all connected players.
+     * 
+     * @param {Player} player - The player sending the message.
+     * @param {string} message - The message to send.
+     * @param {Array<string>} [excludedPlayers=[]] - List of player usernames to exclude from receiving the message.
+     */
     onSendToAll(player, message, excludedPlayers = []) {
         PlayerModule.mudServer.players.forEach(p => {
             if (!excludedPlayers.includes(p.username)) {
@@ -119,6 +163,11 @@ const PlayerModule = {
         });
     },
 
+    /**
+     * Initializes the PlayerModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.PlayerModule = this;
         this.mudServer = mudServer;
@@ -129,10 +178,18 @@ const PlayerModule = {
         this.mudServer.on('sendToAll', this.onSendToAll);
     },
 
+    /**
+     * Loads the PlayerModule, including player statuses.
+     */
     load() {
         PlayerModule.loadStatuses();
     },
 
+    /**
+     * Loads player statuses from the JSON file.
+     * 
+     * @param {Player} [player] - The player loading the statuses (optional).
+     */
     loadStatuses(player) {
         try {
             const data = fs.readFileSync(PlayerModule.STATUSES_PATH, 'utf8');
@@ -149,14 +206,30 @@ const PlayerModule = {
         }
     },
 
+    /**
+     * Handles player quit action.
+     * 
+     * @param {Player} player - The player quitting.
+     */
     playerQuit(player) {
         player?.disconnect(true);
     },
 
+    /**
+     * Saves the player's data.
+     * 
+     * @param {Player} player - The player to save.
+     */
     playerSave(player) {
         player?.save();
     },
 
+    /**
+     * Removes a status from the player statuses list.
+     * 
+     * @param {Player} player - The player removing the status.
+     * @param {Array<string>} args - Status arguments (name).
+     */
     removeStatus(player, args) {
         const [statusName] = args;
         if (!statusName) {
@@ -170,6 +243,9 @@ const PlayerModule = {
         } else player.send(`Status ${statusName} not found!`);
     },
 
+    /**
+     * Saves all connected players' data.
+     */
     saveAllPlayers() {
         PlayerModule.mudServer.players.forEach(p => {
             if (!p.loggedIn) {
@@ -180,6 +256,11 @@ const PlayerModule = {
         });
     },
 
+    /**
+     * Saves player statuses to the JSON file.
+     * 
+     * @param {Player} [player] - The player saving the statuses (optional).
+     */
     saveStatuses(player) {
         try {
             const serializedData = PlayerModule.serializeStatuses(Player.Statuses);
@@ -187,11 +268,16 @@ const PlayerModule = {
             console.log("Statuses saved successfully.");
             if (player) player.send("Statuses saved successfully.");
         } catch (error) {
-            console.error("Failed to save items:", error);
+            console.error("Failed to save statuses:", error);
             if (player) player.send("Failed to save statuses.");
         }
     },
 
+    /**
+     * Serializes player statuses to an array of status objects.
+     * 
+     * @returns {Array<Object>} - Array of serialized status objects.
+     */
     serializeStatuses() {
         const statusesArray = [];
         for (const [name, status] of Player.Statuses.entries()) {
@@ -200,7 +286,7 @@ const PlayerModule = {
             };
             statusesArray.push(statusData);
         }
-        return statusesArray; // Pretty-print the JSON
+        return statusesArray;
     },
 };
 

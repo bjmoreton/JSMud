@@ -5,17 +5,33 @@ const Item = require('./ItemModule/Item');
 const { isNumber, sendNestedKeys } = require('./Mud/Helpers');
 const Key = require('./ItemModule/Key');
 
-// Inventory module
+/**
+ * Inventory module for handling items in the MUD server.
+ * 
+ * @module ItemModule
+ */
 const ItemModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     name: "Item",
     itemsList: new Map(),
+
+    /**
+     * Initialize the ItemModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.ItemModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
     },
 
+    /**
+     * Add a new item to the items list.
+     * 
+     * @param {Player} player - The player adding the item.
+     * @param {Array} args - Arguments for the item.
+     */
     addItem(player, args) {
         // Check if necessary arguments are present
         if (args.length < 2) {
@@ -50,6 +66,12 @@ const ItemModule = {
         player.send(`Item added: vNum: ${vNumInt} ${newItem.name} (Type: ${newItem.itemType})`);
     },
 
+    /**
+     * Edit an existing item.
+     * 
+     * @param {Player} player - The player editing the item.
+     * @param {Array} args - Arguments for the item edit.
+     */
     async editItem(player, args) {
         const [vNum, editWhat, value, ...data] = args;
         const vNumInt = parseInt(vNum);
@@ -97,12 +119,20 @@ const ItemModule = {
                     }
             }
 
-            if (eventObj.saved) player.send(`Item editted successfully!`);
+            if (eventObj.saved) player.send(`Item edited successfully!`);
         } else {
             player.send(`Usage: editItem vNum <description | flags | name>`);
         }
     },
 
+    /**
+     * Edit the flags of an item.
+     * 
+     * @param {Player} player - The player editing the item.
+     * @param {Item} item - The item being edited.
+     * @param {string} action - The action to perform (add/remove).
+     * @param {Array} data - The flags data.
+     */
     editItemFlags(player, item, action, data) {
         switch (action.toLowerCase()) {
             case "add":
@@ -120,6 +150,12 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Look up an item by its vNum.
+     * 
+     * @param {Player} player - The player looking up the item.
+     * @param {Array} args - The arguments for the lookup.
+     */
     executeLookupVNum(player, args) {
         const [vNum] = args;
 
@@ -129,10 +165,22 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Get an item by its vNum.
+     * 
+     * @param {number} vNum - The vNum of the item.
+     * @returns {Item|null} The item if found, null otherwise.
+     */
     getItemByVNum(vNum) {
         if (isNumber(vNum)) return ItemModule.itemsList.get(parseInt(vNum));
+        return null;
     },
 
+    /**
+     * Load items from the JSON file.
+     * 
+     * @param {Player} player - The player initiating the load.
+     */
     load(player) {
         try {
             const data = fs.readFileSync(ItemModule.ITEMS_PATH, 'utf8');
@@ -156,30 +204,53 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Handle actions before a hotboot.
+     */
     onHotBootBefore() {
         ItemModule.removeEvents();
     },
 
+    /**
+     * Handle actions when items are loading.
+     */
     onItemsLoading() {
         Item.addItemType(Key);
     },
 
+    /**
+     * Handle actions when a player logs in.
+     * 
+     * @param {Player} player - The player logging in.
+     */
     onPlayerLoggedIn: (player) => {
 
     },
 
+    /**
+     * Register events for the ItemModule.
+     */
     registerEvents() {
         ItemModule.mudServer.on('hotBootBefore', ItemModule.onHotBootBefore);
         ItemModule.mudServer.on('itemsLoading', ItemModule.onItemsLoading);
         ItemModule.mudServer.on('playerLoggedIn', ItemModule.onPlayerLoggedIn);
     },
 
+    /**
+     * Remove events for the ItemModule.
+     */
     removeEvents() {
         ItemModule.mudServer.off('hotBootBefore', ItemModule.onHotBootBefore);
         ItemModule.mudServer.off('itemsLoading', ItemModule.onItemsLoading);
         ItemModule.mudServer.off('playerLoggedIn', ItemModule.onPlayerLoggedIn);
     },
 
+    /**
+     * Remove an item from the items list.
+     * 
+     * @param {Player} player - The player removing the item.
+     * @param {Array} args - The arguments for the removal.
+     */
     async removeItem(player, args) {
         const [vNum] = args;
 
@@ -196,6 +267,11 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Save the items to the JSON file.
+     * 
+     * @param {Player} player - The player initiating the save.
+     */
     save(player) {
         try {
             const serializedData = ItemModule.serializeItems(ItemModule.itemsList);
@@ -208,6 +284,12 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Serialize the items list.
+     * 
+     * @param {Map} itemsMap - The map of items.
+     * @returns {Array} The serialized items array.
+     */
     serializeItems(itemsMap) {
         const itemsArray = [];
         for (const [vNum, item] of itemsMap.entries()) {
@@ -222,9 +304,15 @@ const ItemModule = {
         return itemsArray; // Pretty-print the JSON
     },
 
+    /**
+     * Spawn a new item.
+     * 
+     * @param {Player} player - The player spawning the item.
+     * @param {Array} args - The arguments for the spawn.
+     */
     spawnItem(player, args) {
         const [vNum, weightOffset, ...rarityNames] = args;
-        if (args === 0) {
+        if (args.length === 0) {
             player.send(`Usage: spawnItem [vNum] [weightOffset] [...Rarities]`);
             return;
         }

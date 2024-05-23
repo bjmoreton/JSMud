@@ -3,11 +3,23 @@ const path = require('path');
 const ServerCommand = require('./Mud/ServerCommand.js');
 const { isNumber } = require('./Mud/Helpers.js');
 
+/**
+ * Command Module for MUD server.
+ * Provides functionalities to add, edit, remove, and handle commands.
+ * 
+ * @module CommandModule
+ */
 const CommandModule = {
     COMMANDS_PATH: path.join(__dirname, '../system', 'commands.json'),
     commands: new Map(),
     name: 'Command',
 
+    /**
+     * Adds a new command to the command list.
+     * 
+     * @param {Player} player - The player adding the command.
+     * @param {Array<string>} args - Command arguments (name, level, action, aliases).
+     */
     addCommand(player, args) {
         const [cmdName, cmdLevel, cmdAction, ...cmdAliases] = args;
 
@@ -38,6 +50,12 @@ const CommandModule = {
         player.send(`Added command ${cmdName} successfully.`);
     },
 
+    /**
+     * Edits an existing command.
+     * 
+     * @param {Player} player - The player editing the command.
+     * @param {Array<string>} args - Command arguments (name, action, data).
+     */
     editCommand(player, args) {
         const [cmdName, cmdAction, ...cmdData] = args;
         let updated = false;
@@ -84,7 +102,7 @@ const CommandModule = {
                         updated = true;
                         break;
                     default:
-                        player.send(`Usage: editcommand commandnamee aliases <add | remove> aliases`);
+                        player.send(`Usage: editcommand commandname aliases <add | remove> aliases`);
                         break;
                 }
                 break;
@@ -116,20 +134,33 @@ const CommandModule = {
                 break;
         }
 
-        if (updated) player.send(`Editted command ${oldCMD} successfully.`);
+        if (updated) player.send(`Edited command ${oldCMD} successfully.`);
     },
 
+    /**
+     * Finds the action method for a command.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {string} cmdAction - The action string in format 'module.method'.
+     * @returns {Function|null} The action function if found, null otherwise.
+     */
     findAction(player, cmdAction) {
         const [moduleName, methodName] = cmdAction.split('.');
         const module = CommandModule.mudServer.modules[moduleName];
         const action = (module && module[methodName]) || CommandModule.mudServer[methodName];
         if (!action) {
             player.send(`Method '${methodName}' not found in module '${moduleName}'`);
-            return;
+            return null;
         }
         return action;
     },
 
+    /**
+     * Finds a command by its name or alias.
+     * 
+     * @param {string} command - The command name or alias.
+     * @returns {ServerCommand|null} The command if found, null otherwise.
+     */
     findCommand(command) {
         for (const [key, cmd] of CommandModule.commands) {
             if (cmd.aliases.includes(command.toLowerCase()) || cmd.command === command.toLowerCase()) {
@@ -139,12 +170,16 @@ const CommandModule = {
         return null; // Command not found
     },
 
+    /**
+     * Handles the execution of a command.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {string} command - The command string.
+     * @param {Object} eventObj - The event object.
+     */
     handleCommand(player, command, eventObj) {
         if (command == undefined || command == "") return;
-        // Split string by spaces, leaving spaces inside quotes alone
-        //const commandParts = command.match(/(?:[^\s"]+|"[^"]*")+/g);
         const commandParts = command.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
-        // Remove quotes from each part
         const cleanedParts = commandParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [cmdName, ...args] = cleanedParts;
         let handler = undefined;
@@ -164,12 +199,20 @@ const CommandModule = {
         }
     },
 
+    /**
+     * Initializes the CommandModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init(mudServer) {
         global.CommandModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
     },
 
+    /**
+     * Loads commands from the commands JSON file.
+     */
     load() {
         try {
             const data = fs.readFileSync(CommandModule.COMMANDS_PATH, 'utf-8');
@@ -193,10 +236,19 @@ const CommandModule = {
         }
     },
 
+    /**
+     * Handles the hot boot before event.
+     */
     onHotBootBefore() {
         CommandModule.removeEvents();
     },
 
+    /**
+     * Removes a command from the command list.
+     * 
+     * @param {Player} player - The player removing the command.
+     * @param {Array<string>} args - Command arguments (name).
+     */
     removeCommand(player, args) {
         const [cmdName] = args;
 
@@ -215,20 +267,37 @@ const CommandModule = {
         player.send(`Command ${cmdName} removed successfully.`);
     },
 
+    /**
+     * Removes event listeners for the module.
+     */
     removeEvents() {
         CommandModule.mudServer.off('handleCommand', CommandModule.handleCommand);
         CommandModule.mudServer.off('hotBootBefore', CommandModule.onHotBootBefore);
     },
 
+    /**
+     * Registers a command in the command list.
+     * 
+     * @param {string} name - The command name.
+     * @param {ServerCommand} handler - The command handler.
+     */
     registerCommand(name, handler) {
         CommandModule.commands.set(name.toLowerCase(), handler);
     },
 
+    /**
+     * Registers event listeners for the module.
+     */
     registerEvents() {
         CommandModule.mudServer.on('handleCommand', CommandModule.handleCommand);
         CommandModule.mudServer.on('hotBootBefore', CommandModule.onHotBootBefore);
     },
 
+    /**
+     * Saves the current commands to the JSON file.
+     * 
+     * @param {Player} player - The player saving the commands.
+     */
     save(player) {
         try {
             const commandsToSave = Array.from(CommandModule.commands.values()).map(({ handler, ...cmd }) => cmd);

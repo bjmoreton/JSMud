@@ -3,17 +3,34 @@ const fs = require('fs');
 const path = require('path');
 const Emote = require('./EmoteModule/Emote');
 
-// Emote module
+/**
+ * Emote module for MUD server.
+ * Handles emotes, including adding, editing, deleting, formatting, and handling emote actions.
+ * 
+ * @module EmoteModule
+ */
 const EmoteModule = {
     EMOTES_PATH: path.join(__dirname, '../system', 'emotes.json'),
     name: "Emote",
     emotesList: new Map(),
+
+    /**
+     * Initializes the EmoteModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.EmoteModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
     },
 
+    /**
+     * Adds a new emote to the emote list.
+     * 
+     * @param {Player} player - The player adding the emote.
+     * @param {Array<string>} args - Emote arguments (name, description).
+     */
     addEmote(player, args) {
         const [emoteName, ...data] = args;
 
@@ -23,21 +40,27 @@ const EmoteModule = {
                 EmoteModule.emotesList.set(emoteName.toLowerCase(), emoteAction);
                 player.send(`Emote ${emoteName} added successfully.`);
             } else {
-                player.send(`Emote ${emoteName} already exist!`);
+                player.send(`Emote ${emoteName} already exists!`);
             }
         } else {
             player.send(`Usage: addemote emote solodescription`);
         }
     },
 
+    /**
+     * Deletes an emote from the emote list.
+     * 
+     * @param {Player} player - The player deleting the emote.
+     * @param {Array<string>} args - Emote arguments (name).
+     */
     async deleteEmote(player, args) {
         const [emoteName, ...data] = args;
 
         if (emoteName !== undefined) {
             if (EmoteModule.emotesList.has(emoteName.toLowerCase())) {
-                const deleteForSure = await player.textEditor.showPrompt(`Delete emote ${emoteName}? y/n`)
+                const deleteForSure = await player.textEditor.showPrompt(`Delete emote ${emoteName}? y/n`);
 
-                if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
+                if (deleteForSure.toLowerCase() === 'y' || deleteForSure.toLowerCase() === 'yes') {
                     EmoteModule.emotesList.delete(emoteName.toLowerCase());
                     player.send(`Emote ${emoteName} removed successfully.`);
                 } else {
@@ -51,6 +74,12 @@ const EmoteModule = {
         }
     },
 
+    /**
+     * Edits an existing emote.
+     * 
+     * @param {Player} player - The player editing the emote.
+     * @param {Array<string>} args - Emote arguments (name, property, data).
+     */
     editEmote(player, args) {
         const [emoteName, emoteProperty, ...data] = args;
 
@@ -58,7 +87,7 @@ const EmoteModule = {
             if (EmoteModule.emotesList.has(emoteName.toLowerCase())) {
                 const emoteAction = EmoteModule.emotesList.get(emoteName.toLowerCase());
 
-                if(emoteProperty.toLowerCase() == 'name') {
+                if (emoteProperty.toLowerCase() === 'name') {
                     const oldName = emoteName;
                     const newName = data.join(' ');
                     EmoteModule.emotesList.delete(emoteName.toLowerCase());
@@ -66,6 +95,7 @@ const EmoteModule = {
                     player.send(`Renamed emote ${oldName} to ${newName}.`);
                 } else if (emoteAction[emoteProperty] !== undefined) {
                     emoteAction[emoteProperty] = data.join(' ');
+                    player.send(`Emote ${emoteName} property ${emoteProperty} updated successfully.`);
                 } else {
                     player.send(`Property ${emoteProperty} doesn't exist!`);
                 }
@@ -77,17 +107,29 @@ const EmoteModule = {
         }
     },
 
+    /**
+     * Formats an emote string by replacing placeholders.
+     * 
+     * @param {Player} player - The player performing the emote.
+     * @param {Player} target - The target player.
+     * @param {string} string - The emote string to format.
+     * @returns {string} The formatted emote string.
+     */
     formatEmote(player, target, string) {
-        return string?.replace('%p', player?.username)
-            .replace('%t', target?.username);
+        return string?.replace('%p', player?.username).replace('%t', target?.username);
     },
 
+    /**
+     * Handles an emote action.
+     * 
+     * @param {Player} player - The player performing the emote.
+     * @param {string} emote - The emote string.
+     * @param {Object} eventObj - The event object.
+     */
     handleEmote(player, emote, eventObj) {
-        if (emote == undefined || emote == "") return;
+        if (emote === undefined || emote === "") return;
 
-        // Split string by spaces, leaving spaces inside quotes alone
         const emoteParts = emote.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
-        // Remove quotes from each part
         const cleanedParts = emoteParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [emoteName, ...args] = cleanedParts;
         const emoteAction = EmoteModule.emotesList.get(emoteName);
@@ -108,13 +150,15 @@ const EmoteModule = {
         }
     },
 
+    /**
+     * Loads emotes from the JSON file.
+     * 
+     * @param {Player} [player] - The player loading the emotes (optional).
+     */
     load(player) {
         try {
-            // Reading the JSON file
             const data = fs.readFileSync(EmoteModule.EMOTES_PATH, 'utf8');
-            // Parse the JSON data
             const emotes = JSON.parse(data);
-            // Using Object.keys to get an array of emotes and then iterate
             Object.keys(emotes).forEach(emoteType => {
                 const [solo, you, target, others, othersSolo] = emotes[emoteType];
                 EmoteModule.emotesList.set(emoteType.toLowerCase(), new Emote(emoteType.toLowerCase(), solo, you, target, others, othersSolo));
@@ -126,21 +170,35 @@ const EmoteModule = {
         }
     },
 
+    /**
+     * Handles the hot boot before event.
+     */
     onHotBootBefore() {
         EmoteModule.removeEvents();
     },
 
+    /**
+     * Registers event listeners for the module.
+     */
     registerEvents() {
         EmoteModule.mudServer.on('handleEmote', EmoteModule.handleEmote);
         EmoteModule.mudServer.on('hotBootBefore', EmoteModule.onHotBootBefore);
     },
 
+    /**
+     * Removes event listeners for the module.
+     */
     removeEvents() {
         EmoteModule.mudServer.off('handleEmote', EmoteModule.handleEmote);
         EmoteModule.mudServer.off('hotBootBefore', EmoteModule.onHotBootBefore);
     },
 
-    save(player, args) {
+    /**
+     * Saves the current emotes to the JSON file.
+     * 
+     * @param {Player} player - The player saving the emotes.
+     */
+    save(player) {
         try {
             const emotesToSave = {};
             EmoteModule.emotesList.forEach((value, key) => {
@@ -153,6 +211,6 @@ const EmoteModule = {
             player.send(`${error}`);
         }
     },
-}
+};
 
 module.exports = EmoteModule;

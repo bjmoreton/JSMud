@@ -9,6 +9,13 @@ const InventoryModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     name: "Inventory",
 
+    /**
+     * Drop all items matching the given name from the player's inventory into the current room.
+     * 
+     * @param {Player} player - The player dropping the items.
+     * @param {Array} args - The arguments containing the item name.
+     * @returns {boolean} - True if items were dropped successfully, false otherwise.
+     */
     dropAll(player, args) {
         let [itemString] = args;
 
@@ -17,7 +24,6 @@ const InventoryModule = {
         const match = itemString?.match(indexPattern);
 
         if (match) {
-            // Extract index and new itemString
             itemIndex = parseInt(match[1], 10);
             itemString = match[2].trim();
         }
@@ -49,6 +55,13 @@ const InventoryModule = {
         return true;
     },
 
+    /**
+     * Drop a specific item from the player's inventory into the current room.
+     * 
+     * @param {Player} player - The player dropping the item.
+     * @param {Array} args - The arguments containing the item name and index.
+     * @returns {boolean} - True if the item was dropped successfully, false otherwise.
+     */
     dropItem(player, args) {
         let [itemString] = args;
         let itemIndex = 0;
@@ -58,7 +71,6 @@ const InventoryModule = {
         if (itemString === undefined) return;
 
         if (match) {
-            // Extract index and new itemString
             itemIndex = parseInt(match[1], 10);
             itemString = match[2].trim();
         }
@@ -85,6 +97,13 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Get the inventory of a room by matching coordinates.
+     * 
+     * @param {Area} area - The area containing the room.
+     * @param {Object} roomObj - The room object with coordinates.
+     * @returns {Inventory} - The inventory of the matched room.
+     */
     getRoomInventory(area, roomObj) {
         for (const section of area.sections.values()) {
             for (const room of section.rooms.values()) {
@@ -95,6 +114,15 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Handle taking items from a container.
+     * 
+     * @param {Player} player - The player taking the items.
+     * @param {string} itemName - The name of the item to take.
+     * @param {number} itemIndex - The index of the item to take.
+     * @param {string} containerName - The name of the container.
+     * @param {number} containerIndex - The index of the container.
+     */
     handleTakeFromContainer(player, itemName, itemIndex, containerName, containerIndex) {
         let containers = [
             ...player.currentRoom.inventory.findAllContainersByName(containerName),
@@ -145,12 +173,24 @@ const InventoryModule = {
         });
     },
 
+    /**
+     * Initialize the Inventory module.
+     * 
+     * @param {MudServer} mudServer - The mud server instance.
+     */
     init: function (mudServer) {
         global.InventoryModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
     },
 
+    /**
+     * Handle the look command executed by a player.
+     * 
+     * @param {Player} player - The player executing the look command.
+     * @param {Array} args - The arguments for the look command.
+     * @param {Object} eventObj - The event object.
+     */
     onExecutedLook(player, args, eventObj) {
         eventObj.handled = true;
         const parsePattern = /^(\d+)\.(.*)$/;
@@ -191,12 +231,20 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Update inventory references after a hot boot.
+     */
     onHotBootAfter() {
         InventoryModule.mudServer.players.forEach(player => {
             InventoryModule.updateInventoryReferences(player.inventory);
         });
     },
 
+    /**
+     * Update inventory references recursively.
+     * 
+     * @param {Inventory} inventory - The inventory to update.
+     */
     updateInventoryReferences(inventory) {
         for (const invItems of inventory.values()) {
             invItems.forEach(items => {
@@ -217,29 +265,59 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Handle pre-hot boot actions.
+     */
     onHotBootBefore() {
         InventoryModule.removeEvents();
     },
 
+    /**
+     * Handle item loading event.
+     * 
+     * @param {Player} player - The player triggering the event.
+     */
     onItemsLoading(player) {
         Item.addItemType(Container);
         Item.addItemFlag('groundrot', 'hidden', 'notake');
     },
 
+    /**
+     * Handle player loaded event.
+     * 
+     * @param {Player} player - The loaded player.
+     * @param {Object} playerData - The player data.
+     */
     onPlayerLoaded(player, playerData) {
         if (player.inventory !== undefined) player.inventory = Inventory.deserialize(JSON.stringify(playerData.inventory), playerData.inventory.maxSize);
     },
 
+    /**
+     * Handle player logged in event.
+     * 
+     * @param {Player} player - The logged-in player.
+     */
     onPlayerLoggedIn: (player) => {
         if (player.inventory == undefined || player.inventory == null) player.inventory = new Inventory();
     },
 
+    /**
+     * Handle player saved event.
+     * 
+     * @param {Player} player - The saved player.
+     * @param {Object} playerData - The player data.
+     * @returns {Object} - The updated player data.
+     */
     onPlayerSaved(player, playerData) {
         playerData.inventory = player.inventory.serialize();
-
         return playerData;
     },
 
+    /**
+     * Handle look command by displaying items in the current room.
+     * 
+     * @param {Player} player - The player executing the look command.
+     */
     onLooked(player) {
         if (player.currentRoom && player.currentRoom.inventory) {
             player.currentRoom.inventory?.forEach((details) => {
@@ -250,19 +328,21 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Handle room loaded event.
+     * 
+     * @param {Room} room - The loaded room.
+     * @param {Object} roomData - The room data.
+     */
     onRoomLoaded(room, roomData) {
         if (!room.defaultState.inventory) {
             room.defaultState.inventory = new Inventory(roomData.defaultState?.inventory?.maxSize ?? 20);
 
-            // Assuming roomData.defaultState.inventory.items is an array of item groups
             roomData.defaultState.inventory.items.forEach(roomItems => {
-                // Assuming each roomItems.data is an array of actual item data
                 roomItems.data.forEach(itemData => {
                     itemData.items.forEach(item => {
                         const itemType = Item.stringToItemType(item.itemType);
                         const itemObj = itemType.deserialize(roomItems.vNum, item);
-
-                        // Add the item to the room's default state inventory
                         room.defaultState.inventory.addItem(roomItems.vNum, itemObj, true);
                     });
                 });
@@ -270,50 +350,73 @@ const InventoryModule = {
         }
 
         if (!room.inventory) {
-            room.inventory = new Inventory(room.defaultState.inventory.maxSize); // Create new inventory for the room
-
+            room.inventory = new Inventory(room.defaultState.inventory.maxSize);
             room.defaultState.inventory.forEach((rarityMap, vNum) => {
                 rarityMap.forEach((items, rarity) => {
                     items.forEach(itemData => {
-                        const item = itemData.copy(); // Copy the item
-                        room.inventory.addItem(itemData.vNum, item, true); // Add the item to the room's inventory
+                        const item = itemData.copy();
+                        room.inventory.addItem(itemData.vNum, item, true);
                     });
                 });
             });
         }
     },
 
+    /**
+     * Handle room saved event.
+     * 
+     * @param {Player} player - The player triggering the event.
+     * @param {Room} room - The saved room.
+     * @param {Object} roomData - The room data.
+     */
     onRoomSaved(player, room, roomData) {
         roomData.defaultState.inventory = room.defaultState.inventory.serialize();
     },
 
+    /**
+     * Handle room state saved event.
+     * 
+     * @param {Player} player - The player triggering the event.
+     * @param {Room} room - The room whose state is saved.
+     */
     onRoomStateSaved(player, room) {
         room.defaultState?.inventory?.clear();
         room.defaultState.inventory = room.inventory?.copy();
     },
 
+    /**
+     * Parse an argument to extract an optional index and name.
+     * 
+     * @param {string} arg - The argument to parse.
+     * @returns {Array} - An array containing the index and name.
+     */
     parseArgument(arg) {
-        const parsePattern = /^(\d+)?\.(.*)$/; // Pattern to capture optional index and item or container
+        const parsePattern = /^(\d+)?\.(.*)$/;
         const match = arg.match(parsePattern);
         if (match) {
-            return [parseInt(match[1]), match[2]]; // index, name
+            return [parseInt(match[1]), match[2]];
         }
-        return [undefined, arg]; // no index provided, only name
+        return [undefined, arg];
     },
 
+    /**
+     * Put all items matching a name into a container.
+     * 
+     * @param {Player} player - The player putting the items.
+     * @param {Array} args - The arguments containing item and container names.
+     * @returns {boolean} - True if items were put successfully, false otherwise.
+     */
     putAllItems(player, args) {
         const parsePattern = /^(\d+)\.(.*)$/;
         let itemString, containerString;
 
         if (args.length === 1) {
-            // If only one argument, assume it's the container
             containerString = args[0];
             itemString = "";  // Indicates moving all items
         } else if (args.length === 0) {
             player.send(`Put what where?`);
             return false;
         } else {
-            // Otherwise, assume both item and container are specified
             [itemString, containerString] = args;
         }
 
@@ -330,7 +433,6 @@ const InventoryModule = {
 
         let items;
         if (itemString) {
-            // If an item name is provided, find all matching items
             let itemMatch = itemString.match(parsePattern);
             let itemName = itemMatch ? itemMatch[2].trim() : itemString.trim();
             items = player.inventory.findAllItemsByName(itemName);
@@ -339,9 +441,8 @@ const InventoryModule = {
                 return false;
             }
         } else {
-            // If no item name is provided, select all items from the inventory
             items = player.inventory.findAllItemsByName('');
-            items = items.filter(item => item !== container);  // Exclude the container itself
+            items = items.filter(item => item !== container);
         }
 
         let count = 0;
@@ -365,6 +466,13 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Put a specific item into a container.
+     * 
+     * @param {Player} player - The player putting the item.
+     * @param {Array} args - The arguments containing item and container names.
+     * @returns {boolean} - True if the item was put successfully, false otherwise.
+     */
     putItem(player, args) {
         let [itemString, containerString] = args;
 
@@ -426,6 +534,9 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Register module events with the MUD server.
+     */
     registerEvents() {
         InventoryModule.mudServer.on('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.on('hotBootAfter', InventoryModule.onHotBootAfter);
@@ -440,6 +551,9 @@ const InventoryModule = {
         InventoryModule.mudServer.on('roomStateSaved', InventoryModule.onRoomStateSaved);
     },
 
+    /**
+     * Unregister module events from the MUD server.
+     */
     removeEvents() {
         InventoryModule.mudServer.off('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.off('hotBootAfter', InventoryModule.onHotBootAfter);
@@ -454,27 +568,29 @@ const InventoryModule = {
         InventoryModule.mudServer.off('roomStateSaved', InventoryModule.onRoomStateSaved);
     },
 
+    /**
+     * Display the player's inventory.
+     * 
+     * @param {Player} player - The player whose inventory to show.
+     * @param {Array} args - The arguments containing an optional search term.
+     */
     showInventory(player, args) {
         const [searchTerm] = args;
 
-        // Header or introductory text for inventory
         player.send("Your inventory:");
 
-        // Check if the inventory is empty
         if (player.inventory.size === 0) {
             player.send("You are carrying nothing.");
             return;
         }
 
         if (searchTerm === undefined) {
-            // Display all items if no search term is provided
             player.inventory.forEach((details) => {
                 for (const items of details.values()) {
                     player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
                 }
             });
         } else {
-            // Display only items that include the search term in their name
             let found = false;
             player.inventory.forEach((details) => {
                 for (const items of details.values()) {
@@ -484,17 +600,21 @@ const InventoryModule = {
                     }
                 }
             });
-            // Feedback if no items matched the search term
             if (!found) {
                 player.send(`No items found matching '${searchTerm}'.`);
             }
         }
     },
 
+    /**
+     * Take all items matching a name from the room or container.
+     * 
+     * @param {Player} player - The player taking the items.
+     * @param {Array} args - The arguments containing item and container names.
+     */
     takeAllItems(player, args) {
         if (args.length === 0) {
             const takenItems = [];
-            // Take everything from the room
             player.currentRoom.inventory.forEach((rarityMap, vNum) => {
                 rarityMap.forEach((items, rarity) => {
                     items.forEach(item => {
@@ -517,25 +637,19 @@ const InventoryModule = {
         let firstArg = args[0];
         let secondArg = args[1];
 
-        // Parse first argument which could be 'item' or 'container'
         let [firstIndex, firstName] = InventoryModule.parseArgument(firstArg);
-        // If second argument exists, parse it as container
         let [secondIndex, secondName] = secondArg ? InventoryModule.parseArgument(secondArg) : [undefined, undefined];
 
         if (secondArg) {
-            // Assume second arg is always a container
             InventoryModule.handleTakeFromContainer(player, firstName, firstIndex, secondName, secondIndex);
         } else {
-            // Single argument, determine if it's an item type or container
             let containerList = player.currentRoom.inventory.findAllContainersByName(firstName);
             if (containerList.length > 0) {
-                // It's a container, take all from it
                 InventoryModule.handleTakeFromContainer(player, undefined, undefined, firstName, firstIndex);
             } else {
-                // It's an item type, take all items of this type from the room
                 let items = player.currentRoom.inventory.findAllItemsByName(firstName);
                 if (firstIndex !== undefined) {
-                    items = [items[firstIndex]]; // Specific item by index
+                    items = [items[firstIndex]];
                 }
 
                 items.forEach(item => {
@@ -548,23 +662,28 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Take a specific item from the room or container.
+     * 
+     * @param {Player} player - The player taking the item.
+     * @param {Array} args - The arguments containing item and container names.
+     * @returns {boolean} - True if the item was taken successfully, false otherwise.
+     */
     takeItem(player, args) {
-        const indexPattern = /^(\d*)\.(.*)$/; // Allows for optional index
+        const indexPattern = /^(\d*)\.(.*)$/;
         let itemString = args[0];
         let containerString = args[1];
 
         let itemIndex = 0, itemName, containerIndex = 0, containerName;
 
-        // Parse item argument
         let itemMatch = itemString.match(indexPattern);
         if (itemMatch) {
-            itemIndex = itemMatch[1] ? parseInt(itemMatch[1], 10) : 0; // Default index to 0 if not specified
+            itemIndex = itemMatch[1] ? parseInt(itemMatch[1], 10) : 0;
             itemName = itemMatch[2];
         } else {
             itemName = itemString;
         }
 
-        // If a second argument is provided, it's assumed to be a container
         let container;
         if (containerString) {
             let containerMatch = containerString.match(indexPattern);
@@ -585,7 +704,6 @@ const InventoryModule = {
         }
 
         if (container) {
-            // Taking from a specified container
             let items = container.inventory.findAllItemsByName(itemName);
             if (items.length > itemIndex) {
                 let selectedItem = items[itemIndex];
@@ -606,7 +724,6 @@ const InventoryModule = {
                 return false;
             }
         } else {
-            // Taking directly from the room, or container was not specified
             let items = player.currentRoom.inventory.findAllItemsByName(itemName);
             if (items.length > itemIndex) {
                 let selectedItem = items[itemIndex];
@@ -628,6 +745,6 @@ const InventoryModule = {
             }
         }
     },
-}
+};
 
 module.exports = InventoryModule;

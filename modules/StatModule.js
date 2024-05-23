@@ -4,12 +4,23 @@ const path = require('path');
 const Stat = require('./StatModule/Stat');
 const { isNumber, getRandomNumberInclusive } = require('./Mud/Helpers');
 
-// Stat module
+/**
+ * Stat module for MUD server.
+ * Handles stats, including adding, editing, deleting, loading, and saving stats.
+ * 
+ * @module StatModule
+ */
 const StatModule = {
     name: "Stat",
     STATS_PATH: path.join(__dirname, '../system', 'stats.json'),
     stats: new Map(),
 
+    /**
+     * Adds a new stat to the stats list.
+     * 
+     * @param {Player} player - The player adding the stat.
+     * @param {Array<string>} args - Stat arguments (name, short name).
+     */
     addStat(player, args) {
         const [name, shortName] = args;
         if (!name || !shortName) {
@@ -32,13 +43,17 @@ const StatModule = {
         player.send(`Stat ${name} added successfully!`);
     },
 
+    /**
+     * Retrieves a stat by its name or short name.
+     * 
+     * @param {string|object} statName - Stat name or stat object.
+     * @returns {Stat|null} - The stat object if found, null otherwise.
+     */
     getStat(statName) {
         if (statName.name) statName = statName.name;
 
-        // Convert statName to lowercase for case-insensitive comparison
         const statNameLower = statName.toLowerCase();
 
-        // Iterate through the stats to find and return the stat object by name or shortName
         for (const stat of StatModule.stats.values()) {
             if (stat.name.toLowerCase() === statNameLower ||
                 stat.shortName.toLowerCase() === statNameLower) {
@@ -46,22 +61,20 @@ const StatModule = {
             }
         }
 
-        // If no match is found, return null or handle it as needed
         return null;
     },
 
-    // Method to get a comma-separated string of stat short names in lowercase
+    /**
+     * Retrieves all stats as a comma-separated string of stat short names.
+     * 
+     * @returns {Array<string>} - Array of stat short names in lowercase.
+     */
     getStats() {
-        // Convert the map entries to an array
         const entries = Array.from(StatModule.stats.entries());
         const returnArray = [];
 
-        // Iterate over the entries in batches of five
         for (let i = 0; i < entries.length; i += 4) {
-            // Get the current batch
             const batch = entries.slice(i, i + 4);
-
-            // Create a string for the current batch
             const batchStr = batch.map(([key, value]) => `${value.shortName} - ${value.name}`).join(', ');
             returnArray.push(batchStr);
         }
@@ -69,25 +82,39 @@ const StatModule = {
         return returnArray;
     },
 
+    /**
+     * Checks if a stat exists by its name or short name.
+     * 
+     * @param {string|object} statName - Stat name or stat object.
+     * @returns {boolean} - True if the stat exists, false otherwise.
+     */
     hasStat(statName) {
         if (statName.name) statName = statName.name;
 
-        // Convert statName to lowercase for case-insensitive comparison
         const statNameLower = statName.toLowerCase();
 
-        // Iterate through the stats to find a match by name or shortName
         return Array.from(StatModule.stats.values()).some(stat =>
             stat.name.toLowerCase() === statNameLower ||
             stat.shortName.toLowerCase() === statNameLower
         );
     },
 
+    /**
+     * Initializes the StatModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
     init: function (mudServer) {
         global.StatModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
     },
 
+    /**
+     * Loads stats from the JSON file.
+     * 
+     * @param {Player} [player] - The player loading the stats (optional).
+     */
     load(player) {
         try {
             const data = fs.readFileSync(StatModule.STATS_PATH, 'utf8');
@@ -113,6 +140,12 @@ const StatModule = {
         StatModule.removeEvents();
     },
 
+    /**
+     * Handles item creation by adjusting item stats based on rarity.
+     * 
+     * @param {Player} player - The player creating the item.
+     * @param {Item} item - The item being created.
+     */
     onCreatedItem(player, item) {
         for (const statId in item.stats) {
             const stat = item.stats[statId];
@@ -124,8 +157,15 @@ const StatModule = {
         }
     },
 
+    /**
+     * Handles item editing for stats.
+     * 
+     * @param {Player} player - The player editing the item.
+     * @param {Item} item - The item being edited.
+     * @param {Object} eventObj - The event object containing arguments.
+     */
     onEditItem(player, item, eventObj) {
-        const [vNum, editWhat, action, ...data] = eventObj.args
+        const [vNum, editWhat, action, ...data] = eventObj.args;
         switch (editWhat.toLowerCase()) {
             case 'stats':
                 eventObj.handled = true;
@@ -188,6 +228,13 @@ const StatModule = {
         }
     },
 
+    /**
+     * Handles item deserialization for stats.
+     * 
+     * @param {Player} player - The player deserializing the item.
+     * @param {Item} item - The item being deserialized.
+     * @param {Object} data - The serialized data.
+     */
     onItemDeserialized(player, item, data) {
         if (data.stats) {
             if (!item.stats) item.stats = {};
@@ -210,6 +257,9 @@ const StatModule = {
         return playerData;
     },
 
+    /**
+     * Registers event listeners for the module.
+     */
     registerEvents() {
         StatModule.mudServer.on('createdItem', StatModule.onCreatedItem);
         StatModule.mudServer.on('editItem', StatModule.onEditItem);
@@ -220,6 +270,9 @@ const StatModule = {
         StatModule.mudServer.on('playerSaved', StatModule.onPlayerSaved);
     },
 
+    /**
+     * Removes event listeners for the module.
+     */
     removeEvents() {
         StatModule.mudServer.off('createdItem', StatModule.onCreatedItem);
         StatModule.mudServer.off('editItem', StatModule.onEditItem);
@@ -230,6 +283,12 @@ const StatModule = {
         StatModule.mudServer.off('playerSaved', StatModule.onPlayerSaved);
     },
 
+    /**
+     * Removes a stat from the stats list.
+     * 
+     * @param {Player} player - The player removing the stat.
+     * @param {Array<string>} args - Stat arguments (name).
+     */
     removeStat(player, args) {
         const [stat] = args;
         if (!stat) {
@@ -240,9 +299,14 @@ const StatModule = {
             const statObj = StatModule.getStat(stat);
             StatModule.stats.delete(statObj.name.toLowerCase());
             player.send(`Stat ${stat} removed successfully.`);
-        } else player.send(`Stat ${stat} not found!`)
+        } else player.send(`Stat ${stat} not found!`);
     },
 
+    /**
+     * Saves the current stats to the JSON file.
+     * 
+     * @param {Player} [player] - The player saving the stats (optional).
+     */
     save(player) {
         try {
             const serializedData = StatModule.serializeStats();
@@ -256,6 +320,11 @@ const StatModule = {
         }
     },
 
+    /**
+     * Serializes the current stats to an array of stat objects.
+     * 
+     * @returns {Array<Object>} - Array of serialized stat objects.
+     */
     serializeStats() {
         const statsArray = [];
         for (const [name, data] of StatModule.stats.entries()) {
@@ -267,12 +336,17 @@ const StatModule = {
         return statsArray;
     },
 
+    /**
+     * Displays the current stats to the player.
+     * 
+     * @param {Player} player - The player to display the stats to.
+     */
     showStats(player) {
         player.send(`Current stats:`);
         StatModule.getStats().forEach(stats => {
             player.send(stats);
         });
     }
-}
+};
 
 module.exports = StatModule;
