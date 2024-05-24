@@ -163,7 +163,7 @@ class Player {
         if (!fs.existsSync(directoryPath)) {
             fs.mkdirSync(directoryPath, { recursive: true });
         }
-        console.log(playerData);
+        
         fs.writeFileSync(filePath, JSON.stringify(playerData, null, 2));
         if(output) this.send("Saved!");
     }
