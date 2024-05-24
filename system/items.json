@@ -4,7 +4,7 @@
     "data": {
       "name": "Sword of Darkness",
       "nameDisplay": "Sword of Darkness",
-      "itemType": "equipment",
+      "itemType": "Equipment",
       "rarity": {
         "name": "trash",
         "symbol": "[&zT&~]",
@@ -17,6 +17,26 @@
       "layer": 1,
       "types": [
         "weapon"
+      ]
+    }
+  },
+  {
+    "vNum": 1,
+    "data": {
+      "name": "Sturdy Shield",
+      "nameDisplay": "Sturdy Shield",
+      "itemType": "Equipment",
+      "rarity": {
+        "name": "trash",
+        "symbol": "[&zT&~]",
+        "weight": 9,
+        "statReduction": 0.9,
+        "statAddition": 0
+      },
+      "vNum": 1,
+      "wearable": true,
+      "types": [
+        "off-hand"
       ]
     }
   }

@@ -49,7 +49,7 @@ class TextEditor {
         this.player.addStatus('editing');
         this.defaultValue = defaultValue;
         if (this.defaultValue != '' && this.defaultValue != undefined && this.defaultValue != null) {
-            this.textValues = this.defaultValue.split('\r\n');
+            this.textValues = this.defaultValue.split('\n');
             this.lineIndex = this.textValues.length + 1;
         } else {
             this.textValues = [];
@@ -72,7 +72,7 @@ class TextEditor {
      * Save the edited text.
      */
     saveText() {
-        this.resolveInputPromise(this.textValues.join('\r\n'));
+        this.resolveInputPromise(this.textValues.join('\n'));
         this.player.removeStatus('editing');
     }
 

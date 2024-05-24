@@ -153,8 +153,8 @@ class Player {
     /**
      * Save the player's data to a file.
      */
-    save() {
-        const { socket, connectionStatus, loggedIn, textEditor, currentRoom, currentArea, currentSection, ...playerData } = this;
+    save(output = true) {
+        const { socket, connectionStatus, loggedIn, textEditor, fadedTimeout, ...playerData } = this;
         playerData.statuses = Array.from(this.statuses.values()).map(status => status.serialize());
         global.mudServer.emit('playerSaved', this, playerData);
         const filePath = this.getFilePath();
@@ -163,9 +163,9 @@ class Player {
         if (!fs.existsSync(directoryPath)) {
             fs.mkdirSync(directoryPath, { recursive: true });
         }
-
+        console.log(playerData);
         fs.writeFileSync(filePath, JSON.stringify(playerData, null, 2));
-        this.send("Saved!");
+        if(output) this.send("Saved!");
     }
 
     /**
@@ -174,7 +174,7 @@ class Player {
      */
     send(message) {
         try {
-            if (!this.hasStatus('editing')) this.socket.write(`${parseColors(message)}\r\n`);
+            if (!this.hasStatus('editing')) this.socket.write(`${parseColors(message)}\n`);
         } catch (error) {
             console.log(`${this.username} failed to receive ${message}`);
             console.log(error);
@@ -187,7 +187,7 @@ class Player {
      */
     sendRAW(message) {
         try {
-            this.socket.write(`${message}\r\n`);
+            this.socket.write(`${message}\n`);
         } catch (error) {
             console.log(`${this.username} failed to receive ${message}`);
             console.log(error);

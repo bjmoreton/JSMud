@@ -1,7 +1,7 @@
 // Importing necessary modules
 const fs = require('fs');
 const path = require('path');
-const { formatTime } = require('./Mud/Helpers.js');
+const { formatTime, isNumber } = require('./Mud/Helpers.js');
 const Player = require('./PlayerModule/Player.js');
 const Status = require('./PlayerModule/Status.js');
 const TextEditor = require('./PlayerModule/TextEditor.js');
@@ -81,19 +81,30 @@ const PlayerModule = {
         PlayerModule.mudServer.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
     },
 
+    fadedTimeout(player) {
+        if (player.loggedIn) player.send(`You fade from existence.`);
+        player.faded = true;
+        player.fadedTimeout = setTimeout(() => { player.disconnect(player.loggedIn); }, 360000); // 5 minutes
+    },
+
     /**
      * Handles player connection.
      * 
      * @param {Socket} socket - The player's socket connection.
      */
     onPlayerConnected: (socket) => {
+        socket.setKeepAlive(true, 60000); // Send a keep-alive packet every 60 seconds
         const player = new Player(socket, 'Guest');
         PlayerModule.mudServer.players.set(socket, player);
-
+        player.fadedTimeout = setTimeout(() => { player.disconnect(player.loggedIn); }, 360000); // 5 minutes
         PlayerModule.mudServer.emit('handleLogin', player, "");
 
         player.socket.on('data', data => {
-            data = data.toString().replace("\r\n", "");
+            if (player.faded) {
+                if (player.loggedIn) player.send(`You materialize into being.`);
+                player.faded = false;
+            }
+            data = data.toString().replace("\n", "");
             const cleanedData = data.toString().trim();
             if (cleanedData.length === 0 || PlayerModule.mudServer.hotbooting) return;
 
@@ -110,6 +121,9 @@ const PlayerModule = {
                     }
                 } else PlayerModule.mudServer.emit('handleLogin', player, cleanedData);
             } else player.textEditor.processInput(cleanedData);
+
+            clearTimeout(player.fadedTimeout);
+            player.fadedTimeout = setTimeout(() => { PlayerModule.fadedTimeout(player); }, 720000); // 10 minutes
         });
 
         player.socket.on('error', error => {
@@ -252,7 +266,7 @@ const PlayerModule = {
                 p.disconnect(false);
                 return;
             }
-            p.save();
+            p.save(false);
         });
     },
 
@@ -287,6 +301,50 @@ const PlayerModule = {
             statusesArray.push(statusData);
         }
         return statusesArray;
+    },
+
+    /**
+     * Sets the moderator level of a specified player.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {Array<string>} args - Command arguments [playerName, modLevel].
+     */
+    setModLevel(player, args) {
+        const [playerName, modLevel] = args;
+
+        if (!playerName) {
+            player.send(`Usage: setmodlevel [player] [level]`);
+            return;
+        }
+
+        if (!modLevel || !isNumber(modLevel)) {
+            player.send(`Usage: setmodlevel ${playerName} [level]`);
+            return;
+        }
+
+        const newModLevel = parseInt(modLevel);
+        const playerModLevel = player.modLevel;
+
+        if (newModLevel > playerModLevel) {
+            player.send(`Cannot set a player's mod level higher than your own(${playerModLevel})!`);
+            return;
+        }
+
+        const playerToEdit = PlayerModule.mudServer.findPlayerByUsername(playerName);
+        if (playerToEdit === player) {
+            player.send(`Cannot update your own mod level!`);
+            return;
+        }
+
+        if (!playerToEdit) {
+            player.send(`Player ${playerName} not found.`);
+            return;
+        }
+
+        playerToEdit.modLevel = newModLevel;
+        playerToEdit.send(`New mod level set: ${newModLevel}.`);
+        playerToEdit.save(false);
+        player.send(`New mod level(${newModLevel}) set for ${playerToEdit.username} successfully.`);
     },
 };
 

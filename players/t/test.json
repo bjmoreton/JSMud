@@ -2,7 +2,7 @@
   "username": "test",
   "commands": [],
   "canBuild": false,
-  "modLevel": 0,
+  "modLevel": 90,
   "statuses": [
     {
       "description": "Standing",
@@ -20,8 +20,16 @@
   },
   "eqSlots": {
     "weapon": {
+      "displayString": "<Wielded>",
       "name": "Weapon",
-      "eqType": "Weapon",
+      "eqType": "Equipment",
+      "layers": 1,
+      "items": []
+    },
+    "off-hand": {
+      "displayString": "<Off-Hand>",
+      "name": "Off-Hand",
+      "eqType": "Equipment",
       "layers": 1,
       "items": []
     }

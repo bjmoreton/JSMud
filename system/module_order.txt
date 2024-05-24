@@ -9,7 +9,6 @@ ItemModule/Key
 ItemModule
 EquipmentModule/Equipment
 EquipmentModule/EquipmentSlot
-EquipmentModule/Weapon
 EquipmentModule
 InventoryModule/Container
 InventoryModule/Inventory

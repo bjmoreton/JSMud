@@ -231,7 +231,7 @@ const HelpfileModule = {
     load: function () {
         try {
             const dataSync = fs.readFileSync(HELP_FILES_TEMPLATE, 'utf8');
-            HelpfileModule.Template = dataSync?.split('\r\n');
+            HelpfileModule.Template = dataSync?.split('\n');
         } catch (err) {
             console.error('Error reading file synchronously:', err);
         }

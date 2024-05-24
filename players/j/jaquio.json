@@ -52,9 +52,29 @@
       "name": "Off-Hand",
       "eqType": "Equipment",
       "layers": 1,
-      "items": []
+      "items": [
+        {
+          "name": "Sturdy Shield",
+          "nameDisplay": "Sturdy Shield",
+          "itemType": "Equipment",
+          "rarity": {
+            "name": "trash",
+            "symbol": "[&zT&~]",
+            "weight": 9,
+            "statReduction": 0.9,
+            "statAddition": 0
+          },
+          "vNum": 1,
+          "wearable": true,
+          "types": [
+            "off-hand"
+          ]
+        }
+      ]
     }
   },
   "currentArea": "Start",
-  "currentSection": "Start"
+  "currentSection": "Start",
+  "currentRoom": "Empty Void",
+  "faded": true
 }

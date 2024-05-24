@@ -115,15 +115,6 @@ class MUDServer extends EventEmitter {
     }
 
     /**
-     * Check if a command exists.
-     * @param {string} command - The command to check.
-     * @returns {boolean} True if the command exists, false otherwise.
-     */
-    commandExist(command) { 
-        return this.commands.includes(command); 
-    }
-
-    /**
      * Add an event listener.
      * @param {string} event - The event name.
      * @param {Function} listener - The listener function.
@@ -352,7 +343,7 @@ class MUDServer extends EventEmitter {
     loadTitle() {
         try {
             const dataSync = fs.readFileSync(MUDServer.MUD_TITLE_PATH, 'utf8');
-            this.mudTitle = dataSync + '\r\n';
+            this.mudTitle = dataSync + '\n';
         } catch (err) {
             console.error('Error reading file synchronously:', err);
         }

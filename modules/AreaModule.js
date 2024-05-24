@@ -97,7 +97,7 @@ const AreaModule = {
     loadRoomTemplate() {
         try {
             const data = fs.readFileSync(ROOM_TEMPLATE, 'utf8');
-            AreaModule.roomTemplate = data.split('\r\n');
+            AreaModule.roomTemplate = data.split('\n');
         } catch (err) {
             console.error('Error reading room template:', err);
         }
@@ -197,7 +197,7 @@ const AreaModule = {
      */
     onExitedRoom(player, enterDirection, room) {
         let message = '';
-        if (player?.inRoom(room)) {
+        if (player.inRoom && player.inRoom(room)) {
             room.removePlayer(player);
             if (enterDirection && enterDirection != Exit.ExitDirections.None) message = `${player.username} left in the ${enterDirection} direction.`;
             else message = `${player.username} left the room.`;
@@ -263,6 +263,7 @@ const AreaModule = {
      */
     onPlayerSaved(player, playerData) {
         playerData.currentArea = player.currentArea?.name;
+        playerData.currentRoom = player.currentRoom?.name;
         playerData.currentSection = player.currentSection?.name;
         playerData.workingArea = player.workingArea?.name;
         playerData.workingSection = player.workingSection?.name;
@@ -360,17 +361,17 @@ const AreaModule = {
                 .replace('%areaname', player.currentArea?.nameDisplay)
                 .replace('%sectionname', player.currentSection?.nameDisplay)
                 .replace('%updatedate', player.currentRoom?.lastUpdate);
-            roomTemplate += parsedData + "\r\n";
+            roomTemplate += parsedData + "\n";
         });
 
-        const dataSplit = roomTemplate.split('\r\n');
+        const dataSplit = roomTemplate.split('\n');
         const map = AreaModule.displayMap(player);
-        const mapSplit = map?.split('\r\n');
+        const mapSplit = map?.split('\n');
         let x = 0;
         let y = mapStart;
 
         for (let i = 0; i < mapStart; i++) {
-            output += dataSplit[i] + "\r\n";
+            output += dataSplit[i] + "\n";
         }
 
         while (mapSplit?.length > x || y < dataSplit.length) {
@@ -384,7 +385,7 @@ const AreaModule = {
                 else output += dataSplit[y];
                 y++;
             }
-            output += '\r\n';
+            output += '\n';
         }
         return output.trim();
     },
@@ -451,7 +452,7 @@ const AreaModule = {
             for (let x = minX; x <= maxX; x++) {
                 mapString += roomMap.get(x)?.get(y) || area.blankSymbol + '&~';
             }
-            mapString += "|\r\n";
+            mapString += "|\n";
         }
 
         // Calculate the width of the map
@@ -464,7 +465,7 @@ const AreaModule = {
         const rightPadding = totalPadding - leftPadding;
 
         // Create the centered coordinate line
-        const coordinateLine = " ".repeat(leftPadding) + coordinateString + " ".repeat(rightPadding) + "|\r\n";
+        const coordinateLine = " ".repeat(leftPadding) + coordinateString + " ".repeat(rightPadding) + "|\n";
 
         // Append the centered coordinate line to the map string
         mapString += coordinateLine;
@@ -575,7 +576,7 @@ const AreaModule = {
         const [direction] = args;
 
         if (direction === undefined) {
-            const roomTemplate = AreaModule.builtRoomTemplate(player)?.split('\r\n');
+            const roomTemplate = AreaModule.builtRoomTemplate(player)?.split('\n');
             roomTemplate.forEach(string => {
                 player.send(`${string}`);
             });

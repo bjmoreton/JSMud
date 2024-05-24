@@ -151,7 +151,7 @@ const EquipmentModule = {
             if (player) player.send("Equipment slots loaded successfully.");
 
             global.ItemModule.addEditItemAction('layer', [`editItem [vNum] layer [layer(number)]`], EquipmentModule.editLayer);
-            global.ItemModule.addEditItemAction('type', [`edititem [vNum] type <add | remove> [type]`], EquipmentModule.editType);
+            global.ItemModule.addEditItemAction('type', [`edititem [vNum] type <add | remove> [...type]`], EquipmentModule.editType);
             global.ItemModule.addEditItemAction('wearable', [`editItem [vNum] wearable [true/false]`], EquipmentModule.editWearable);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
@@ -191,13 +191,23 @@ const EquipmentModule = {
         const [vNum, editWhat, action, ...data] = eventObj.args;
 
         if (!action) {
-            player.send(`Usage: edititem ${vNum} type <add | remove> [type]`);
+            player.send(`Usage: edititem ${vNum} type <add | remove> [...type]`);
             return false;
         }
 
         if (!item.types) item.types = [];
         switch (action.toLowerCase()) {
             case 'add':
+                if (data.length === 0) {
+                    player.send(`Usage edititem ${vNum} type add [...type]`);
+                    player.send(`Valid Options:`);
+                    EquipmentModule.getFormattedEquipmentSlots().forEach(slots => {
+                        player.send(`${slots}`);
+                    })
+                    eventObj.saved = false;
+                    return false;
+                }
+
                 const types = data;
                 types.forEach(type => {
                     if (EquipmentModule.equipmentSlots.has(type.toLowerCase())) {
@@ -206,6 +216,16 @@ const EquipmentModule = {
                 });
                 return true;
             case 'remove':
+                if (data.length === 0) {
+                    player.send(`Usage edititem ${vNum} type remove [...type]`);
+                    player.send(`Valid Options:`);
+                    EquipmentModule.getFormattedEquipmentSlots().forEach(slots => {
+                        player.send(`${slots}`);
+                    })
+                    eventObj.saved = false;
+                    return false;
+                }
+
                 types.forEach(type => {
                     const index = item.types.indexOf(type.toLowerCase());
                     if (index > -1) {
@@ -234,7 +254,7 @@ const EquipmentModule = {
             player.send(`Usage: editItem ${vNum} wearable true/false`);
             return false;
         }
-        
+
         const wearable = stringToBoolean(action);
         if (wearable) {
             item.wearable = wearable;
@@ -361,12 +381,12 @@ const EquipmentModule = {
                 const unequipped = player.eqSlots[slotName].unequip(highestLayeredItem);
                 if (unequipped === true) {
                     if (player.inventory.addItem(highestLayeredItem.vNum, highestLayeredItem)) { // Add item back to inventory
-                        player.send(`You remove ${highestLayeredItem.name} from your ${slotName} slot and put it back in your inventory.`);
+                        player.send(`You remove ${highestLayeredItem.displayString} from your ${slotName} slot and put it back in your inventory.`);
                         return true;
                     } else {
                         if (player.inventory.isFull) {
                             player.send(`Inventory full!`);
-                        } else player.send(`Failed to remove ${highestLayeredItem.name}!`);
+                        } else player.send(`Failed to remove ${highestLayeredItem.displayString}!`);
                         player.eqSlots[slotName].equip(highestLayeredItem);
                         return false;
                     }
@@ -401,12 +421,12 @@ const EquipmentModule = {
         const unequipped = player.eqSlots[key].unequip(item);
         if (unequipped === true) {
             if (player.inventory.addItem(item.vNum, item)) { // Add item back to inventory
-                player.send(`You remove ${item.name} from your ${key} slot and put it back in your inventory.`);
+                player.send(`You remove ${item.displayString} from your ${key} slot and put it back in your inventory.`);
                 return true;
             } else {
                 if (player.inventory.isFull) {
                     player.send(`Inventory full!`);
-                } player.send(`Failed to remove ${item.name}!`);
+                } player.send(`Failed to remove ${item.displayString}!`);
                 player.eqSlots[key].equip(item);
                 return false;
             }
@@ -432,11 +452,11 @@ const EquipmentModule = {
                         if (!player.inventory.addItem(item.vNum, item)) {
                             if (player.inventory.isFull) {
                                 player.send(`Inventory full! Could not remove all items.`);
-                            } else player.send(`Failed to remove ${item.name} from your ${slot} slot.`);
+                            } else player.send(`Failed to remove ${item.displayString} from your ${slot} slot.`);
                             player.eqSlots[slot].equip(item);
                             return false;
                         }
-                        player.send(`You remove ${item.name} from your ${slot} slot and put it back in your inventory.`);
+                        player.send(`You remove ${item.displayString} from your ${slot} slot and put it back in your inventory.`);
                     } else {
                         player.send(`${unequipped}`);
                         return false;
@@ -523,7 +543,7 @@ const EquipmentModule = {
             let position = initialPosition;
 
             for (const item of equipmentSlot.items.values()) {
-                let itemName = item.name;
+                let itemName = item.displayString;
                 if (itemName.length > maxLineLength - tabLength) {
                     itemName = itemName.slice(0, maxLineLength - tabLength - 3) + '...';
                 }
@@ -609,7 +629,7 @@ const EquipmentModule = {
 
         // Check if the item is a wearable type (e.g., armor)
         if (!item.wearable) {
-            player.send(`You can't wear ${item.name}.`);
+            player.send(`You can't wear ${item.displayString}.`);
             return;
         }
 
@@ -625,7 +645,7 @@ const EquipmentModule = {
         // Check if the player has the corresponding equipment slot available
         const slot = player.eqSlots[slotName];
         if (!slot) {
-            player.send(`You can't wear a ${item.name} because you don't have the ${slotName} slot.`);
+            player.send(`You can't wear a ${item.displayString} because you don't have the ${slotName} slot.`);
             return;
         }
 
@@ -633,7 +653,7 @@ const EquipmentModule = {
         const equippedItem = slot.equip(item);
         if (equippedItem === true) {
             player.inventory.removeItem(item); // Remove the item from inventory
-            player.send(`You start using ${item.name}.`);
+            player.send(`You start using ${item.displayString}.`);
         } else {
             player.send(`${equippedItem}`);
         }
@@ -667,16 +687,16 @@ const EquipmentModule = {
                     const equippedItem = slot.equip(item);
                     if (equippedItem === true) {
                         player.inventory.removeItem(item); // Remove the item from inventory
-                        player.send(`You start using ${item.name}.`);
+                        player.send(`You start using ${item.displayString}.`);
                         wornItemsCount++;
                     } else {
                         player.send(`${equippedItem}`);
                     }
                 } else {
-                    player.send(`You can't wear a ${item.name} because you don't have the ${slotName} slot.`);
+                    player.send(`You can't wear a ${item.displayString} because you don't have the ${slotName} slot.`);
                 }
             } else {
-                player.send(`You can't wear a ${item.name}.`);
+                player.send(`You can't wear a ${item.displayString}.`);
             }
         });
 

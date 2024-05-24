@@ -76,7 +76,7 @@
               "y": -9,
               "z": 0,
               "progs": {
-                "onmessage": "if(message.toLowerCase() === 'open please') {\r\n this.unlock(player, [true]); if(this.isUnlocked()) {\r\nthis.open(player);\r\n}\r\n}"
+                "onmessage": "if(message.toLowerCase() === 'open please') {\n this.unlock(player, [true]); if(this.isUnlocked()) {\nthis.open(player);\n}\n}"
               },
               "teleport": true
             }
@@ -192,7 +192,7 @@
               "y": 0,
               "z": 0,
               "progs": {
-                "onmessage": "if(message.toLowerCase() === 'open please') {\r\n this.unlock(player, [true]); if(this.isUnlocked()) {\r\nthis.open(player);\r\n}\r\n}"
+                "onmessage": "if(message.toLowerCase() === 'open please') {\n this.unlock(player, [true]); if(this.isUnlocked()) {\nthis.open(player);\n}\n}"
               },
               "teleport": true
             },

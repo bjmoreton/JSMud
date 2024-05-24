@@ -681,5 +681,13 @@
     ],
     "action": "Command.showCommands",
     "modLevel": 0
+  },
+  {
+    "command": "setmodlevel",
+    "aliases": [
+      "setmlevel"
+    ],
+    "action": "Player.setModLevel",
+    "modLevel": 75
   }
 ]

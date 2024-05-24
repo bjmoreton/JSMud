@@ -320,11 +320,13 @@ const InventoryModule = {
      */
     onLooked(player) {
         if (player.currentRoom && player.currentRoom.inventory) {
-            player.currentRoom.inventory?.forEach((details) => {
-                for (const items of details.values()) {
-                    player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
-                }
-            });
+            if (player.currentRoom.inventory.size > 0) {
+                player.currentRoom.inventory.forEach((details) => {
+                    for (const items of details.values()) {
+                        player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
+                    }
+                });
+            }
         }
     },
 
