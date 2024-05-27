@@ -584,7 +584,7 @@ const AreaModule = {
                 if (p === player) return;
                 player.send(`You see ${p.username}.`);
                 for (const [name, status] of p.statuses) {
-                    player.send(`\t- ${status.description}`);
+                    player.send(`\t- ${status.lookDescription}`);
                 }
             });
             AreaModule.mudServer.emit('looked', player);

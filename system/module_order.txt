@@ -21,6 +21,9 @@ AreaModule/Section
 AreaModule
 HelpfileModule/Helpfile
 HelpfileModule
+StatusModule/Statuses
+StatusModule/Status
+StatusModule
 PlayerModule/TextEditor
 PlayerModule/Player
 PlayerModule

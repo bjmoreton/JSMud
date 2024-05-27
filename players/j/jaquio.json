@@ -3,15 +3,15 @@
   "commands": [],
   "canBuild": false,
   "modLevel": 100,
-  "statuses": [
-    {
-      "description": "Standing",
-      "name": "Standing",
-      "type": 2
-    }
-  ],
   "workingArea": "Start",
   "workingSection": "Start",
+  "statuses": [
+    {
+      "name": "Standing",
+      "type": 2,
+      "gotDescription": "You stand up."
+    }
+  ],
   "password": "$2b$10$WofDA/d2PexyBdB/gHxTiOQgFOpHNbt8VHm2u8LGrJD7O2Pq7lRZ6",
   "currentX": 0,
   "currentY": 0,
@@ -26,55 +26,18 @@
       "name": "Weapon",
       "eqType": "Equipment",
       "layers": 1,
-      "items": [
-        {
-          "name": "Sword of Darkness",
-          "nameDisplay": "Sword of Darkness",
-          "itemType": "Equipment",
-          "rarity": {
-            "name": "uncommon",
-            "statAddition": 0.4,
-            "statReduction": 0.6,
-            "symbol": "[UC]",
-            "weight": 6
-          },
-          "vNum": 0,
-          "wearable": true,
-          "layer": 1,
-          "types": [
-            "weapon"
-          ]
-        }
-      ]
+      "items": []
     },
     "off-hand": {
       "displayString": "<Off-Hand>",
       "name": "Off-Hand",
       "eqType": "Equipment",
       "layers": 1,
-      "items": [
-        {
-          "name": "Sturdy Shield",
-          "nameDisplay": "Sturdy Shield",
-          "itemType": "Equipment",
-          "rarity": {
-            "name": "trash",
-            "symbol": "[&zT&~]",
-            "weight": 9,
-            "statReduction": 0.9,
-            "statAddition": 0
-          },
-          "vNum": 1,
-          "wearable": true,
-          "types": [
-            "off-hand"
-          ]
-        }
-      ]
+      "items": []
     }
   },
   "currentArea": "Start",
   "currentSection": "Start",
   "currentRoom": "Empty Void",
-  "faded": true
+  "faded": false
 }

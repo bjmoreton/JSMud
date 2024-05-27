@@ -107,7 +107,7 @@ const HelpfileModule = {
                         let keywordString = textValue;
 
                         // Split string by spaces, leaving spaces inside quotes alone
-                        const keywords = keywordString.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
+                        const keywords = keywordString.match(/(".*?"|'.*?'|`.*?`|\S+)/g);
                         if (keywords != "" || keywords != null || keywords != undefined) {
                             // Remove quotes from each part
                             const cleanedKeywords = keywords.map(keyword => keyword.replace(/^["'`]|["'`]$/g, ''));

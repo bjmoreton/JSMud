@@ -179,9 +179,13 @@ const CommandModule = {
      */
     handleCommand(player, command, eventObj) {
         if (command == undefined || command == "") return;
-        const commandParts = command.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
+        console.log(command);
+
+        const commandParts = command.match(/(".*?"|'.*?'|`.*?`|\S+)/g);
+        console.log(commandParts);
         const cleanedParts = commandParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [cmdName, ...args] = cleanedParts;
+        console.log(cleanedParts);
         let handler = undefined;
         if (args.length > 0) {
             handler = CommandModule.findCommand(`${cmdName} ${args[0]}`);

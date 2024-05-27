@@ -129,7 +129,7 @@ const EmoteModule = {
     handleEmote(player, emote, eventObj) {
         if (emote === undefined || emote === "") return;
 
-        const emoteParts = emote.match(/(?:[^\s"'`]+|["'][^"'`]*["']|`[^`]*`)+/g);
+        const emoteParts = emote.match(/(".*?"|'.*?'|`.*?`|\S+)/g);
         const cleanedParts = emoteParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [emoteName, ...args] = cleanedParts;
         const emoteAction = EmoteModule.emotesList.get(emoteName);
