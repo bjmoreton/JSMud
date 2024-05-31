@@ -21,7 +21,7 @@ class Section {
         this.nameDisplay = nameDisplay;
         this.rooms = new Map();
         this.vSize = vSize;
-
+        this.resetEnabled = false;
         this.startResetTimer();
     }
 
@@ -48,6 +48,7 @@ class Section {
             inRange(z, -this.vSize, this.vSize)) {
             const room = new Room(area, section, 'Empty Void', 'A void of emptiness!', x, y, z);
             this.rooms.set(`${x},${y},${z}`, room);
+            global.mudServer.emit('roomLoaded', room);
             player.send(`Room added!`);
             return room;
         } else {
@@ -98,20 +99,21 @@ class Section {
      * Resets the section's rooms to their default state and sends a reset message.
      */
     reset() {
-        this.rooms.forEach(room => {
-            room.flags = room.defaultState.flags;
-            global.mudServer.emit('roomReset', room);
-            // Reset other properties as needed
-        });
+        if (this.resetEnabled) {
+            this.rooms.forEach(room => {
+                room.flags = room.defaultState.flags;
+                global.mudServer.emit('roomReset', room);
+                // Reset other properties as needed
+            });
 
-        const messages = this.resetMessages;
-        let message = 'You feel a sudden shift as the area resets.';
-        if (messages && Array.isArray(this.resetMessages) && this.resetMessages.length > 0) {
-            message = messages[Math.floor(Math.random() * messages.length)];
+            const messages = this.resetMessages;
+            let message = 'You feel a sudden shift as the area resets.';
+            if (messages && Array.isArray(this.resetMessages) && this.resetMessages.length > 0) {
+                message = messages[Math.floor(Math.random() * messages.length)];
+            }
+
+            global.mudServer.emit('sendToSectionMessage', this, message);
         }
-
-        global.mudServer.emit('sendToSectionMessage', this, message);
-
         // Reset for a new random interval so it isn't the same from time of creation
         this.startResetTimer();
     }
@@ -124,7 +126,7 @@ class Section {
         const minInterval = (isNaN(this.minReset) ? 8 : this.minReset) * 60 * 1000; // 8 minutes in milliseconds
         const maxInterval = (isNaN(this.maxReset) ? 15 : this.maxReset) * 60 * 1000; // 15 minutes in milliseconds as default
         const intervalMS = getRandomNumberInclusive(minInterval, maxInterval);
-        if(!isNaN(intervalMS)) this.intervalId = setInterval(() => this.reset(), intervalMS);
+        if (!isNaN(intervalMS)) this.intervalId = setInterval(() => this.reset(), intervalMS);
     }
 }
 

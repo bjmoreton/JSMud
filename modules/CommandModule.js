@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const ServerCommand = require('./Mud/ServerCommand.js');
-const { isNumber } = require('./Mud/Helpers.js');
+const { isNumber, sendNestedKeys } = require('./Mud/Helpers.js');
 
 /**
  * Command Module for MUD server.
@@ -179,13 +179,11 @@ const CommandModule = {
      */
     handleCommand(player, command, eventObj) {
         if (command == undefined || command == "") return;
-        console.log(command);
-
+        const regex = /^\S+\s+(.*)$/;
+        const cleanInput = command.match(regex);
         const commandParts = command.match(/(".*?"|'.*?'|`.*?`|\S+)/g);
-        console.log(commandParts);
         const cleanedParts = commandParts.map(part => part.replace(/^["'`]|["'`]$/g, ''));
         const [cmdName, ...args] = cleanedParts;
-        console.log(cleanedParts);
         let handler = undefined;
         if (args.length > 0) {
             handler = CommandModule.findCommand(`${cmdName} ${args[0]}`);
@@ -199,7 +197,7 @@ const CommandModule = {
 
         if (handler) {
             eventObj.handled = true;
-            handler.execute(player, args);
+            handler.execute(player, args, cleanInput ? cleanInput[1] : '');
         }
     },
 
@@ -313,6 +311,25 @@ const CommandModule = {
         }
     },
 
+    showCommand(player, args) {
+        const [command] = args;
+        if (!command) {
+            player.send(`Usage: showcommand [command]`);
+            return;
+        }
+
+        const commandObj = CommandModule.findCommand(command);
+        if (commandObj) {
+            if (player.modLevel >= commandObj.modLevel) {
+                sendNestedKeys(player, commandObj);
+            } else {
+                player.send(`Command ${command} doesn't exist!`);
+            }
+        } else {
+            player.send(`Command ${command} doesn't exist!`);
+        }
+    },
+
     /**
      * Shows the list of commands, optionally filtered by a search term, in batches of 5.
      * 
@@ -327,18 +344,18 @@ const CommandModule = {
             .map(([cmdName]) => cmdName)
             .sort();
         let filteredCommands;
-    
+
         if (searchTerm) {
             filteredCommands = commandsArray.filter(cmd => cmd.toLowerCase().includes(searchTerm.toLowerCase()));
         } else {
             filteredCommands = commandsArray;
         }
-    
+
         if (filteredCommands.length === 0) {
             player.send(`No commands found matching '${searchTerm}'.`);
             return;
         }
-    
+
         for (let i = 0; i < filteredCommands.length; i += batchSize) {
             const batch = filteredCommands.slice(i, i + batchSize);
             player.send(`Commands: ${batch.join(', ')}`);

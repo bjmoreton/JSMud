@@ -17,6 +17,7 @@ class EquipmentSlot {
         this.eqType = Item.stringToItemType(eqType);
         this.layers = parseInt(layers);
         this.items = new Map();
+        this.saved = false;
     }
 
     /**
@@ -27,6 +28,7 @@ class EquipmentSlot {
         const copiedItem = new EquipmentSlot(this.name, this.eqType.toString(), this.layers);
         copiedItem.items = new Map();
         copiedItem.displayString = this.displayString;
+        copiedItem.saved = this.saved;
         addMissingProperties(this, copiedItem);
         return copiedItem;
     }
@@ -39,6 +41,7 @@ class EquipmentSlot {
     static deserialize(data) {
         const deserializedItem = new EquipmentSlot(data.name, data.eqType, data.layers);
         deserializedItem.displayString = data.displayString;
+        deserializedItem.saved = data.saved;
         deserializedItem.items = new Map();
         if (data.items) {
             if (Array.isArray(data.items)) {
@@ -78,12 +81,15 @@ class EquipmentSlot {
      * @returns {Object} The serialized data of the equipment slot.
      */
     serialize() {
+        this.saved = true;
         return {
+            delete: this.delete,
             displayString: this.displayString,
             name: this.name,
             eqType: this.eqType.toString(),
             layers: parseInt(this.layers),
-            items: Array.from(this.items.values()).map(item => item.serialize())
+            items: Array.from(this.items.values()).map(item => item.serialize()),
+            saved: true,
         };
     }
 

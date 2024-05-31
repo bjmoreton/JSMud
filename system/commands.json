@@ -378,7 +378,7 @@
     "aliases": [
       "saveeqslots"
     ],
-    "action": "Equipment.save",
+    "action": "Equipment.saveEquipmentSlots",
     "modLevel": 85
   },
   {
@@ -556,7 +556,8 @@
     "aliases": [
       "vnumlookup",
       "lookvnum",
-      "vnumlook"
+      "vnumlook",
+      "lookupitem"
     ],
     "action": "Item.executeLookupVNum",
     "modLevel": 50
@@ -722,5 +723,77 @@
     ],
     "action": "Status.removePlayerStatus",
     "modLevel": 80
+  },
+  {
+    "command": "saveitemrarities",
+    "aliases": [
+      "saveir"
+    ],
+    "action": "Item.saveItemRarities",
+    "modLevel": 75
+  },
+  {
+    "command": "loaditemrarities",
+    "aliases": [
+      "loadir"
+    ],
+    "action": "Item.loadItemRarities",
+    "modLevel": 75
+  },
+  {
+    "command": "additemrarity",
+    "aliases": [
+      "addir"
+    ],
+    "action": "Item.addItemRarity",
+    "modLevel": 75
+  },
+  {
+    "command": "edititemrarity",
+    "aliases": [
+      "editir"
+    ],
+    "action": "Item.editItemRarity",
+    "modLevel": 75
+  },
+  {
+    "command": "showitemrarity",
+    "aliases": [
+      "showir"
+    ],
+    "action": "Item.showItemRarity",
+    "modLevel": 75
+  },
+  {
+    "command": "removeitemrarity",
+    "aliases": [
+      "removeir"
+    ],
+    "action": "Item.removeItemRarity",
+    "modLevel": 75
+  },
+  {
+    "command": "removeequipmentslot",
+    "aliases": [
+      "removeeqslot"
+    ],
+    "action": "Equipment.removeEquipmentSlot",
+    "modLevel": 85
+  },
+  {
+    "command": "showcommand",
+    "aliases": [
+      "command"
+    ],
+    "action": "Command.showCommand",
+    "modLevel": 50
+  },
+  {
+    "command": "showequipmentslot",
+    "aliases": [
+      "showeqslot"
+    ],
+    "action": "Equipment.showEquipmentSlot",
+    "modLevel": 85
   }
 ]

@@ -46,10 +46,11 @@ class ServerCommand {
      * Execute the command for a player with given arguments.
      * @param {Object} player - The player executing the command.
      * @param {string[]} args - The arguments passed to the command.
+     * @param {string} input - The raw input after the command.
      */
-    execute(player, args) {
+    execute(player, args, input) {
         if (player.hasCommand(this.command) || player.modLevel >= this.modLevel) {
-            if (this.handler) this.handler(player, args);
+            if (this.handler) this.handler(player, args, input);
         }
     }
 }

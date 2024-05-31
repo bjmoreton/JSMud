@@ -13,7 +13,7 @@ class Key extends Item {
      * @param {string} itemType - The type of the item.
      */
     constructor(vNum, name, nameDisplay, itemType) {
-        super(vNum, name, nameDisplay, Item.ItemTypes.Key);
+        super(vNum, name, nameDisplay, itemType);
     }
 
     /**

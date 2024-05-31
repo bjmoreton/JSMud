@@ -5,8 +5,8 @@ class Item {
     static ItemFlags = {};
     static ItemTypes = {};
     static ItemRarities = {
-        quest: { name: "quest", symbol: "[&YQ&~]", weight: 3 },
-        trash: { name: "trash", symbol: "[&zT&~]", weight: 9 }
+        // quest: { name: "quest", symbol: "&P[&YQ&O]&~", weight: 3 },
+        // trash: { name: "trash", symbol: "&O[&zT&O]&~", weight: 9 }
     };
 
     /**
@@ -98,7 +98,7 @@ class Item {
         const itemType = Item.stringToItemType(data.itemType);
         const deserializedItem = new itemType(vNum, data.name, data.nameDisplay, data.itemType);
         deserializedItem.flags = data.flags;
-        deserializedItem.rarity = Item.getRarityByName(data.rarity?.name ?? 'trash');
+        deserializedItem.rarity = Item.getRarityByName(data.rarity?.name);
         if (!deserializedItem.rarity) deserializedItem.rarity = Item.ItemRarities.trash;
         deserializedItem.groundDescription = data.groundDescription;
         deserializedItem.description = data.description;
@@ -211,7 +211,7 @@ class Item {
      */
     static getRarityByName(name) {
         for (const [key, val] of Object.entries(Item.ItemRarities)) {
-            if (val.name.toLowerCase() === name.toLowerCase()) {
+            if (val.name.toLowerCase() === name?.toLowerCase()) {
                 return Item.ItemRarities[key];
             }
         }

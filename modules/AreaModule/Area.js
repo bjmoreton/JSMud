@@ -104,6 +104,7 @@ class Area {
                     nameDisplay: section.nameDisplay,
                     resetMessages: section.resetMessages,
                     vSize: section.vSize,
+                    resetEnabled: section.resetEnabled,
                     rooms: Array.from(section.rooms.values()).map(room => {
                         const roomData = {
                             area: room.area.name,

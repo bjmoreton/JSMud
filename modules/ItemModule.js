@@ -12,13 +12,21 @@ const Key = require('./ItemModule/Key');
  */
 const ItemModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
+    ITEM_RARITIES_PATH: path.join(__dirname, '../system', 'rarities.json'),
     name: "Item",
     itemsList: new Map(),
     editItemActions: new Map(),
+    editItemRarityActions: new Map(),
 
-    addEditItemAction(name, useCases = [], action = () => { }) {
+    addEditItemAction(name, useCase, action = () => { }) {
         if (!ItemModule.editItemActions.has(name.toLowerCase())) {
-            ItemModule.editItemActions.set(name.toLowerCase(), { action, useCases });
+            ItemModule.editItemActions.set(name.toLowerCase(), { action, useCase });
+        }
+    },
+
+    addEditItemRarityAction(name, useCase, action = () => { }) {
+        if (!ItemModule.editItemRarityActions.has(name.toLowerCase())) {
+            ItemModule.editItemRarityActions.set(name.toLowerCase(), { action, useCase });
         }
     },
 
@@ -46,7 +54,7 @@ const ItemModule = {
         const vNumInt = parseInt(lastItemVNum) + 1;
 
         if (!name) {
-            player.send("Must specify an item name!");
+            player.send("Usage: additem [itemname] [itemtype]");
             return;
         }
 
@@ -72,6 +80,35 @@ const ItemModule = {
         player.send(`Item added: vNum: ${vNumInt} ${newItem.name} (Type: ${newItem.itemType})`);
     },
 
+    addItemRarity(player, args) {
+        const [name, symbol, weight] = args;
+
+        if (!name) {
+            player.send(`Usage: additemrarity [name] [symbol] [weight]`);
+            return;
+        }
+
+        if (!symbol) {
+            player.send(`A symbol is needed.`);
+            return;
+        }
+
+        if (!isNumber(weight)) {
+            player.send(`Weight needs to be a number.`);
+            return;
+        }
+
+        const rarity = Item.getRarityByName(name);
+        if (!rarity) {
+            Item.addItemRarities({ name: name, symbol: symbol, weight: weight });
+        } else {
+            player.send(`Rarity ${rarity.name} already exists!`);
+            return;
+        }
+
+        player.send(`Item rarity ${name} added successfully!`);
+    },
+
     /**
      * Edit an existing item.
      * 
@@ -80,22 +117,22 @@ const ItemModule = {
      */
     async editItem(player, args) {
         const [vNum, editWhat, value, ...data] = args;
-        const vNumInt = parseInt(vNum);
         const eventObj = { args: args, handled: false, saved: true };
 
-        // Check if the item number is valid and if the item exists
-        if (!isNumber(vNumInt) || !ItemModule.itemsList.has(vNumInt)) {
-            player.send("Invalid item number or item does not exist.");
-            return;
-        }
+        if (vNum) {
+            const vNumInt = parseInt(vNum);
+            // Check if the item number is valid and if the item exists
+            if (!isNumber(vNumInt) || !ItemModule.itemsList.has(vNumInt)) {
+                player.send("Invalid item number or item does not exist.");
+                return;
+            }
 
-        const itemToEdit = ItemModule.getItemByVNum(vNumInt);
-        if (!itemToEdit) {
-            player.send(`vNum item ${vNumInt} not found!`);
-            return;
-        }
+            const itemToEdit = ItemModule.getItemByVNum(vNumInt);
+            if (!itemToEdit) {
+                player.send(`vNum item ${vNumInt} not found!`);
+                return;
+            }
 
-        if (editWhat !== undefined) {
             switch (editWhat.toLowerCase()) {
                 case "desc":
                 case "description":
@@ -124,18 +161,77 @@ const ItemModule = {
                         const editAction = ItemModule.editItemActions.get(editWhat.toLowerCase());
                         await editAction.action(player, itemToEdit, eventObj);
                     } else {
-                        player.send(`Usage: editItem [vNum] <description | flags | name>`);
+                        player.send(`Usage: edititem [vNum] <description | flags | name>`);
+                        for (const action of ItemModule.editItemActions.values()) {
+                            player.send(`Usage: ${action.useCase}`);
+                        }
                         return;
                     }
             }
 
             if (eventObj.saved) player.send(`Item edited successfully!`);
         } else {
-            player.send(`Usage: editItem [vNum] <description | flags | name>`);
+            player.send(`Usage: edititem [vNum] <description | flags | name>`);
             for (const action of ItemModule.editItemActions.values()) {
-                action.useCases.forEach(useCase => {
-                    player.send(`Usage: ${useCase}`);
-                });
+                player.send(`Usage: ${action.useCase}`);
+            }
+        }
+    },
+
+    async editItemRarity(player, args) {
+        const [rarityStr, editWhat, value, ...data] = args;
+        const eventObj = { args: args, handled: false, saved: true };
+
+        if (rarityStr) {
+            const rarityToEdit = Item.getRarityByName(rarityStr);
+            if (rarityToEdit) {
+                switch (editWhat?.toLowerCase()) {
+                    case "name":
+                        const oldName = rarityToEdit.name;
+                        if (value === undefined || value?.trim() == '') {
+                            player.send('Must specify a new item rarity name!');
+                            return;
+                        }
+                        delete Item.ItemRarities[oldName];
+                        rarityToEdit.name = value.trim();
+                        Item.ItemRarities[rarityToEdit.name] = rarityToEdit;
+                        break;
+                    case "symbol":
+                        if (value === undefined || value?.trim() == '') {
+                            player.send('Must specify a new item rarity symbol!');
+                            return;
+                        }
+                        rarityToEdit.symbol = value.trim();
+                        break;
+                    case "weight":
+                        if (!isNumber(value)) {
+                            player.send('Must specify a new item rarity weight!');
+                            return;
+                        }
+                        rarityToEdit.weight = Number(value);
+                        break;
+                    default:
+                        if (ItemModule.editItemRarityActions.has(editWhat.toLowerCase())) {
+                            const editAction = ItemModule.editItemRarityActions.get(editWhat.toLowerCase());
+                            await editAction.action(player, rarityToEdit, eventObj);
+                        } else {
+                            player.send(`Usage: edititemrarity [rarity] <name | symbol | weight> [value]`);
+                            for (const action of ItemModule.editItemRarityActions.values()) {
+                                player.send(`Usage: ${action.useCase}`);
+                            }
+                            return;
+                        }
+                }
+
+                if (eventObj.saved) player.send(`Item rarity edited successfully!`);
+            } else {
+                player.send(`Rarity ${rarityStr} not found!`);
+                return;
+            }
+        } else {
+            player.send(`Usage: edititemrarity [rarity] <name | symbol | weight> [value]`);
+            for (const action of ItemModule.editItemRarityActions.values()) {
+                player.send(`Usage: ${action.useCase}`);
             }
         }
     },
@@ -176,9 +272,17 @@ const ItemModule = {
     executeLookupVNum(player, args) {
         const [vNum] = args;
 
+        if (!vNum) {
+            player.send(`Usage: lookupvnum [vNum]`);
+            return;
+        }
+
         if (isNumber(vNum)) {
             const foundItem = ItemModule.getItemByVNum(vNum);
             if (foundItem) sendNestedKeys(player, foundItem);
+            else player.send(`Item vNum ${vNum} doesn't exist!`);
+        } else {
+            player.send(`vNum needs to be a number!`);
         }
     },
 
@@ -200,6 +304,8 @@ const ItemModule = {
      */
     load(player) {
         try {
+            ItemModule.loadItemRarities(player);
+
             const data = fs.readFileSync(ItemModule.ITEMS_PATH, 'utf8');
             const itemsData = JSON.parse(data);
             ItemModule.mudServer.emit('itemsLoading', player);
@@ -218,6 +324,23 @@ const ItemModule = {
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load items.");
+        }
+    },
+
+    loadItemRarities(player) {
+        try {
+            const data = fs.readFileSync(ItemModule.ITEM_RARITIES_PATH, 'utf8');
+            const rarityData = JSON.parse(data);
+
+            Object.values(rarityData).forEach(rarity => {
+                Item.addItemRarities(rarity);
+            });
+
+            console.log("Item rarities loaded successfully.");
+            if (player) player.send("Item rarities loaded successfully.");
+        } catch (error) {
+            console.error("Failed to loaded item rarities:", error);
+            if (player) player.send("Failed to loaded item rarities.");
         }
     },
 
@@ -271,15 +394,41 @@ const ItemModule = {
     async removeItem(player, args) {
         const [vNum] = args;
 
+        if (!vNum) {
+            player.send(`Usage: removeitem [vNum]`);
+            return;
+        }
+
         const item = ItemModule.getItemByVNum(vNum);
         if (item) {
             const deleteForSure = await player.textEditor.showPrompt(`Delete ${item.name}? y/n`);
 
-            if (deleteForSure.toLowerCase() == 'y' || deleteForSure == 'yes') {
+            if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
                 ItemModule.itemsList.delete(parseInt(vNum));
                 player.send(`${item.name} deleted successfully.`);
             } else {
                 player.send(`${item.name} wasn't deleted.`);
+            }
+        }
+    },
+
+    async removeItemRarity(player, args) {
+        const [rarityStr] = args;
+
+        if (!rarityStr) {
+            player.send(`Usage: removeitemrarity [rarity]`);
+            return;
+        }
+
+        const rarity = Item.getRarityByName(rarityStr);
+        if (rarity) {
+            const deleteForSure = await player.textEditor.showPrompt(`Delete ${rarity.name}? y/n`);
+
+            if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
+                Item.ItemRarities.delete(rarity.name.toLowerCase());
+                player.send(`${rarity.name} deleted successfully.`);
+            } else {
+                player.send(`${rarity.name} wasn't deleted.`);
             }
         }
     },
@@ -301,6 +450,17 @@ const ItemModule = {
         }
     },
 
+    saveItemRarities(player) {
+        try {
+            fs.writeFileSync(ItemModule.ITEM_RARITIES_PATH, JSON.stringify(Item.ItemRarities, null, 2), 'utf8');
+            console.log("Item rarities saved successfully.");
+            if (player) player.send("Item rarities saved successfully.");
+        } catch (error) {
+            console.error("Failed to save item rarities:", error);
+            if (player) player.send("Failed to save item rarities.");
+        }
+    },
+
     /**
      * Serialize the items list.
      * 
@@ -319,6 +479,17 @@ const ItemModule = {
             itemsArray.push(itemData);
         }
         return itemsArray; // Pretty-print the JSON
+    },
+
+    showItemRarity(player, args) {
+        const [rarityStr] = args;
+
+        const rarity = Item.getRarityByName(rarityStr);
+        if (rarity) {
+            sendNestedKeys(player, rarity);
+        } else {
+            player.send(`Item rarity ${rarityStr} doesn't exist!`);
+        }
     },
 
     /**
@@ -350,11 +521,15 @@ const ItemModule = {
             return;
         }
 
-        const item = ItemModule.getItemByVNum(vNum).copy();
-        item.rarity = rarity;
-        ItemModule.mudServer.emit('createdItem', player, item);
-        player.send(`You create ${item.displayString} out of thin air!`);
-        player.inventory.addItem(item.vNum, item);
+        const item = ItemModule.getItemByVNum(vNum)?.copy();
+        if (item) {
+            item.rarity = rarity;
+            ItemModule.mudServer.emit('createdItem', player, item);
+            player.send(`You create ${item.displayString} out of thin air!`);
+            player.inventory.addItem(item.vNum, item);
+        } else {
+            player.send(`Item vNum ${vNum} doesn't exist!`);
+        }
     }
 }
 

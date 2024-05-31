@@ -7,12 +7,12 @@ StatModule
 ItemModule/Item
 ItemModule/Key
 ItemModule
-EquipmentModule/Equipment
-EquipmentModule/EquipmentSlot
-EquipmentModule
 InventoryModule/Container
 InventoryModule/Inventory
 InventoryModule
+EquipmentModule/Equipment
+EquipmentModule/EquipmentSlot
+EquipmentModule
 AreaModule/Area
 AreaModule/Exit
 AreaModule/Room

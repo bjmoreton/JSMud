@@ -168,6 +168,16 @@ const StatusModule = {
         }
     },
 
+    onLooked(player) {
+        player.currentRoom.players.forEach(p => {
+            if (p === player) return;
+            player.send(`You see ${p.username}.`);
+            for (const [name, status] of p.statuses) {
+                player.send(`\t- ${status.lookDescription}`);
+            }
+        });
+    },
+
     /**
      * Initializes the statuses for a new player.
      * 
@@ -213,6 +223,7 @@ const StatusModule = {
     onHotBootBefore() {
         StatusModule.mudServer.off('hotBootAfter', StatusModule.onHotBootAfter);
         StatusModule.mudServer.off('hotBootBefore', StatusModule.onHotBootBefore);
+        StatusModule.mudServer.off('looked', StatusModule.onLooked);
         StatusModule.mudServer.off('newPlayerConnected', StatusModule.onNewPlayerConnected);
         StatusModule.mudServer.off('playerLoaded', StatusModule.onPlayerLoaded);
     },
@@ -228,6 +239,7 @@ const StatusModule = {
 
         this.mudServer.on('hotBootAfter', this.onHotBootAfter);
         this.mudServer.on('hotBootBefore', this.onHotBootBefore);
+        this.mudServer.on('looked', this.onLooked);
         this.mudServer.on('newPlayerConnected', this.onNewPlayerConnected);
         this.mudServer.on('playerLoaded', this.onPlayerLoaded);
     },
@@ -366,12 +378,13 @@ const StatusModule = {
      */
     showStatus(player, args) {
         const [statusName] = args;
-        const status = Statuses.stringToStatus(statusName);
 
         if (!statusName) {
             player.send(`Usage: showstatus [status]`);
+            return;
         }
 
+        const status = Statuses.stringToStatus(statusName);
         if (!status) {
             player.send(`Status ${statusName} doesn't exist!`);
             return;

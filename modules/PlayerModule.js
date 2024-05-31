@@ -21,8 +21,8 @@ const PlayerModule = {
      * @param {Player} player - The player sending the message.
      * @param {Array<string>} args - Message arguments.
      */
-    executeGlobalChat(player, args) {
-        const message = args.join(' ');
+    executeGlobalChat(player, args, input) {
+        const message = input;
         const currentDate = new Date();
 
         PlayerModule.mudServer.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${message}`);
@@ -34,8 +34,8 @@ const PlayerModule = {
      * @param {Player} player - The player saying the message.
      * @param {Array<string>} args - Message arguments.
      */
-    executeSay(player, args) {
-        const message = args.join(' ');
+    executeSay(player, args, input) {
+        const message = input;
 
         player.send(`You say "${message}"`);
         PlayerModule.mudServer.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
@@ -44,7 +44,7 @@ const PlayerModule = {
     fadedTimeout(player) {
         if (player.loggedIn) player.send(`You fade from existence.`);
         player.faded = true;
-        player.fadedTimeout = setTimeout(() => { player.disconnect(player.loggedIn); }, 360000); // 5 minutes
+        PlayerModule.startFadeOut(player, 360000); // 5 minutes
     },
 
     /**
@@ -56,7 +56,7 @@ const PlayerModule = {
         socket.setKeepAlive(true, 60000); // Send a keep-alive packet every 60 seconds
         const player = new Player(socket, 'Guest');
         PlayerModule.mudServer.players.set(socket, player);
-        player.fadedTimeout = setTimeout(() => { player.disconnect(player.loggedIn); }, 360000); // 5 minutes
+        PlayerModule.startFadeOut(player, 360000); // 5 minutes
         PlayerModule.mudServer.emit('newPlayerConnected', player);
         PlayerModule.mudServer.emit('handleLogin', player, "");
 
@@ -85,7 +85,7 @@ const PlayerModule = {
             } else player.textEditor.processInput(cleanedData);
 
             clearTimeout(player.fadedTimeout);
-            player.fadedTimeout = setTimeout(() => { PlayerModule.fadedTimeout(player); }, 720000); // 10 minutes
+            PlayerModule.startFadeOut(720000);
         });
 
         player.socket.on('error', error => {
@@ -235,6 +235,10 @@ const PlayerModule = {
         playerToEdit.save(false);
         player.send(`New mod level(${newModLevel}) set for ${playerToEdit.username} successfully.`);
     },
+
+    startFadeOut(player, timeout) {
+        if (player.modLevel < 40) player.fadedTimeout = setTimeout(() => { PlayerModule.fadedTimeout(player); }, timeout);
+    }
 };
 
 module.exports = PlayerModule;

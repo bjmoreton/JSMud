@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { isNumber, isValidString } = require('./Mud/Helpers.js');
+const { isNumber, isValidString, stringToBoolean } = require('./Mud/Helpers.js');
 const Area = require('./AreaModule/Area.js');
 const Exit = require('./AreaModule/Exit.js');
 const Room = require('./AreaModule/Room.js');
@@ -131,13 +131,13 @@ const AreaModule = {
                         section.resetMessages = sectionData.resetMessages;
                         section.maxReset = parseInt(sectionData.maxReset);
                         section.minReset = parseInt(sectionData.minReset);
+                        section.resetEnabled = sectionData.resetEnabled;
                         section.startResetTimer();
                         area.sections.set(sectionName.toLowerCase(), section);
 
                         sectionData.rooms.forEach(roomData => {
                             const room = new Room(area, section, roomData.name, roomData.description, roomData.x, roomData.y, roomData.z,
                                 roomData.progs, roomData.symbol, roomData.defaultState);
-
                             section.rooms.set(`${room.x},${room.y},${room.z}`, room);
                             allExits.set(room, roomData.exits);
 
@@ -404,6 +404,7 @@ const AreaModule = {
             return '';
         }
 
+        // Initialize the roomMap as a Map of Maps of Maps
         const roomMap = new Map();
         const queue = [{ room: currentRoom, x: parseInt(player.currentX), y: parseInt(player.currentY), z: parseInt(player.currentZ) }];
 
@@ -411,18 +412,28 @@ const AreaModule = {
             const { room, x, y, z } = queue.shift();
             const symbol = room === currentRoom ? "&g@&~" : (room.players.size > 0 ? "&P@&~" : `${room.symbol}&~`);
 
-            if (!roomMap.has(x)) {
-                roomMap.set(x, new Map());
+            // Ensure the structure exists for the z coordinate
+            if (!roomMap.has(z)) {
+                roomMap.set(z, new Map());
             }
-            if (!roomMap.get(x).has(y)) {
-                roomMap.get(x).set(y, symbol);
+
+            const zLayer = roomMap.get(z);
+
+            if (!zLayer.has(x)) {
+                zLayer.set(x, new Map());
+            }
+
+            const xLayer = zLayer.get(x);
+
+            if (!xLayer.has(y)) {
+                xLayer.set(y, symbol);
             } else {
                 continue;
             }
 
             room?.exits?.forEach((exit, exitDirection) => {
                 const { newX, newY, newZ } = AreaModule.getNewCoordinates(x, y, z, exitDirection);
-                if (!roomMap.has(newX) || !roomMap.get(newX).has(newY)) {
+                if (!roomMap.has(newZ) || !roomMap.get(newZ).has(newX) || !roomMap.get(newZ).get(newX).has(newY)) {
                     const exitRoom = AreaModule.exitToRoom(exit);
                     if (exit.teleport || (exitRoom.area.name == player.currentArea.name && exitRoom.section.name == player.currentSection.name)) {
                         queue.push({ room: exitRoom, x: newX, y: newY, z: newZ });
@@ -450,11 +461,30 @@ const AreaModule = {
 
         for (let y = maxY; y >= minY; y--) {
             for (let x = minX; x <= maxX; x++) {
-                mapString += roomMap.get(x)?.get(y) || area.blankSymbol + '&~';
+                mapString += roomMap.get(player.currentZ).get(x)?.get(y) || area.blankSymbol + '&~';
             }
             mapString += "|\n";
         }
 
+        const lines = mapString.split('\n');
+        const middleIndex = Math.floor(lines.length / 2);
+
+        for (let line = 0; line < lines.length; line++) {
+            if (line === middleIndex - 2) {
+                const symbol = roomMap.get(player.currentZ + 1)?.get(player.currentX)?.get(player.currentY);
+                lines[line] += (symbol || area.blankSymbol) + '&~|';
+            } else if (line === middleIndex - 1) {
+                const symbol = roomMap.get(player.currentZ)?.get(player.currentX)?.get(player.currentY);
+                lines[line] += (symbol || area.blankSymbol) + '&~|';
+            } else if (line === middleIndex) {
+                const symbol = roomMap.get(player.currentZ - 1)?.get(player.currentX)?.get(player.currentY);
+                lines[line] += (symbol || area.blankSymbol) + '&~|';
+            } else if (line < lines.length - 1) {
+                lines[line] += ' |';
+            }
+        }
+
+        mapString = lines.join('\n');
         // Calculate the width of the map
         const mapWidth = maxX - minX + 1;
         const coordinateString = `(${player.currentX}, ${player.currentY}, ${player.currentZ})`;
@@ -465,7 +495,7 @@ const AreaModule = {
         const rightPadding = totalPadding - leftPadding;
 
         // Create the centered coordinate line
-        const coordinateLine = " ".repeat(leftPadding) + coordinateString + " ".repeat(rightPadding) + "|\n";
+        const coordinateLine = " ".repeat(leftPadding) + coordinateString + " ".repeat(rightPadding) + "| |\n";
 
         // Append the centered coordinate line to the map string
         mapString += coordinateLine;
@@ -579,13 +609,6 @@ const AreaModule = {
             const roomTemplate = AreaModule.builtRoomTemplate(player)?.split('\n');
             roomTemplate.forEach(string => {
                 player.send(`${string}`);
-            });
-            player.currentRoom.players.forEach(p => {
-                if (p === player) return;
-                player.send(`You see ${p.username}.`);
-                for (const [name, status] of p.statuses) {
-                    player.send(`\t- ${status.lookDescription}`);
-                }
             });
             AreaModule.mudServer.emit('looked', player);
         } else {
@@ -1026,6 +1049,10 @@ const AreaModule = {
 
         if (editWhat !== undefined) {
             switch (editWhat.toLowerCase()) {
+                case 'description':
+                    const description = await player.textEditor.startEditing(foundSection.description);
+                    foundSection.description = description;
+                    break;
                 case 'maxreset':
                     const [maxResetStr] = data;
                     const maxReset = parseInt(maxResetStr);
@@ -1070,11 +1097,11 @@ const AreaModule = {
                     }
                     break;
                 case 'resetmsg':
-                    const [action, ...resetMsgArgs] = data;
-                    const msg = resetMsgArgs.join(' ').trim();
+                    const [action] = data;
 
                     switch (action?.toLowerCase()) {
                         case 'add':
+                            const msg = await player.textEditor.startEditing('');
                             if (msg && msg.length !== 0) {
                                 foundSection.addResetMsg(msg);
                                 player.send(`Message added: "${msg}"`);
@@ -1110,6 +1137,14 @@ const AreaModule = {
                             break;
                     }
                     break;
+                case 'togglereset':
+                    if (foundSection.maxReset && foundSection.minReset) {
+                        foundSection.resetEnabled = !foundSection.resetEnabled;
+                    } else {
+                        player.send(`Must set maxReset and minReset first!`);
+                        return;
+                    }
+                    break;
                 case 'vsize':
                     const [vSizeStr] = data;
                     const vSize = parseInt(vSizeStr);
@@ -1123,16 +1158,14 @@ const AreaModule = {
                     }
                     break;
                 default:
-                    if (foundSection[editWhat]) {
-                        foundSection[editWhat] = newName;
-                        player.send(`${editWhat} updated successfully on ${foundSection.name}.`);
-                    } else {
-                        player.send(`${editWhat} property not found!`);
-                    }
-                    break;
+                    player.send(`Usage: editsection <maxreset | minreset | name | vsize> [value]`);
+                    player.send(`Usage: editsection resetmsg <add | remove | show> [value]`);
+                    return;
             }
+
+            player.send(`Section ${foundSection.name} in area ${foundArea.name} updated successully!`);
         } else {
-            player.send(`Usage: editsection <name | vsize> [value]`);
+            player.send(`Usage: editsection <maxreset | minreset | name | vsize> [value]`);
             player.send(`Usage: editsection resetmsg <add | remove | show> [value]`);
         }
     },

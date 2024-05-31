@@ -95,7 +95,7 @@ function inRange(value, low, high) {
  * @returns {boolean} True if the value is a number and not NaN, false otherwise.
  */
 function isNumber(value) {
-    return !Number.isNaN(parseInt(value));
+    return !Number.isNaN(Number(value));
 }
 
 /**
@@ -118,18 +118,80 @@ function isValidString(string) {
  * @param {string} [prefix=''] - The prefix for the current key path (used for nested objects).
  */
 function sendNestedKeys(player, obj, prefix = '') {
-    for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            const value = obj[key];
-            const formattedKey = prefix ? `${prefix}.${key}` : key;
+    const rows = [];
+    const longRows = [];
+    const columnWidth = 22; // Define the width for each column
+    const totalWidth = columnWidth * 3 + 10; // Total width for 3 columns + padding and borders
 
-            if (typeof value === 'object' && value !== null) {
-                sendNestedKeys(player, value, formattedKey);
-            } else {
-                player.send(`${formattedKey}: ${value}`);
+    function collectKeys(obj, prefix) {
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const value = obj[key];
+                const formattedKey = prefix ? `${prefix}.${key}` : key;
+
+                if (typeof value === 'object' && value !== null) {
+                    collectKeys(value, formattedKey);
+                } else {
+                    const row = padRight(`${formattedKey}: ${value}`, columnWidth);
+                    if (stripAnsiCodes(row).length > columnWidth) {
+                        longRows.push(row);
+                    } else {
+                        rows.push(row);
+                    }
+                }
             }
         }
     }
+
+    function padCenter(str, width) {
+        const cleanedStr = stripAnsiCodes(str);
+        const padding = Math.max(width - cleanedStr.length, 0);
+        const paddingLeft = Math.floor(padding / 2);
+        const paddingRight = padding - paddingLeft;
+        return ' '.repeat(paddingLeft) + str + ' '.repeat(paddingRight);
+    }
+
+    function padRight(str, width) {
+        const cleanedStr = stripAnsiCodes(str);
+        if (cleanedStr.length > width) {
+            return str; // Don't pad if the string is too long
+        }
+        return str + ' '.repeat(Math.max(width - cleanedStr.length, 0));
+    }
+
+    function createTable(rows, longRows) {
+        let table = '';
+        const border = '-'.repeat(totalWidth) + '\n';
+
+        // Add table header
+        table += border;
+        table += `|${padCenter(' Information ', totalWidth - 2)}|\n`;
+        table += border;
+
+        // Add key-value pairs in rows of 3 columns
+        for (let i = 0; i < rows.length; i += 3) {
+            const lineItems = rows.slice(i, i + 3);
+            while (lineItems.length < 3) {
+                lineItems.push(padRight('', columnWidth));
+            }
+            const line = lineItems.join(' | ');
+            table += `| ${line} |\n`;
+            table += border;
+        }
+
+        // Add long rows at the end
+        longRows.forEach(row => {
+            table += `| ${padRight(row, totalWidth - 4)} |\n`;
+            table += border;
+        });
+
+        return table;
+    }
+
+    collectKeys(obj, prefix);
+
+    const table = createTable(rows, longRows);
+    player.send(table);
 }
 
 /**
@@ -139,6 +201,7 @@ function sendNestedKeys(player, obj, prefix = '') {
  */
 function stringToBoolean(str) {
     if (typeof str !== 'string') {
+        if (typeof str === 'boolean') return str;
         return false;
     }
 
@@ -154,6 +217,12 @@ function stringToBoolean(str) {
         default:
             return false;
     }
+}
+
+function stripAnsiCodes(str) {
+    let output = str.replace(/&./g, '');
+    output = output.replace(/}(\d+)/g, '');
+    return output;
 }
 
 /**
@@ -184,5 +253,6 @@ module.exports = {
     isValidString,
     sendNestedKeys,
     stringToBoolean,
+    stripAnsiCodes,
     verifyPassword
 };

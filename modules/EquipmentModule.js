@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const EquipmentSlot = require('./EquipmentModule/EquipmentSlot');
 const Item = require('./ItemModule/Item');
-const { isNumber, stringToBoolean } = require('./Mud/Helpers');
+const { isNumber, stringToBoolean, sendNestedKeys } = require('./Mud/Helpers');
 const Equipment = require('./EquipmentModule/Equipment');
 
 /**
@@ -14,8 +14,10 @@ const Equipment = require('./EquipmentModule/Equipment');
 const EquipmentModule = {
     // Module name
     name: "Equipment",
+
     // Path to the equipment slots JSON file
     EQ_SLOTS_PATH: path.join(__dirname, '../system', 'eqslots.json'),
+
     // Map to store equipment slots
     equipmentSlots: new Map(),
 
@@ -27,6 +29,7 @@ const EquipmentModule = {
      */
     addEquipmentSlot(player, args) {
         const [name, eqType, layers] = args;
+
         if (!name) {
             player.send(`Usage: addEquipmentSlot name eqType layers`);
             return;
@@ -36,7 +39,7 @@ const EquipmentModule = {
             player.send(`Invalid Equipment type!`);
             player.send(`Valid types:`);
             Item.getItemTypesArray().forEach(type => {
-                player.send(type)
+                player.send(type);
             });
             return;
         }
@@ -84,12 +87,15 @@ const EquipmentModule = {
      */
     editEquipmentSlot(player, args) {
         const [slot, editWhat, ...data] = args;
+
         if (!slot) {
-            player.send(`Usage: editequipmentslot [slot] <display> [value]`);
+            player.send(`Usage: editequipmentslot [slot] <display | eqtype | layers | name> [value]`);
+            return;
         }
 
         if (EquipmentModule.hasEquipmentSlot(slot)) {
             const slotObj = EquipmentModule.equipmentSlots.get(slot.toLowerCase());
+
             switch (editWhat?.toLowerCase()) {
                 case 'display':
                     const value = data.join(' ');
@@ -98,8 +104,42 @@ const EquipmentModule = {
                         p.eqSlots[slotObj.name.toLowerCase()].displayString = value;
                     });
                     break;
+                case 'eqtype':
+                    const typeStr = data.join(' ');
+                    const eqType = Item.stringToItemType(typeStr);
+                    if (!eqType) {
+                        player.send(`Invalid Equipment type!`);
+                        player.send(`Valid types:`);
+                        Item.getItemTypesArray().forEach(type => {
+                            player.send(type);
+                        });
+                        return;
+                    }
+                    slotObj.eqType = eqType;
+                    break;
+                case 'layers':
+                    const [layers] = data;
+                    if (!isNumber(layers)) {
+                        player.send(`${layers} is invalid for layers!`);
+                        return;
+                    }
+                    slotObj.layers = parseInt(layers);
+                    break;
+                case 'name':
+                    const name = data.join(' ');
+                    if (!EquipmentModule.hasEquipmentSlot(name)) {
+                        const copiedSlot = slotObj.copy();
+                        slotObj.delete = true;
+                        copiedSlot.saved = false;
+                        copiedSlot.name = name;
+                        EquipmentModule.equipmentSlots.set(copiedSlot.name.toLowerCase(), copiedSlot);
+                    } else {
+                        player.send(`Equipment slot ${name} already exists!`);
+                        return;
+                    }
+                    break;
                 default:
-                    player.send(`Usage: editequipmentslot [slot] <display> [value]`);
+                    player.send(`Usage: editequipmentslot [slot] <display | eqtype | layers | name> [value]`);
                     return;
             }
         } else {
@@ -107,7 +147,8 @@ const EquipmentModule = {
             return;
         }
 
-        player.send(`Equipment slot saved successfully.`);
+        slotObj.saved = false;
+        player.send(`Equipment slot updated successfully.`);
     },
 
     /**
@@ -139,20 +180,28 @@ const EquipmentModule = {
      * @param {Player} [player] - The player (optional).
      */
     load(player) {
+        EquipmentModule.loadEquipmentSlots(player);
+
+        global.ItemModule.addEditItemAction('layer', 'edititem [vNum] layer [layer(number)]', EquipmentModule.editItemLayer);
+        global.ItemModule.addEditItemAction('type', 'edititem [vNum] type <add | remove> [...type]', EquipmentModule.editItemType);
+        global.ItemModule.addEditItemAction('wearable', 'edititem [vNum] wearable [true/false]', EquipmentModule.editItemWearable);
+        global.ItemModule.addEditItemRarityAction('stataddition', 'edititem [rarity] stataddition [value]', EquipmentModule.editItemRarityStatAddition);
+        global.ItemModule.addEditItemRarityAction('statreduction', 'edititemrarity [rarity] statreduction [value]', EquipmentModule.editItemRarityStatReduction);
+    },
+
+    loadEquipmentSlots(player) {
         try {
             const data = fs.readFileSync(EquipmentModule.EQ_SLOTS_PATH, 'utf8');
             const eqSlotsData = JSON.parse(data);
+
             EquipmentModule.mudServer.emit('equipmentSlotsLoading', player);
             eqSlotsData.forEach(eqSlot => {
                 const eqSlotObj = EquipmentSlot.deserialize(eqSlot);
                 EquipmentModule.equipmentSlots.set(eqSlotObj.name.toLowerCase(), eqSlotObj);
             });
+
             console.log("Equipment slots loaded successfully.");
             if (player) player.send("Equipment slots loaded successfully.");
-
-            global.ItemModule.addEditItemAction('layer', [`editItem [vNum] layer [layer(number)]`], EquipmentModule.editLayer);
-            global.ItemModule.addEditItemAction('type', [`edititem [vNum] type <add | remove> [...type]`], EquipmentModule.editType);
-            global.ItemModule.addEditItemAction('wearable', [`editItem [vNum] wearable [true/false]`], EquipmentModule.editWearable);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load equipment slots.");
@@ -160,20 +209,22 @@ const EquipmentModule = {
     },
 
     /**
-     * Edits the layer of an item.
+     * Edits the layer and wearable flag of an item.
      * 
      * @param {Player} player - The player executing the command.
      * @param {Item} item - The item being edited.
      * @param {Object} eventObj - The event object containing command arguments.
      * @returns {boolean} - Indicates whether the action was handled successfully.
      */
-    editLayer(player, item, eventObj) {
+    editItemLayer(player, item, eventObj) {
         const [vNum, editWhat, action, ...data] = eventObj.args;
+
         if (!isNumber(action)) {
             eventObj.saved = false;
             player.send(`Usage: editItem ${vNum} layer [layer(number)]`);
             return false;
         }
+
         const layer = parseInt(action);
         item.layer = layer;
         return true;
@@ -187,7 +238,7 @@ const EquipmentModule = {
      * @param {Object} eventObj - The event object containing command arguments.
      * @returns {boolean} - Indicates whether the action was handled successfully.
      */
-    editType(player, item, eventObj) {
+    editItemType(player, item, eventObj) {
         const [vNum, editWhat, action, ...data] = eventObj.args;
 
         if (!action) {
@@ -199,11 +250,11 @@ const EquipmentModule = {
         switch (action.toLowerCase()) {
             case 'add':
                 if (data.length === 0) {
-                    player.send(`Usage edititem ${vNum} type add [...type]`);
+                    player.send(`Usage: edititem ${vNum} type add [...type]`);
                     player.send(`Valid Options:`);
                     EquipmentModule.getFormattedEquipmentSlots().forEach(slots => {
                         player.send(`${slots}`);
-                    })
+                    });
                     eventObj.saved = false;
                     return false;
                 }
@@ -217,11 +268,11 @@ const EquipmentModule = {
                 return true;
             case 'remove':
                 if (data.length === 0) {
-                    player.send(`Usage edititem ${vNum} type remove [...type]`);
+                    player.send(`Usage: edititem ${vNum} type remove [...type]`);
                     player.send(`Valid Options:`);
                     EquipmentModule.getFormattedEquipmentSlots().forEach(slots => {
                         player.send(`${slots}`);
-                    })
+                    });
                     eventObj.saved = false;
                     return false;
                 }
@@ -239,6 +290,48 @@ const EquipmentModule = {
     },
 
     /**
+     * Edits the stat addition of an item rarity.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {Object} rarity - The rarity being edited.
+     * @param {Object} eventObj - The event object containing command arguments.
+     * @returns {boolean} - Indicates whether the action was handled successfully.
+     */
+    editItemRarityStatAddition(player, rarity, eventObj) {
+        const [rarityStr, editWhat, value, ...data] = eventObj.args;
+
+        if (!value || !isNumber(value)) {
+            player.send(`Value needs to be a valid number!`);
+            eventObj.saved = false;
+            return false;
+        }
+
+        rarity.statAddition = Number(value);
+        return true;
+    },
+
+    /**
+     * Edits the stat reduction of an item rarity.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {Object} rarity - The rarity being edited.
+     * @param {Object} eventObj - The event object containing command arguments.
+     * @returns {boolean} - Indicates whether the action was handled successfully.
+     */
+    editItemRarityStatReduction(player, rarity, eventObj) {
+        const [rarityStr, editWhat, value, ...data] = eventObj.args;
+
+        if (!value || !isNumber(value)) {
+            player.send(`Value needs to be a valid number!`);
+            eventObj.saved = false;
+            return false;
+        }
+
+        rarity.statReduction = Number(value);
+        return true;
+    },
+
+    /**
      * Edits the wearable property of an item.
      * 
      * @param {Player} player - The player executing the command.
@@ -246,7 +339,7 @@ const EquipmentModule = {
      * @param {Object} eventObj - The event object containing command arguments.
      * @returns {boolean} - Indicates whether the action was handled successfully.
      */
-    editWearable(player, item, eventObj) {
+    editItemWearable(player, item, eventObj) {
         const [vNum, editWhat, action, ...data] = eventObj.args;
 
         if (!action) {
@@ -262,6 +355,9 @@ const EquipmentModule = {
         return true;
     },
 
+    /**
+     * Event handler for hot boot after.
+     */
     onHotBootAfter(player) {
         // Placeholder for hot boot after event handling
     },
@@ -279,19 +375,6 @@ const EquipmentModule = {
     onItemsLoading() {
         // Add weapon item type, etc.
         Item.addItemType(Equipment);
-
-        // Define item rarities
-        Item.ItemRarities['trash'].statReduction = .9;
-        Item.ItemRarities['quest'].statReduction = 1;
-        Item.ItemRarities['trash'].statAddition = 0;
-        Item.ItemRarities['quest'].statAddition = 1;
-        Item.addItemRarities(
-            { name: "common", statAddition: .2, statReduction: .8, symbol: "[C]", weight: 8 },
-            { name: "uncommon", statAddition: .4, statReduction: .6, symbol: "[UC]", weight: 6 },
-            { name: "rare", statAddition: .6, statReduction: .4, symbol: "[R]", weight: 4 },
-            { name: "epic", statAddition: .8, statReduction: .2, symbol: "[E]", weight: 2 },
-            { name: "Legendary", statAddition: 1, statReduction: 0, symbol: "[L]", weight: 1 }
-        );
     },
 
     /**
@@ -302,13 +385,23 @@ const EquipmentModule = {
      */
     onPlayerLoaded(player, playerData) {
         if (!player.eqSlots) player.eqSlots = {};
+
         for (const eqSlot in playerData.eqSlots) {
             const slot = playerData.eqSlots[eqSlot];
             if (EquipmentModule.hasEquipmentSlot(slot.name)) {
                 const slotObj = EquipmentSlot.deserialize(slot);
                 if (slotObj) player.eqSlots[slotObj.name.toLowerCase()] = slotObj;
             } else {
-                // Remove items from data back into inventory.
+                for (const itemData of slot.items) {
+                    const itemType = Item.stringToItemType(itemData.itemType);
+                    const item = itemType.deserialize(itemData.vNum, itemData);
+
+                    if (item) {
+                        player.inventory.addItem(item.vNum, item, true);
+                    }
+                }
+
+                delete player.eqSlots[slot.name.toLowerCase()];
             }
         }
 
@@ -426,7 +519,8 @@ const EquipmentModule = {
             } else {
                 if (player.inventory.isFull) {
                     player.send(`Inventory full!`);
-                } player.send(`Failed to remove ${item.displayString}!`);
+                }
+                player.send(`Failed to remove ${item.displayString}!`);
                 player.eqSlots[key].equip(item);
                 return false;
             }
@@ -469,6 +563,35 @@ const EquipmentModule = {
     },
 
     /**
+     * Remove an equipment slot.
+     * 
+     * @param {Player} player - The player removing the equipment slot.
+     * @param {Array} args - The arguments for removal.
+     */
+    async removeEquipmentSlot(player, args) {
+        const [eqSlotStr] = args;
+
+        if (!eqSlotStr) {
+            player.send(`Usage: removeequipmentslot [slot]`);
+            return;
+        }
+
+        if (EquipmentModule.hasEquipmentSlot(eqSlotStr)) {
+            const deleteForSure = await player.textEditor.showPrompt(`Delete ${eqSlotStr}? y/n`);
+
+            if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
+                //EquipmentModule.equipmentSlots.delete(eqSlotStr.toLowerCase());
+                EquipmentModule.equipmentSlots.get(eqSlotStr.toLowerCase()).delete = true;
+                player.send(`Equipment slot ${eqSlotStr} successfully deleted.`);
+            } else {
+                player.send(`Equipment slot ${eqSlotStr} wasn't deleted.`);
+            }
+        } else {
+            player.send(`Equipment slot ${eqSlotStr} doesn't exist!`);
+        }
+    },
+
+    /**
      * Remove registered events.
      */
     removeEvents() {
@@ -484,7 +607,7 @@ const EquipmentModule = {
      * 
      * @param {Player} [player] - The player (optional).
      */
-    save(player) {
+    saveEquipmentSlots(player) {
         try {
             const serializedData = EquipmentModule.serializeEQSlots();
             fs.writeFileSync(EquipmentModule.EQ_SLOTS_PATH, JSON.stringify(serializedData, null, 2), 'utf8');
@@ -508,9 +631,14 @@ const EquipmentModule = {
             const slotData = {
                 ...data.serialize()
             };
-            slotsArray.push(slotData);
+
+            if (slotData.delete !== true) {
+                slotsArray.push(slotData);
+            } else {
+                EquipmentModule.equipmentSlots.delete(slotData.name.toLowerCase());
+            }
         }
-        return slotsArray; // Pretty-print the JSON
+        return slotsArray;
     },
 
     /**
@@ -561,6 +689,22 @@ const EquipmentModule = {
         }
     },
 
+    showEquipmentSlot(player, args) {
+        const [slot] = args;
+
+        if (!slot) {
+            player.send(`Usage: showequipmentslot [slot]`);
+            return;
+        }
+
+        if (EquipmentModule.hasEquipmentSlot(slot)) {
+            const foundSlot = EquipmentModule.equipmentSlots.get(slot.toLowerCase());
+            sendNestedKeys(player, foundSlot);
+        } else {
+            player.send(`Slot ${slot} doesn't exist!`);
+        }
+    },
+
     /**
      * Update all player equipment slots.
      * 
@@ -582,18 +726,28 @@ const EquipmentModule = {
             const eqSlot = player.eqSlots[key];
             if (!EquipmentModule.hasEquipmentSlot(key)) {
                 // Remove slot and place items back into inventory
+                if (eqSlot) {
+                    for (const item of eqSlot.items.values()) {
+                        player.inventory.addItem(item.vNum, item, true);
+                    }
+
+                    delete player.eqSlots[eqSlot.name.toLowerCase()];
+                }
             }
         }
 
         for (const eqSlot of EquipmentModule.equipmentSlots.values()) {
             const slotName = eqSlot.name.toLowerCase();
-            if (!player.eqSlots[slotName]) {
-                const slot = eqSlot.copy();
-                player.eqSlots[slotName] = slot;
-            } else {
-                player.eqSlots[slotName].eqType = eqSlot.eqType;
-                player.eqSlots[slotName].displayString = eqSlot.displayString;
-                player.eqSlots[slotName].layers = eqSlot.layers;
+
+            if (eqSlot.saved === true) {
+                if (!player.eqSlots[slotName]) {
+                    const slot = eqSlot.copy();
+                    player.eqSlots[slotName] = slot;
+                } else {
+                    player.eqSlots[slotName].eqType = eqSlot.eqType;
+                    player.eqSlots[slotName].displayString = eqSlot.displayString;
+                    player.eqSlots[slotName].layers = eqSlot.layers;
+                }
             }
         }
     },
@@ -675,28 +829,28 @@ const EquipmentModule = {
 
         let wornItemsCount = 0;
 
-        inventoryItems.forEach(item => {
-            if (item.wearable) {
-                let slotName;
-                if (Array.isArray(item.types)) {
-                    slotName = item.types[0].toLowerCase();
-                }
+        // Filter wearable items and sort them by their layer in ascending order
+        const wearableItems = inventoryItems.filter(item => item.wearable)
+            .sort((a, b) => a.layer - b.layer);
 
-                const slot = player.eqSlots[slotName];
-                if (slot) {
-                    const equippedItem = slot.equip(item);
-                    if (equippedItem === true) {
-                        player.inventory.removeItem(item); // Remove the item from inventory
-                        player.send(`You start using ${item.displayString}.`);
-                        wornItemsCount++;
-                    } else {
-                        player.send(`${equippedItem}`);
-                    }
+        wearableItems.forEach(item => {
+            let slotName;
+            if (Array.isArray(item.types)) {
+                slotName = item.types[0].toLowerCase();
+            }
+
+            const slot = player.eqSlots[slotName];
+            if (slot) {
+                const equippedItem = slot.equip(item);
+                if (equippedItem === true) {
+                    player.inventory.removeItem(item); // Remove the item from inventory
+                    player.send(`You start using ${item.displayString}.`);
+                    wornItemsCount++;
                 } else {
-                    player.send(`You can't wear a ${item.displayString} because you don't have the ${slotName} slot.`);
+                    player.send(`${equippedItem}`);
                 }
             } else {
-                player.send(`You can't wear a ${item.displayString}.`);
+                player.send(`You can't wear a ${item.displayString} because you don't have the ${slotName} slot.`);
             }
         });
 

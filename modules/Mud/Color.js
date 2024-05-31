@@ -63,6 +63,7 @@ const Colors = {
   brightRed: "\x1b[31;1m",
   brightGreen: "\x1b[32;1m",
   brightYellow: "\x1b[33;1m",
+  brightOrange: "\x1b[38;5;214;1m",
   brightBlue: "\x1b[34;1m",
   brightMagenta: "\x1b[35;1m",
   brightCyan: "\x1b[36;1m",
@@ -73,6 +74,7 @@ const Colors = {
   bgRed: "\x1b[41m",
   bgGreen: "\x1b[42m",
   bgYellow: "\x1b[43m",
+  bgOrange: "\x1b[48;5;208m",
   bgBlue: "\x1b[44m",
   bgMagenta: "\x1b[45m",
   bgCyan: "\x1b[46m",
@@ -83,6 +85,7 @@ const Colors = {
   bgBrightRed: "\x1b[41;1m",
   bgBrightGreen: "\x1b[42;1m",
   bgBrightYellow: "\x1b[43;1m",
+  bgBrightOrange: "\x1b[48;5;214;1m",
   bgBrightBlue: "\x1b[44;1m",
   bgBrightMagenta: "\x1b[45;1m",
   bgBrightCyan: "\x1b[46;1m",
@@ -90,6 +93,19 @@ const Colors = {
 
   // Blinking text
   blink: "\x1b[5m",
+
+  // 256 Colors
+  color256: (color) => `\x1b[38;5;${color}m`,
+  bgColor256: (color) => `\x1b[48;5;${color}m`,
+};
+
+// Function to replace }# with a color code
+const replaceWithColorCode = (input) => {
+  return input.replace(/}(\d+)/g, (match, p1) => {
+      // Convert captured group to a number and create a color code
+      let colorCode = Colors.color256(Number(p1));
+      return `${colorCode}`;
+  });
 };
 
 /**
@@ -119,6 +135,12 @@ function parseColors(stringToParse) {
   retString = retString.replace(/&y/g, Colors.yellow);
   retString = retString.replace(/&Y/g, Colors.brightYellow);
   retString = retString.replace(/&~/g, Colors.reset);
+
+  retString = replaceWithColorCode(retString);
+
+  // for(let i = 0; i <= 256; i++) {
+  //   console.log(`${Colors.color256(i)}${i}${Colors.reset}`);
+  // }
 
   return `${retString}${Colors.reset}`;
 }

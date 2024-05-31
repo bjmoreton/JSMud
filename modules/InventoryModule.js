@@ -83,6 +83,7 @@ const InventoryModule = {
 
         if (itemIndex >= 0 && itemIndex < foundItems.length) {
             const foundItem = foundItems[itemIndex];
+
             if (!player.currentRoom.inventory.addItem(foundItem.vNum, foundItem)) {
                 player.send(`Failed to drop ${foundItem.displayString}!`);
                 return false;
@@ -338,17 +339,19 @@ const InventoryModule = {
      */
     onRoomLoaded(room, roomData) {
         if (!room.defaultState.inventory) {
-            room.defaultState.inventory = new Inventory(roomData.defaultState?.inventory?.maxSize ?? 20);
+            room.defaultState.inventory = new Inventory(roomData?.defaultState?.inventory?.maxSize ?? 20);
 
-            roomData.defaultState.inventory.items.forEach(roomItems => {
-                roomItems.data.forEach(itemData => {
-                    itemData.items.forEach(item => {
-                        const itemType = Item.stringToItemType(item.itemType);
-                        const itemObj = itemType.deserialize(roomItems.vNum, item);
-                        room.defaultState.inventory.addItem(roomItems.vNum, itemObj, true);
+            if (roomData?.defaultState && roomData.defaultState.inventory) {
+                roomData.defaultState.inventory.items.forEach(roomItems => {
+                    roomItems.data.forEach(itemData => {
+                        itemData.items.forEach(item => {
+                            const itemType = Item.stringToItemType(item.itemType);
+                            const itemObj = itemType.deserialize(roomItems.vNum, item);
+                            room.defaultState.inventory.addItem(roomItems.vNum, itemObj, true);
+                        });
                     });
                 });
-            });
+            }
         }
 
         if (!room.inventory) {
@@ -365,7 +368,7 @@ const InventoryModule = {
     },
 
     onRoomReset(room) {
-        room.inventory = { ...room.defaultState.inventory };
+        room.inventory = room.defaultState.inventory.copy();
     },
 
     /**
