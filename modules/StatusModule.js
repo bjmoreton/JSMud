@@ -1,7 +1,7 @@
 // Importing necessary modules
 const fs = require('fs');
 const path = require('path');
-const { formatTime, isNumber } = require('./Mud/Helpers.js');
+const { formatTime, isNumber, sendNestedKeys } = require('./Mud/Helpers.js');
 const Status = require('./StatusModule/Status.js');
 const Statuses = require('./StatusModule/Statuses.js');
 
@@ -197,7 +197,7 @@ const StatusModule = {
         const statusLength = data.statuses?.length;
         player.statuses = new Statuses(player);
         if (statusLength === 0) {
-            player.addStatusByName('standing');
+            player.statuses.addStatusByName('standing');
         } else {
             data.statuses.forEach(status => {
                 if (Statuses.validStatus(status.name)) {
@@ -389,15 +389,7 @@ const StatusModule = {
             player.send(`Status ${statusName} doesn't exist!`);
             return;
         }
-
-        player.send(`Action: ${status.action?.toString() ?? undefined}`);
-        player.send(`Duration: ${status.ticks}`);
-        player.send(`Tick Interval: ${status.tickInterval}`);
-        player.send(`Got Description: ${status.gotDescription}`);
-        player.send(`Got Seen Description: ${status.gotSeenDescription}`);
-        player.send(`Look Description: ${status.lookDescription}`);
-        player.send(`Lost Description: ${status.lostDescription}`);
-        player.send(`Lost Seen Description: ${status.lostSeenDescription}`);
+        sendNestedKeys(player, status);
     },
 
     updatePlayerStatuses(updateWhat, status) {

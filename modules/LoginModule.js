@@ -58,9 +58,10 @@ const LoginModule = {
                 const confirmPassword = await player.textEditor.showPrompt('Confirm password: ');
                 if (confirmPassword === player.password) {
                     player.password = await hashPassword(player.password);
+                    player.createdOn = formatDate(currentDate) + ' ' + formatTime(currentDate);
                     LoginModule.mudServer.emit('playerCreated', player);
-                    player.save(false);
                     global.mudServer.emit('playerLoaded', player, player);
+                    player.save(false);
                     player.connectionStatus = this.ConnectionStatus.WelcomeScreen;
                 } else {
                     player.send("Passwords did not match!");
@@ -123,7 +124,7 @@ const LoginModule = {
                 player.loggedIn = true;
 
                 player.loginOn = formatDate(currentDate) + ' ' + formatTime(currentDate);
-                if (!player.createdOn) player.createdOn = formatDate(currentDate) + ' ' + formatTime(currentDate);
+                
                 LoginModule.mudServer.players.forEach(p => {
                     if (p.username === player.username || p?.connectionStatus !== this.ConnectionStatus.LoggedIn) return;
                     p.send(`Player ${player.username} has logged in.`);
