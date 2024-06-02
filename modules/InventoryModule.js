@@ -795,7 +795,7 @@ const InventoryModule = {
                     let index = items.findIndex(item => item === deletedItem);
                     while (index !== -1) {
                         array.splice(index, 1);
-                        index = array.findIndex(item => item === deletedItem);
+                        index = items.findIndex(item => item === deletedItem);
                     }
                 });
             });
