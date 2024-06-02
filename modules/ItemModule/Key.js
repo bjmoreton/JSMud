@@ -27,6 +27,12 @@ class Key extends Item {
         return copiedItem;
     }
 
+    static sync(source, destination) {
+        destination = super.sync(source, destination);
+
+        return destination;
+    }
+
     /**
      * Deserialize data into a Key item.
      * @static

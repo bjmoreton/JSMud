@@ -45,6 +45,15 @@ class Equipment extends Item {
         return copiedItem;
     }
 
+    static sync(source, destination) {
+        destination = super.sync(source, destination);
+        destination.wearable = source.wearable;
+        destination.layer = source.layer;
+        destination.types = source.types;
+
+        return destination;
+    }
+
     /**
      * Deserialize data into an Equipment item.
      * @param {number} vNum - The virtual number of the item.

@@ -202,10 +202,12 @@ class Inventory extends Map {
                         items.forEach(newItem => {
                             const itemType = Item.stringToItemType(newItem.itemType);
                             const itemObj = itemType.deserialize(item.vNum, newItem);
-                            if (itemObj.inventory && newItem.inventory) {
-                                itemObj.inventory = Inventory.deserialize(JSON.stringify(newItem.inventory), newItem.inventory.maxSize);
+                            if (itemObj) {
+                                if (itemObj.inventory && newItem.inventory) {
+                                    itemObj.inventory = Inventory.deserialize(JSON.stringify(newItem.inventory), newItem.inventory.maxSize);
+                                }
+                                inventory.addItem(parseInt(item.vNum), itemObj, true);
                             }
-                            inventory.addItem(parseInt(item.vNum), itemObj, true);
                         });
                     });
                 });

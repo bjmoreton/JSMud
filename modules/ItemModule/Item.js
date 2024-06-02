@@ -1,3 +1,5 @@
+const { stringToBoolean } = require("../Mud/Helpers");
+
 /**
  * Class representing an item.
  */
@@ -22,6 +24,8 @@ class Item {
         this.nameDisplay = nameDisplay;
         if (this.nameDisplay === undefined || this.nameDisplay === '') this.nameDisplay = this.name;
         this.itemType = Item.stringToItemType(itemType);
+        this.saved = false;
+        this.delete = false;
     }
 
     /**
@@ -84,7 +88,18 @@ class Item {
         copiedItem.rarity = this.rarity;
         copiedItem.groundDescription = this.groundDescription;
         copiedItem.description = this.description;
+        copiedItem.delete = false;
+        copiedItem.saved = false;
         return copiedItem;
+    }
+
+    static sync(source, destination) {
+        destination.flags = source.flags;
+        destination.rarity = source.rarity;
+        destination.groundDescription = source.groundDescription;
+        destination.description = source.description;
+
+        return destination;
     }
 
     /**
@@ -102,7 +117,8 @@ class Item {
         if (!deserializedItem.rarity) deserializedItem.rarity = Item.ItemRarities.trash;
         deserializedItem.groundDescription = data.groundDescription;
         deserializedItem.description = data.description;
-
+        deserializedItem.delete = stringToBoolean(data.delete);
+        deserializedItem.saved = stringToBoolean(data.saved);
         return deserializedItem;
     }
 
@@ -242,6 +258,8 @@ class Item {
      * @returns {Object} The serialized data of the item.
      */
     serialize() {
+        this.saved = true;
+
         return {
             name: this.name,
             nameDisplay: this.nameDisplay,
@@ -249,7 +267,9 @@ class Item {
             groundDescription: this.groundDescription,
             flags: this.flags,
             itemType: this.itemType.toString(),
-            rarity: this.rarity
+            rarity: this.rarity,
+            delete: this.delete,
+            saved: true,
         };
     }
 

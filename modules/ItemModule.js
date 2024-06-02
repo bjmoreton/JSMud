@@ -133,7 +133,7 @@ const ItemModule = {
                 return;
             }
 
-            switch (editWhat.toLowerCase()) {
+            switch (editWhat?.toLowerCase()) {
                 case "desc":
                 case "description":
                     const description = await player.textEditor.startEditing(itemToEdit.description);
@@ -157,8 +157,8 @@ const ItemModule = {
                     itemToEdit.name = value?.trim();
                     break;
                 default:
-                    if (ItemModule.editItemActions.has(editWhat.toLowerCase())) {
-                        const editAction = ItemModule.editItemActions.get(editWhat.toLowerCase());
+                    if (ItemModule.editItemActions.has(editWhat?.toLowerCase())) {
+                        const editAction = ItemModule.editItemActions.get(editWhat?.toLowerCase());
                         await editAction.action(player, itemToEdit, eventObj);
                     } else {
                         player.send(`Usage: edititem [vNum] <description | flags | name>`);
@@ -169,7 +169,11 @@ const ItemModule = {
                     }
             }
 
-            if (eventObj.saved) player.send(`Item edited successfully!`);
+            if (eventObj.saved) {
+                itemToEdit.saved = false;
+                itemToEdit.delete = false;
+                player.send(`Item edited successfully!`);
+            }
         } else {
             player.send(`Usage: edititem [vNum] <description | flags | name>`);
             for (const action of ItemModule.editItemActions.values()) {
@@ -223,7 +227,11 @@ const ItemModule = {
                         }
                 }
 
-                if (eventObj.saved) player.send(`Item rarity edited successfully!`);
+                if (eventObj.saved) {
+                    rarityToEdit.saved = false;
+                    rarityToEdit.delete = false;
+                    player.send(`Item rarity edited successfully!`);
+                }
             } else {
                 player.send(`Rarity ${rarityStr} not found!`);
                 return;
@@ -304,7 +312,7 @@ const ItemModule = {
      */
     load(player) {
         try {
-            ItemModule.loadItemRarities(player);
+            ItemModule.loadItemRarities(player, false);
 
             const data = fs.readFileSync(ItemModule.ITEMS_PATH, 'utf8');
             const itemsData = JSON.parse(data);
@@ -319,6 +327,8 @@ const ItemModule = {
                     ItemModule.itemsList.set(parseInt(item.vNum), itemObj);
                 }
             });
+
+            ItemModule.mudServer.emit('itemsLoaded');
             console.log("Items loaded successfully.");
             if (player) player.send("Items loaded successfully.");
         } catch (err) {
@@ -327,7 +337,7 @@ const ItemModule = {
         }
     },
 
-    loadItemRarities(player) {
+    loadItemRarities(player, triggerEvent = true) {
         try {
             const data = fs.readFileSync(ItemModule.ITEM_RARITIES_PATH, 'utf8');
             const rarityData = JSON.parse(data);
@@ -336,6 +346,7 @@ const ItemModule = {
                 Item.addItemRarities(rarity);
             });
 
+            if (triggerEvent) ItemModule.mudServer.emit('itemsLoaded');
             console.log("Item rarities loaded successfully.");
             if (player) player.send("Item rarities loaded successfully.");
         } catch (error) {
@@ -404,7 +415,8 @@ const ItemModule = {
             const deleteForSure = await player.textEditor.showPrompt(`Delete ${item.name}? y/n`);
 
             if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
-                ItemModule.itemsList.delete(parseInt(vNum));
+                //ItemModule.itemsList.delete(parseInt(vNum));
+                item.delete = true;
                 player.send(`${item.name} deleted successfully.`);
             } else {
                 player.send(`${item.name} wasn't deleted.`);
@@ -425,7 +437,8 @@ const ItemModule = {
             const deleteForSure = await player.textEditor.showPrompt(`Delete ${rarity.name}? y/n`);
 
             if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
-                Item.ItemRarities.delete(rarity.name.toLowerCase());
+                Item.ItemRarities.get(rarity.name.toLowerCase()).delete = true;
+                //Item.ItemRarities.delete(rarity.name.toLowerCase());
                 player.send(`${rarity.name} deleted successfully.`);
             } else {
                 player.send(`${rarity.name} wasn't deleted.`);
@@ -442,6 +455,7 @@ const ItemModule = {
         try {
             const serializedData = ItemModule.serializeItems(ItemModule.itemsList);
             fs.writeFileSync(ItemModule.ITEMS_PATH, JSON.stringify(serializedData, null, 2), 'utf8');
+            ItemModule.mudServer.emit('itemsSaved');
             console.log("Items saved successfully.");
             if (player) player.send("Items saved successfully.");
         } catch (error) {
@@ -452,7 +466,15 @@ const ItemModule = {
 
     saveItemRarities(player) {
         try {
-            fs.writeFileSync(ItemModule.ITEM_RARITIES_PATH, JSON.stringify(Item.ItemRarities, null, 2), 'utf8');
+            const filteredRarities = Object.keys(Item.ItemRarities)
+                .filter(key => !Item.ItemRarities[key].deleted)
+                .reduce((acc, key) => {
+                    acc[key] = Item.ItemRarities[key];
+                    return acc;
+                }, {});
+            const jsonString = JSON.stringify(filteredRarities, null, 2);
+            fs.writeFileSync(ItemModule.ITEM_RARITIES_PATH, jsonString, 'utf8');
+            ItemModule.mudServer.emit('itemsSaved');
             console.log("Item rarities saved successfully.");
             if (player) player.send("Item rarities saved successfully.");
         } catch (error) {
@@ -476,7 +498,9 @@ const ItemModule = {
                     ...item.serialize()
                 }
             };
-            itemsArray.push(itemData);
+            if (!itemData.data.delete) {
+                itemsArray.push(itemData);
+            }
         }
         return itemsArray; // Pretty-print the JSON
     },
@@ -530,7 +554,7 @@ const ItemModule = {
         } else {
             player.send(`Item vNum ${vNum} doesn't exist!`);
         }
-    }
+    },
 }
 
 module.exports = ItemModule;

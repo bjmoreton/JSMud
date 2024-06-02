@@ -148,6 +148,7 @@ const EquipmentModule = {
         }
 
         slotObj.saved = false;
+        slotObj.delete = false;
         player.send(`Equipment slot updated successfully.`);
     },
 
@@ -185,8 +186,7 @@ const EquipmentModule = {
         global.ItemModule.addEditItemAction('layer', 'edititem [vNum] layer [layer(number)]', EquipmentModule.editItemLayer);
         global.ItemModule.addEditItemAction('type', 'edititem [vNum] type <add | remove> [...type]', EquipmentModule.editItemType);
         global.ItemModule.addEditItemAction('wearable', 'edititem [vNum] wearable [true/false]', EquipmentModule.editItemWearable);
-        global.ItemModule.addEditItemRarityAction('stataddition', 'edititem [rarity] stataddition [value]', EquipmentModule.editItemRarityStatAddition);
-        global.ItemModule.addEditItemRarityAction('statreduction', 'edititemrarity [rarity] statreduction [value]', EquipmentModule.editItemRarityStatReduction);
+        global.ItemModule.addEditItemRarityAction('statbonus', 'edititem [rarity] statbonus [value]', EquipmentModule.editItemRarityStatBonus);
     },
 
     loadEquipmentSlots(player) {
@@ -297,7 +297,7 @@ const EquipmentModule = {
      * @param {Object} eventObj - The event object containing command arguments.
      * @returns {boolean} - Indicates whether the action was handled successfully.
      */
-    editItemRarityStatAddition(player, rarity, eventObj) {
+    editItemRarityStatBonus(player, rarity, eventObj) {
         const [rarityStr, editWhat, value, ...data] = eventObj.args;
 
         if (!value || !isNumber(value)) {
@@ -306,28 +306,7 @@ const EquipmentModule = {
             return false;
         }
 
-        rarity.statAddition = Number(value);
-        return true;
-    },
-
-    /**
-     * Edits the stat reduction of an item rarity.
-     * 
-     * @param {Player} player - The player executing the command.
-     * @param {Object} rarity - The rarity being edited.
-     * @param {Object} eventObj - The event object containing command arguments.
-     * @returns {boolean} - Indicates whether the action was handled successfully.
-     */
-    editItemRarityStatReduction(player, rarity, eventObj) {
-        const [rarityStr, editWhat, value, ...data] = eventObj.args;
-
-        if (!value || !isNumber(value)) {
-            player.send(`Value needs to be a valid number!`);
-            eventObj.saved = false;
-            return false;
-        }
-
-        rarity.statReduction = Number(value);
+        rarity.statBonus = Number(value);
         return true;
     },
 
@@ -405,7 +384,7 @@ const EquipmentModule = {
             }
         }
 
-        EquipmentModule.updatePlayerSlots(player);
+        EquipmentModule.updatePlayerSlots(player, false);
     },
 
     /**
@@ -721,7 +700,7 @@ const EquipmentModule = {
      * 
      * @param {Player} player - The player.
      */
-    updatePlayerSlots(player) {
+    updatePlayerSlots(player, save = true) {
         for (const key in player.eqSlots) {
             const eqSlot = player.eqSlots[key];
             if (!EquipmentModule.hasEquipmentSlot(key)) {
@@ -750,6 +729,8 @@ const EquipmentModule = {
                 }
             }
         }
+
+        if (save) player.save(false);
     },
 
     /**

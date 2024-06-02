@@ -130,3 +130,5 @@ dist
 .pnp.*
 
 /players
+/areas
+/helpfiles

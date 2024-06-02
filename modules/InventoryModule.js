@@ -242,31 +242,6 @@ const InventoryModule = {
     },
 
     /**
-     * Update inventory references recursively.
-     * 
-     * @param {Inventory} inventory - The inventory to update.
-     */
-    updateInventoryReferences(inventory) {
-        for (const invItems of inventory.values()) {
-            invItems.forEach(items => {
-                items.forEach(item => {
-                    // Set the prototype based on the itemType
-                    const itemTypeConstructor = Item.stringToItemType(item.itemType.toString());
-                    if (itemTypeConstructor) {
-                        Object.setPrototypeOf(item, itemTypeConstructor.prototype);
-                    }
-
-                    // Check and recurse into the item's inventory if it exists
-                    if (item.inventory) {
-                        Object.setPrototypeOf(item.inventory, Inventory.prototype);
-                        InventoryModule.updateInventoryReferences(item.inventory);
-                    }
-                });
-            });
-        }
-    },
-
-    /**
      * Handle pre-hot boot actions.
      */
     onHotBootBefore() {
@@ -283,6 +258,12 @@ const InventoryModule = {
         Item.addItemFlag('groundrot', 'hidden', 'notake');
     },
 
+    onItemsSaved() {
+        InventoryModule.mudServer.players.forEach(p => {
+            InventoryModule.updatePlayerInventory(p.inventory);
+        });
+    },
+
     /**
      * Handle player loaded event.
      * 
@@ -290,7 +271,8 @@ const InventoryModule = {
      * @param {Object} playerData - The player data.
      */
     onPlayerLoaded(player, playerData) {
-        if (player.inventory !== undefined) player.inventory = Inventory.deserialize(JSON.stringify(playerData.inventory), playerData.inventory.maxSize);
+        if (playerData.inventory !== undefined) player.inventory = Inventory.deserialize(JSON.stringify(playerData.inventory), playerData.inventory.maxSize);
+        if (player.inventory) InventoryModule.updatePlayerInventory(player.inventory);
     },
 
     /**
@@ -550,7 +532,9 @@ const InventoryModule = {
         InventoryModule.mudServer.on('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.on('hotBootAfter', InventoryModule.onHotBootAfter);
         InventoryModule.mudServer.on('hotBootBefore', InventoryModule.onHotBootBefore);
+        InventoryModule.mudServer.on('itemsLoaded', InventoryModule.onItemsSaved);
         InventoryModule.mudServer.on('itemsLoading', InventoryModule.onItemsLoading);
+        InventoryModule.mudServer.on('itemsSaved', InventoryModule.onItemsSaved);
         InventoryModule.mudServer.on('looked', InventoryModule.onLooked);
         InventoryModule.mudServer.on('playerLoaded', InventoryModule.onPlayerLoaded);
         InventoryModule.mudServer.on('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
@@ -568,7 +552,9 @@ const InventoryModule = {
         InventoryModule.mudServer.off('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.off('hotBootAfter', InventoryModule.onHotBootAfter);
         InventoryModule.mudServer.off('hotBootBefore', InventoryModule.onHotBootBefore);
+        InventoryModule.mudServer.off('itemsLoaded', InventoryModule.onItemsSaved);
         InventoryModule.mudServer.off('itemsLoading', InventoryModule.onItemsLoading);
+        InventoryModule.mudServer.off('itemsSaved', InventoryModule.onItemsSaved);
         InventoryModule.mudServer.off('looked', InventoryModule.onLooked);
         InventoryModule.mudServer.off('playerLoaded', InventoryModule.onPlayerLoaded);
         InventoryModule.mudServer.off('playerLoggedIn', InventoryModule.onPlayerLoggedIn);
@@ -754,6 +740,65 @@ const InventoryModule = {
                 player.send(`${itemName} not found in the room.`);
                 return false;
             }
+        }
+    },
+
+    /**
+     * Update inventory references recursively.
+     * 
+     * @param {Inventory} inventory - The inventory to update.
+     */
+    updateInventoryReferences(inventory) {
+        for (const invItems of inventory.values()) {
+            invItems.forEach(items => {
+                items.forEach(item => {
+                    // Set the prototype based on the itemType
+                    const itemTypeConstructor = Item.stringToItemType(item.itemType.toString());
+                    if (itemTypeConstructor) {
+                        Object.setPrototypeOf(item, itemTypeConstructor.prototype);
+                    }
+
+                    // Check and recurse into the item's inventory if it exists
+                    if (item.inventory) {
+                        Object.setPrototypeOf(item.inventory, Inventory.prototype);
+                        InventoryModule.updateInventoryReferences(item.inventory);
+                    }
+                });
+            });
+        }
+    },
+
+    updatePlayerInventory(inventory) {
+        for (const invItems of inventory.values()) {
+            invItems.forEach(items => {
+                const deletedItems = [];
+
+                items.forEach(item => {
+                    const updatedItem = global.ItemModule.getItemByVNum(item.vNum);
+                    updatedItem.rarity = Item.getRarityByName(item.rarity.name);
+
+                    if (updatedItem) {
+                        const itemTypeConstructor = Item.stringToItemType(item.itemType.toString());
+                        if (itemTypeConstructor) {
+                            item = itemTypeConstructor.sync(updatedItem, item);
+                            InventoryModule.mudServer.emit('syncedItem', item);
+                        }
+
+                        // Check and recurse into the item's inventory if it exists
+                        if (item.inventory) {
+                            InventoryModule.updatePlayerInventory(item.inventory);
+                        }
+                    } else deletedItems.push(item);
+                });
+
+                deletedItems.forEach(deletedItem => {
+                    let index = items.findIndex(item => item === deletedItem);
+                    while (index !== -1) {
+                        array.splice(index, 1);
+                        index = array.findIndex(item => item === deletedItem);
+                    }
+                });
+            });
         }
     },
 };

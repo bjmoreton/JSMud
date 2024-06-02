@@ -4,14 +4,18 @@
     "data": {
       "name": "Sword of Darkness",
       "nameDisplay": "Sword of Darkness",
+      "description": "Testing Updates",
       "itemType": "Equipment",
       "rarity": {
         "name": "trash",
-        "symbol": "[&zT&~]",
+        "symbol": "&O[}102T&O]&~",
         "weight": 9,
-        "statReduction": 0.9,
-        "statAddition": 0
+        "statBonus": 0,
+        "saved": false,
+        "delete": false
       },
+      "delete": false,
+      "saved": true,
       "vNum": 0,
       "wearable": true,
       "layer": 1,
@@ -28,11 +32,14 @@
       "itemType": "Equipment",
       "rarity": {
         "name": "trash",
-        "symbol": "[&zT&~]",
+        "symbol": "&O[}102T&O]&~",
         "weight": 9,
-        "statReduction": 0.9,
-        "statAddition": 0
+        "statBonus": 0,
+        "saved": false,
+        "delete": false
       },
+      "delete": false,
+      "saved": true,
       "vNum": 1,
       "wearable": true,
       "types": [

@@ -1,4 +1,4 @@
-const { hashPassword, verifyPassword } = require("./Mud/Helpers");
+const { hashPassword, verifyPassword, formatDate, formatTime } = require("./Mud/Helpers");
 
 /**
  * Login module for MUD server.
@@ -8,7 +8,7 @@ const { hashPassword, verifyPassword } = require("./Mud/Helpers");
  */
 const LoginModule = {
     name: "Login",
-    
+
     /**
      * Enum for connection status.
      * @enum {string}
@@ -28,6 +28,7 @@ const LoginModule = {
      * @param {Player} player - The player logging in.
      */
     handleLogin: async function (player) {
+        const currentDate = new Date();
         // Set initial connection status if not already set
         if (player !== undefined && player.connectionStatus == null) {
             player.connectionStatus = this.ConnectionStatus.EnterUsername;
@@ -119,6 +120,9 @@ const LoginModule = {
                 // Handle welcome screen display after successful login
                 player.connectionStatus = this.ConnectionStatus.LoggedIn;
                 player.loggedIn = true;
+
+                player.loginOn = formatDate(currentDate) + ' ' + formatTime(currentDate);
+                if (!player.createdOn) player.createdOn = formatDate(currentDate) + ' ' + formatTime(currentDate);
                 LoginModule.mudServer.players.forEach(p => {
                     if (p.username === player.username || p?.connectionStatus !== this.ConnectionStatus.LoggedIn) return;
                     p.send(`Player ${player.username} has logged in.`);

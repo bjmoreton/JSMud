@@ -3,6 +3,7 @@ const path = require('path');
 const { parseColors } = require('../Mud/Color.js');
 const TextEditor = require('./TextEditor.js');
 const Status = require('../StatusModule/Status.js');
+const { formatDate, formatTime } = require('../Mud/Helpers.js');
 
 /**
  * Class representing a player.
@@ -93,6 +94,8 @@ class Player {
      * Save the player's data to a file.
      */
     save(output = true) {
+        const currentDate = new Date();
+        this.savedOn = formatDate(currentDate) + ' ' + formatTime(currentDate);
         const { socket, connectionStatus, loggedIn, textEditor, fadedTimeout, ...playerData } = this;
         playerData.statuses = Array.from(this.statuses.values()).map(status => status.serialize());
         global.mudServer.emit('playerSaved', this, playerData);

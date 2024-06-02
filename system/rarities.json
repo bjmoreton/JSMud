@@ -3,48 +3,43 @@
     "name": "quest",
     "symbol": "&P[}11Q&O]&~",
     "weight": 3,
-    "statReduction": 1,
-    "statAddition": 1
+    "statBonus": 1
   },
   "trash": {
     "name": "trash",
     "symbol": "&O[}102T&O]&~",
     "weight": 9,
-    "statReduction": 0.9,
-    "statAddition": 0
+    "statBonus": 0,
+    "saved": false,
+    "delete": false
   },
   "uncommon": {
     "name": "uncommon",
-    "statAddition": 0.4,
-    "statReduction": 0.6,
+    "statBonus": 0.4,
     "symbol": "&O[}70UC&O]&~",
     "weight": 6
   },
   "rare": {
     "name": "rare",
-    "statAddition": 0.6,
-    "statReduction": 0.4,
+    "statBonus": 0.6,
     "symbol": "&O[}75R&O]&~",
     "weight": 4
   },
   "epic": {
     "name": "epic",
-    "statAddition": 0.8,
-    "statReduction": 0.2,
+    "statBonus": 0.8,
     "symbol": "&O[}207E&O]&~",
     "weight": 2
   },
   "legendary": {
     "name": "Legendary",
-    "statAddition": 1,
-    "statReduction": 0,
+    "statBonus": 1,
     "symbol": "&O[}208L&O]&~",
     "weight": 1
   },
   "common": {
     "name": "common",
-    "statAddition": 1,
-    "statReduction": 0.8,
+    "statBonus": 1,
     "symbol": "&O[}15C&O]&~",
     "weight": 8
   }

@@ -126,8 +126,8 @@ const StatModule = {
             });
             console.log("Stats loaded successfully.");
             if (player) player.send("Stats loaded successfully.");
-            
-            global.ItemModule.addEditItemAction('stats', [`editItem [vNum] stats <add | remove> [stat] [minValue] [maxValue]`], StatModule.editStats);
+
+            global.ItemModule.addEditItemAction('stats', [`edititem [vNum] stats <add | remove> [stat] [value]`], StatModule.editStats);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load stats.");
@@ -148,15 +148,17 @@ const StatModule = {
      * @param {Player} player - The player creating the item.
      * @param {Item} item - The item being created.
      */
-    onCreatedItem(player, item) {
+    onCreatedItem(item) {
         for (const statId in item.stats) {
             const stat = item.stats[statId];
-            const [maxValue, minValue] = [stat.maxValue, stat.minValue];
-            const newMax = maxValue - (maxValue * item.rarity.statReduction);
-            const newMin = minValue + (minValue * item.rarity.statAddition);
-            stat.value = getRandomNumberInclusive(newMin, newMax);
+            const newValue = stat.originalValue + (stat.originalValue * item.rarity.statBonus);
+            stat.value = newValue;
             console.log(stat.shortName, stat.value);
         }
+    },
+
+    onEditItem(player, item) {
+
     },
 
     /**
@@ -170,10 +172,10 @@ const StatModule = {
         const [vNum, editWhat, action, ...data] = eventObj.args;
         switch (editWhat?.toLowerCase()) {
             case 'stats':
-                const [stat, ...values] = data;
+                const [stat, value] = data;
                 if (!action) {
                     eventObj.saved = false;
-                    player.send(`Usage: editItem ${vNum} stats <add | remove> [stat] [minValue] [maxValue]`);
+                    player.send(`Usage: edititem ${vNum} stats <add | remove> [stat] [value]`);
                     return false;
                 }
                 switch (action.toLowerCase()) {
@@ -182,21 +184,13 @@ const StatModule = {
                             const statObj = StatModule.getStat(stat);
                             if (!item.stats) item.stats = {};
                             item.stats[statObj.shortName] = statObj.copy();
-                            let [minValue, maxValue] = values;
-                            if (!isNumber(minValue) || !isNumber(maxValue)) {
+                            if (!isNumber(value)) {
                                 eventObj.saved = false;
-                                player.send(`Must provide valid numbers for minValue and maxValue!`);
+                                player.send(`Must provide valid number value!`);
                                 return false;
                             }
-                            minValue = parseInt(minValue);
-                            maxValue = parseInt(maxValue);
-                            if (maxValue < minValue) {
-                                eventObj.saved = false;
-                                player.send(`Must provide a valid range!`);
-                                return false;
-                            }
-                            item.stats[statObj.shortName].minValue = minValue;
-                            item.stats[statObj.shortName].maxValue = maxValue;
+                            item.stats[statObj.shortName].originalValue = value;
+                            item.stats[statObj.shortName].value = value;
                             return true;
                         } else {
                             eventObj.saved = false;
@@ -224,7 +218,7 @@ const StatModule = {
                 }
                 break;
             default:
-                player.send(`Usage: editItem ${vNum} stats <add | remove> [stat] [minValue] [maxValue]`);
+                player.send(`Usage: edititem ${vNum} stats <add | remove> [stat] [value]`);
                 return false;
         }
     },
@@ -268,6 +262,7 @@ const StatModule = {
         StatModule.mudServer.on('itemDeserialized', StatModule.onItemDeserialized);
         StatModule.mudServer.on('playerLoaded', StatModule.onPlayerLoaded);
         StatModule.mudServer.on('playerSaved', StatModule.onPlayerSaved);
+        StatModule.mudServer.on('syncedItem', StatModule.onCreatedItem);
     },
 
     /**
@@ -280,6 +275,7 @@ const StatModule = {
         StatModule.mudServer.off('itemDeserialized', StatModule.onItemDeserialized);
         StatModule.mudServer.off('playerLoaded', StatModule.onPlayerLoaded);
         StatModule.mudServer.off('playerSaved', StatModule.onPlayerSaved);
+        StatModule.mudServer.off('syncedItem', StatModule.onCreatedItem);
     },
 
     /**

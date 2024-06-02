@@ -36,6 +36,13 @@ class Container extends Item {
         return copiedItem;
     }
 
+    static sync(source, destination) {
+        destination = super.sync(source, destination);
+        if (!destination.inventory) destination.inventory = new Inventory(source.inventory.maxSize);
+        else if (source.inventory) destination.inventory.maxSize = source.inventory.maxSize;
+
+        return destination;
+    }
     /**
      * Deserialize data into a Container item.
      * @param {number} vNum - The virtual number of the item.

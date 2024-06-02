@@ -56,7 +56,7 @@ const PlayerModule = {
         socket.setKeepAlive(true, 60000); // Send a keep-alive packet every 60 seconds
         const player = new Player(socket, 'Guest');
         PlayerModule.mudServer.players.set(socket, player);
-        PlayerModule.startFadeOut(player, 360000); // 5 minutes
+        PlayerModule.startFadeOut(player, 720000); // 10 minutes
         PlayerModule.mudServer.emit('newPlayerConnected', player);
         PlayerModule.mudServer.emit('handleLogin', player, "");
 
@@ -85,7 +85,7 @@ const PlayerModule = {
             } else player.textEditor.processInput(cleanedData);
 
             clearTimeout(player.fadedTimeout);
-            PlayerModule.startFadeOut(720000);
+            PlayerModule.startFadeOut(720000); // 10 minutes
         });
 
         player.socket.on('error', error => {
@@ -103,13 +103,9 @@ const PlayerModule = {
      */
     onHotBootAfter: () => {
         PlayerModule.saveAllPlayers();
-
-        const updatedTextEditor = new TextEditor();
-        const updatedPlayer = new Player();
-
         PlayerModule.mudServer.players.forEach(p => {
-            Object.setPrototypeOf(p, updatedPlayer.__proto__);
-            Object.setPrototypeOf(p.textEditor, updatedTextEditor.__proto__);
+            Object.setPrototypeOf(p, Player.prototype);
+            Object.setPrototypeOf(p.textEditor, TextEditor.prototype);
         });
     },
 
