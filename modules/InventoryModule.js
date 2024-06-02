@@ -292,7 +292,7 @@ const InventoryModule = {
      * @returns {Object} - The updated player data.
      */
     onPlayerSaved(player, playerData) {
-        playerData.inventory = player.inventory.serialize();
+        if (player.inventory) playerData.inventory = player.inventory.serialize();
         return playerData;
     },
 

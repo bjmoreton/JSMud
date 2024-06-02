@@ -59,7 +59,8 @@ const LoginModule = {
                 if (confirmPassword === player.password) {
                     player.password = await hashPassword(player.password);
                     LoginModule.mudServer.emit('playerCreated', player);
-                    player.save();
+                    player.save(false);
+                    global.mudServer.emit('playerLoaded', player, player);
                     player.connectionStatus = this.ConnectionStatus.WelcomeScreen;
                 } else {
                     player.send("Passwords did not match!");
