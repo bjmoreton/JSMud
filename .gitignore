@@ -132,3 +132,4 @@ dist
 /players
 /areas
 /helpfiles
+/system/*.json
