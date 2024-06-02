@@ -794,7 +794,7 @@ const InventoryModule = {
                 deletedItems.forEach(deletedItem => {
                     let index = items.findIndex(item => item === deletedItem);
                     while (index !== -1) {
-                        array.splice(index, 1);
+                        items.splice(index, 1);
                         index = items.findIndex(item => item === deletedItem);
                     }
                 });
