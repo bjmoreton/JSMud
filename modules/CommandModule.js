@@ -196,8 +196,7 @@ const CommandModule = {
         if (!handler) handler = CommandModule.findCommand(cmdName);
 
         if (handler) {
-            eventObj.handled = true;
-            handler.execute(player, args, cleanInput ? cleanInput[1] : '');
+            eventObj.handled = handler.execute(player, args, cleanInput ? cleanInput[1] : '');
         }
     },
 

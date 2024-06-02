@@ -50,8 +50,13 @@ class ServerCommand {
      */
     execute(player, args, input) {
         if (player.hasCommand(this.command) || player.modLevel >= this.modLevel) {
-            if (this.handler) this.handler(player, args, input);
+            if (this.handler) {
+                this.handler(player, args, input);
+                return true;
+            }
         }
+
+        return false;
     }
 }
 
