@@ -31,6 +31,8 @@ class Stat {
      */
     static deserialize(data) {
         const deserializedItem = new Stat(data.name, data.shortName);
+        if(data.originalValue) deserializedItem.originalValue = Number(data.originalValue);
+        if(data.value) deserializedItem.value = Number(data.value);
         addMissingProperties(data, deserializedItem);
         return deserializedItem;
     }

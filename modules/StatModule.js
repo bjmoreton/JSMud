@@ -127,7 +127,7 @@ const StatModule = {
             console.log("Stats loaded successfully.");
             if (player) player.send("Stats loaded successfully.");
 
-            global.ItemModule.addEditItemAction('stats', [`edititem [vNum] stats <add | remove> [stat] [value]`], StatModule.editStats);
+            global.ItemModule.addEditItemAction('stats', [`edititem [vNum] stats <add | edit | remove> [stat] [value]`], StatModule.editStats);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load stats.");
@@ -145,10 +145,12 @@ const StatModule = {
     /**
      * Handles item creation by adjusting item stats based on rarity.
      * 
-     * @param {Player} player - The player creating the item.
      * @param {Item} item - The item being created.
+     * @param {Item} updatedItem - The updated version of the item being created.
      */
     onCreatedItem(item, updatedItem) {
+        if (!item.stats) item.stats = {};
+
         if (updatedItem) {
             const deletedStats = [];
             for (const statId in updatedItem.stats) {
@@ -168,7 +170,6 @@ const StatModule = {
             const stat = item.stats[statId];
             const newValue = stat.originalValue + (stat.originalValue * item.rarity.statBonus);
             stat.value = newValue;
-            console.log(stat.shortName, stat.value);
         }
     },
 
@@ -186,7 +187,7 @@ const StatModule = {
                 const [stat, value] = data;
                 if (!action) {
                     eventObj.saved = false;
-                    player.send(`Usage: edititem ${vNum} stats <add | remove> [stat] [value]`);
+                    player.send(`Usage: edititem ${vNum} stats <add | edit | remove> [stat] [value]`);
                     return false;
                 }
                 switch (action.toLowerCase()) {
@@ -194,13 +195,43 @@ const StatModule = {
                         if (stat && StatModule.hasStat(stat)) {
                             const statObj = StatModule.getStat(stat);
                             if (!item.stats) item.stats = {};
-                            item.stats[statObj.shortName] = statObj.copy();
+                            item.stats[statObj.name.toLowerCase()] = statObj.copy();
                             if (!isNumber(value)) {
                                 eventObj.saved = false;
                                 player.send(`Must provide valid number value!`);
                                 return false;
                             }
-                            item.stats[statObj.shortName].originalValue = value;
+                            item.stats[statObj.name.toLowerCase()].originalValue = Number(value);
+                            return true;
+                        } else {
+                            eventObj.saved = false;
+                            player.send(`Must provide a valid stat!`);
+                            player.send(`Valid Options:`);
+                            StatModule.getStats().forEach(stats => {
+                                player.send(stats);
+                            });
+                            return false;
+                        }
+                    case 'edit':
+                        if (stat && StatModule.hasStat(stat)) {
+                            if (!item.stats) {
+                                eventObj.saved = false;
+                                player.send(`Item ${item.displayString} doesn't have any stats!`);
+                                return false;
+                            }
+                            const statObj = StatModule.getStat(stat);
+                            const editStat = item.stats[statObj.name.toLowerCase()];
+                            if (!editStat) {
+                                eventObj.saved = false;
+                                player.send(`Item ${item.displayString} doesn't have stat ${stat}!`);
+                                return false;
+                            }
+                            if (!isNumber(value)) {
+                                eventObj.saved = false;
+                                player.send(`Must provide valid number value!`);
+                                return false;
+                            }
+                            item.stats[statObj.name.toLowerCase()].originalValue = Number(value);
                             return true;
                         } else {
                             eventObj.saved = false;
@@ -214,7 +245,7 @@ const StatModule = {
                     case 'remove':
                         if (stat && StatModule.hasStat(stat)) {
                             const statObj = StatModule.getStat(stat);
-                            delete item.stats[statObj.shortName];
+                            delete item.stats[statObj.name.toLowerCase()];
                         } else {
                             eventObj.saved = false;
                             player.send(`Must provide a valid stat!`);
@@ -246,8 +277,8 @@ const StatModule = {
             const stats = data.stats;
             for (const key in stats) {
                 const stat = stats[key];
-                if (StatModule.hasStat(stat.shortName)) {
-                    item.stats[stat.shortName] = Stat.deserialize(stat);
+                if (StatModule.hasStat(stat.name)) {
+                    item.stats[stat.name.toLowerCase()] = Stat.deserialize(stat);
                 }
             }
         }

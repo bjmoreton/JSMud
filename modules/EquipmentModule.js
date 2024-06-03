@@ -58,6 +58,31 @@ const EquipmentModule = {
         }
     },
 
+    analyzeItem(player, args) {
+        let [itemStr] = args;
+
+        if (!itemStr) {
+            player.send(`Usage: analyze [item]`);
+            return false;
+        }
+
+        const parsePattern = /^(\d+)\.(.*)$/;
+        let itemMatch = itemStr?.match(parsePattern);
+
+        let itemIndex = itemMatch ? parseInt(itemMatch[1], 10) : 0;
+        let itemName = itemMatch ? itemMatch[2].trim() : itemStr.trim();
+
+        let itemList = player.inventory.findAllItemsByName(itemName);
+        let item = itemList[itemIndex];
+
+        if (!itemList.length || !item) {
+            player.send(`${itemName} not found in your inventory.`);
+            return false;
+        }
+
+        sendNestedKeys(player, item);
+    },
+
     /**
      * Get formatted equipment slots.
      * 
@@ -339,7 +364,7 @@ const EquipmentModule = {
      */
     onHotBootAfter(player) {
         EquipmentModule.mudServer.players.forEach(p => {
-            for(const slot in p.eqSlots) {
+            for (const slot in p.eqSlots) {
                 Object.setPrototypeOf(p.eqSlots[slot], EquipmentSlot.prototype);
             }
         });

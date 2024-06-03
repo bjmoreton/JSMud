@@ -639,7 +639,7 @@ const ItemModule = {
         const item = ItemModule.getItemByVNum(vNum)?.copy();
         if (item) {
             item.rarity = rarity;
-            ItemModule.mudServer.emit('createdItem', player, item);
+            ItemModule.mudServer.emit('createdItem', item);
             player.send(`You create ${item.displayString} out of thin air!`);
             player.inventory.addItem(item.vNum, item);
         } else {
