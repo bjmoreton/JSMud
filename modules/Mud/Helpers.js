@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const { execFile } = require('child_process');
 
 /**
  * Adds missing properties from a source object to a destination object.
@@ -61,6 +62,24 @@ function generateRandomString(length) {
         result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
     return result;
+}
+
+async function gitPull() {
+    return new Promise((resolve, reject) => {
+        execFile('git', ['pull'], (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing git pull: ${error.message}`);
+                return reject(error.message);
+            }
+
+            if (stderr) {
+                console.error(`git pull stderr: ${stderr}`);
+                return reject(stderr);
+            }
+
+            resolve(stdout);
+        });
+    });
 }
 
 /**
@@ -255,6 +274,7 @@ module.exports = {
     formatDate,
     getRandomNumberInclusive,
     generateRandomString,
+    gitPull,
     hashPassword,
     inRange,
     isNumber,

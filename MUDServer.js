@@ -3,7 +3,7 @@ const EventEmitter = require('events');
 const fs = require('fs');
 const net = require('net');
 const path = require('path');
-const { generateRandomString } = require('./modules/Mud/Helpers.js');
+const { generateRandomString, gitPull } = require('./modules/Mud/Helpers.js');
 
 /**
  * Class representing a MUD (Multi-User Dungeon) server.
@@ -15,7 +15,7 @@ class MUDServer extends EventEmitter {
     static MODULE_ORDER_FILE = path.join(__dirname, 'system', 'module_order.txt');
     static MUD_TITLE_PATH = path.join(__dirname, 'system', 'mudtitle.txt');
     static MODULES_PATH = path.join(__dirname, 'modules');
-    
+
     banList = new Map();
     commands = new Map();
     modules = [];
@@ -436,6 +436,13 @@ class MUDServer extends EventEmitter {
         this.banList.delete(bannedUser);
         this.saveBansList();
         player.send(`Player ${usernameToUnBan} and other address players unbanned.`);
+    }
+
+    async updateServer(player) {
+        const data = await gitPull();
+        data.split('\n').forEach(line => {
+            player.send(line);
+        });
     }
 }
 
