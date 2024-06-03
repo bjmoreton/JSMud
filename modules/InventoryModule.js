@@ -749,6 +749,7 @@ const InventoryModule = {
      * @param {Inventory} inventory - The inventory to update.
      */
     updateInventoryReferences(inventory) {
+        Object.setPrototypeOf(inventory, Inventory.prototype);
         for (const invItems of inventory.values()) {
             invItems.forEach(items => {
                 items.forEach(item => {

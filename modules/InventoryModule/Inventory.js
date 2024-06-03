@@ -115,6 +115,16 @@ class Inventory extends Map {
     }
 
     /**
+     * Checks if the player has all the specified items.
+     *
+     * @param {...number} items - A list of item virtual numbers (vNums) to check for.
+     * @returns {boolean} - Returns true if the player has all specified items, otherwise false.
+     */
+    hasItem(...items) {
+        return items.every(itemVNum => this.get(parseInt(itemVNum)));
+    }
+
+    /**
      * Removes a specific item from the inventory based on its object reference.
      * Assumes that each `vNum` in the inventory maps to a map of rarity to item arrays.
      * 
