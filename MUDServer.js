@@ -439,10 +439,16 @@ class MUDServer extends EventEmitter {
     }
 
     async updateServer(player) {
-        const data = await gitPull();
-        data.split('\n').forEach(line => {
-            player.send(line);
+        const data = await gitPull().catch(err => {
+            player.send(err);
+            console.log(err);
+            return;
         });
+        if (data) {
+            data.split('\n').forEach(line => {
+                player.send(line);
+            });
+        }
     }
 }
 

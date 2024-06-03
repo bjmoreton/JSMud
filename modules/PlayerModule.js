@@ -154,7 +154,8 @@ const PlayerModule = {
      * Loads the PlayerModule, including player statuses.
      */
     load() {
-
+        clearInterval(PlayerModule.saveAllInterval);
+        PlayerModule.saveAllInterval = setInterval(() => { PlayerModule.saveAllPlayers(); }, 5 * 60 * 1000); // Auto save every 5 minutes
     },
 
     /**
@@ -180,11 +181,9 @@ const PlayerModule = {
      */
     saveAllPlayers() {
         PlayerModule.mudServer.players.forEach(p => {
-            if (!p.loggedIn) {
-                p.disconnect(false);
-                return;
+            if (p.loggedIn) {
+                p.save(false);
             }
-            p.save(false);
         });
     },
 

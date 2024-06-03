@@ -5,6 +5,7 @@ const Area = require('./AreaModule/Area.js');
 const Exit = require('./AreaModule/Exit.js');
 const Room = require('./AreaModule/Room.js');
 const Section = require('./AreaModule/Section.js');
+const RoomState = require('./AreaModule/RoomState.js');
 
 // Constants
 const AREAS_DIR = path.join(__dirname, '../areas');
@@ -280,6 +281,7 @@ const AreaModule = {
                 section.startResetTimer();
                 section.rooms.forEach(room => {
                     Object.setPrototypeOf(room, Room.prototype);
+                    if (room.defaultState) Object.setPrototypeOf(room.defaultState, RoomState.prototype);
                     room.exits.forEach(exit => {
                         Object.setPrototypeOf(exit, Exit.prototype);
                     });
@@ -461,7 +463,7 @@ const AreaModule = {
 
         for (let y = maxY; y >= minY; y--) {
             for (let x = minX; x <= maxX; x++) {
-                mapString += roomMap.get(player.currentZ).get(x)?.get(y) || area.blankSymbol + '&~';
+                mapString += roomMap.get(player.currentZ)?.get(x)?.get(y) || area.blankSymbol + '&~';
             }
             mapString += "|\n";
         }
@@ -695,7 +697,7 @@ const AreaModule = {
 
             switch (editCmd?.toLowerCase()) {
                 case "description":
-                    textValue = await player.textEditor.startEditing(area.propertyByString(area.description));
+                    textValue = await player.textEditor.startEditing(area.description);
                     area.description = textValue;
                     break;
                 case "name":
@@ -859,9 +861,9 @@ const AreaModule = {
                 if (room != null) {
                     player.currentArea = room.area;
                     player.currentSection = room.section;
-                    player.currentX = x;
-                    player.currentY = y;
-                    player.currentZ = z;
+                    player.currentX = parseInt(x);
+                    player.currentY = parseInt(y);
+                    player.currentZ = parseInt(z);
                     player.currentRoom = room;
                     AreaModule.executeLook(player);
                 } else {
@@ -1291,7 +1293,7 @@ const AreaModule = {
                 }
             }
         } else {
-            player.send(`Usage: editroom <description | name | symbol> {x y z} [...values]`);
+            player.send(`Usage: editroom <description | flags | name | script | symbol> {x y z} [...values]`);
             player.send(`x y and z are optional. Used for editing a room without being in it.`);
         }
     },
@@ -1468,6 +1470,35 @@ const AreaModule = {
                     }
                     room.description = textValue;
                     break;
+                case "flags":
+                    const [action, ...flags] = values;
+                    if (!action) {
+                        player.send(`Usage: editroom flags <add | check | defaults | remove> [flags]`);
+                        return;
+                    }
+                    switch (action.toLowerCase()) {
+                        case "add":
+                            if (flags.length > 0) {
+                                room.currentState.addFlag(...flags);
+                            } else {
+                                player.send(`Valid flags:`);
+                                player.send(RoomState.getFlagsString());
+                                return;
+                            }
+                            break;
+                        case "check":
+                            player.send(`Current room flags:`);
+                            player.send(room.currentState.getCurrentFlagsString());
+                            return;
+                        case "defaults":
+                            player.send(`Default room flags:`);
+                            player.send(room.defaultState.getCurrentFlagsString());
+                            return;
+                        case "remove":
+                            room.currentState.removeFlag(...flags);
+                            break;
+                    }
+                    break;
                 case "name":
                     room.name = textValue;
                     break;
@@ -1481,13 +1512,13 @@ const AreaModule = {
                     player.currentRoom.symbol = textValue;
                     break;
                 default:
-                    player.send(`Usage: editroom <description | name | script | symbol> {x y z} [...values]`);
+                    player.send(`Usage: editroom <description | flags | name | script | setdefault |symbol> {x y z} [...values]`);
                     player.send(`x y and z are optional. Used for editing a room without being in it.`);
                     return;
             }
             player.send(`Room updated successfully!`);
         } else {
-            player.send(`Usage: editroom <description | name | script | symbol> {x y z} [...values]`);
+            player.send(`Usage: editroom <description | flags | name | script | setdefualt | symbol> {x y z} [...values]`);
             player.send(`x y and z are optional. Used for editing a room without being in it.`);
         }
     },
@@ -1661,7 +1692,7 @@ const AreaModule = {
         const reallyOverwrite = await player.textEditor.showPrompt(`Overwrite existing room state? yes/no `);
 
         if (reallyOverwrite.toLowerCase() === 'y' || reallyOverwrite.toLowerCase() === 'yes') {
-            player.currentRoom.defaultState.flags = player.currentRoom.flags;
+            player.currentRoom.defaultState = player.currentRoom.currentState;
             AreaModule.mudServer.emit('roomStateSaved', player, player.currentRoom);
             player.send(`Room state overwritten successfully.`);
         } else {

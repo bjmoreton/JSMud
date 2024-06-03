@@ -70,16 +70,6 @@ class Area {
     }
 
     /**
-     * Retrieve an area property by string.
-     * @param {string} property - The property name.
-     * @returns {*} The property value or "Property not found".
-     */
-    propertyByString(property) {
-        const propertyToLower = property.toLowerCase();
-        return this[propertyToLower] || "Property not found";
-    }
-
-    /**
      * Save the area.
      * @param {Object} player - The player requesting the save.
      * @param {string} dir - The directory where the area file should be saved.

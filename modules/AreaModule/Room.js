@@ -30,7 +30,7 @@ class Room {
         this.progs = progs;
         this.symbol = symbol;
         this.defaultState = new RoomState(defaultState);
-        this.flags = this.defaultState.flags;
+        this.currentState = this.defaultState;
 
         this.exits = new Map();
         this.players = new Map();
@@ -114,9 +114,9 @@ class Room {
      */
     async addPlayer(player) {
         if (player) this.players.set(player.username, player);
-        if (this.progs?.onenter) {
+        if (this.progs !== undefined && this.progs['onenter']) {
             try {
-                await eval(this.progs.onenter);
+                await eval(this.progs['onenter']);
             } catch (error) {
                 console.error(error);
             }
@@ -138,9 +138,9 @@ class Room {
      */
     async removePlayer(player) {
         if (player) this.players.delete(player.username);
-        if (this.progs?.onexit) {
+        if (this.progs !== undefined && this.progs['onexit']) {
             try {
-                await eval(this.progs.onexit);
+                await eval(this.progs['onexit']);
             } catch (error) {
                 console.error(error);
             }
@@ -148,7 +148,7 @@ class Room {
     }
 
     reset() {
-        this.flags = this.defaultState.flags;
+        this.currentState = this.defaultState;
         this.exits.forEach(exit => {
             exit.reset();
         });
@@ -159,7 +159,14 @@ class Room {
      * @param {Object} player - The player sending the emote.
      * @param {string} emote - The emote to send.
      */
-    sendToRoomEmote(player, emote) {
+    async sendToRoomEmote(player, emote) {
+        if (this.progs !== undefined && this.progs['onemote']) {
+            try {
+                await eval(this.progs['onemote']);
+            } catch (error) {
+                console.error(error);
+            }
+        }
         this.exits.forEach(exit => {
             exit.sendToExitEmote(player, emote);
         });
@@ -172,7 +179,14 @@ class Room {
      * @param {Array<string>} excludedPlayers - The players to exclude from the message.
      * @param {string} messagePlain - The plain message to send to the exits.
      */
-    sendToRoom(player, message, excludedPlayers, messagePlain) {
+    async sendToRoom(player, message, excludedPlayers, messagePlain) {
+        if (this.progs !== undefined && this.progs['onmessage']) {
+            try {
+                await eval(this.progs['onmessage']);
+            } catch (error) {
+                console.error(error);
+            }
+        }
         this.players.forEach(p => {
             if (!excludedPlayers.includes(p.username)) {
                 p.send(message);
@@ -181,16 +195,6 @@ class Room {
         this.exits.forEach(exit => {
             exit.sendToExit(player, messagePlain);
         });
-    }
-
-    /**
-     * Retrieves a property by string.
-     * @param {string} property - The property name.
-     * @returns {*} The property value or "Property not found".
-     */
-    propertyByString(property) {
-        const propertyToLower = property.toLowerCase();
-        return this[propertyToLower] || "Property not found";
     }
 
     /**
