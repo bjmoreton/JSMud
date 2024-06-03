@@ -148,17 +148,28 @@ const StatModule = {
      * @param {Player} player - The player creating the item.
      * @param {Item} item - The item being created.
      */
-    onCreatedItem(item) {
+    onCreatedItem(item, updatedItem) {
+        if (updatedItem) {
+            const deletedStats = [];
+            for (const statId in updatedItem.stats) {
+                item.stats[statId] = updatedItem.stats[statId].copy();
+            }
+
+            for (const statId in item.stats) {
+                if (!updatedItem.stats[statId]) deletedStats.push(statId);
+            }
+
+            deletedStats.forEach(ds => {
+                delete item.stats[ds];
+            });
+        }
+
         for (const statId in item.stats) {
             const stat = item.stats[statId];
             const newValue = stat.originalValue + (stat.originalValue * item.rarity.statBonus);
             stat.value = newValue;
             console.log(stat.shortName, stat.value);
         }
-    },
-
-    onEditItem(player, item) {
-
     },
 
     /**
@@ -190,7 +201,6 @@ const StatModule = {
                                 return false;
                             }
                             item.stats[statObj.shortName].originalValue = value;
-                            item.stats[statObj.shortName].value = value;
                             return true;
                         } else {
                             eventObj.saved = false;

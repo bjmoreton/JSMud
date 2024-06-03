@@ -122,6 +122,7 @@ function sendNestedKeys(player, obj, prefix = '') {
     const longRows = [];
     const columnWidth = 22; // Define the width for each column
     const totalWidth = columnWidth * 3 + 10; // Total width for 3 columns + padding and borders
+    const twoColumnWidth = columnWidth * 2 + 7; // Total width for 2 columns + padding and borders
 
     function collectKeys(obj, prefix) {
         for (const key in obj) {
@@ -179,11 +180,18 @@ function sendNestedKeys(player, obj, prefix = '') {
             table += border;
         }
 
-        // Add long rows at the end
-        longRows.forEach(row => {
-            table += `| ${padRight(row, totalWidth - 4)} |\n`;
+        // Add long rows at the end, trying to fit two columns if possible
+        for (let i = 0; i < longRows.length; i++) {
+            let line;
+            if (i + 1 < longRows.length && (stripAnsiCodes(longRows[i]).length + stripAnsiCodes(longRows[i + 1]).length + 3) <= twoColumnWidth) {
+                line = `${padRight(longRows[i], columnWidth)} | ${padRight(longRows[i + 1], columnWidth)}`;
+                i++;
+            } else {
+                line = longRows[i];
+            }
+            table += `| ${padRight(line, totalWidth - 4)} |\n`;
             table += border;
-        });
+        }
 
         return table;
     }

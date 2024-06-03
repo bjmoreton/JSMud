@@ -18,12 +18,26 @@ const ItemModule = {
     editItemActions: new Map(),
     editItemRarityActions: new Map(),
 
+    /**
+     * Add an edit action for items.
+     * 
+     * @param {string} name - The name of the action.
+     * @param {string} useCase - The use case description.
+     * @param {function} [action=()=>{}] - The action function.
+     */
     addEditItemAction(name, useCase, action = () => { }) {
         if (!ItemModule.editItemActions.has(name.toLowerCase())) {
             ItemModule.editItemActions.set(name.toLowerCase(), { action, useCase });
         }
     },
 
+    /**
+     * Add an edit action for item rarities.
+     * 
+     * @param {string} name - The name of the action.
+     * @param {string} useCase - The use case description.
+     * @param {function} [action=()=>{}] - The action function.
+     */
     addEditItemRarityAction(name, useCase, action = () => { }) {
         if (!ItemModule.editItemRarityActions.has(name.toLowerCase())) {
             ItemModule.editItemRarityActions.set(name.toLowerCase(), { action, useCase });
@@ -80,6 +94,12 @@ const ItemModule = {
         player.send(`Item added: vNum: ${vNumInt} ${newItem.name} (Type: ${newItem.itemType})`);
     },
 
+    /**
+     * Add a new item rarity.
+     * 
+     * @param {Player} player - The player adding the item rarity.
+     * @param {Array} args - Arguments for the item rarity.
+     */
     addItemRarity(player, args) {
         const [name, symbol, weight] = args;
 
@@ -182,6 +202,12 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Edit an existing item rarity.
+     * 
+     * @param {Player} player - The player editing the item rarity.
+     * @param {Array} args - Arguments for the item rarity edit.
+     */
     async editItemRarity(player, args) {
         const [rarityStr, editWhat, value, ...data] = args;
         const eventObj = { args: args, handled: false, saved: true };
@@ -251,6 +277,7 @@ const ItemModule = {
      * @param {Item} item - The item being edited.
      * @param {string} action - The action to perform (add/remove).
      * @param {Array} data - The flags data.
+     * @returns {boolean} True if the action was successful, false otherwise.
      */
     editItemFlags(player, item, action, data) {
         switch (action?.toLowerCase()) {
@@ -295,6 +322,33 @@ const ItemModule = {
     },
 
     /**
+     * Find items by their name.
+     * 
+     * @param {Player} player - The player finding the items.
+     * @param {Array} args - The arguments for the find operation.
+     */
+    findItemByName(player, args) {
+        const [itemStr] = args;
+        if (!itemStr) {
+            player.send(`Usage: finditembyname [value]`);
+            return;
+        }
+        const items = ItemModule.getItemByName(itemStr);
+        if (items.length > 0) {
+            if (items.length > 1) {
+                player.send(`vNum --- Item Name --- Item Type`);
+                items.forEach(item => {
+                    player.send(`${item.vNum} --- ${item.name} --- ${item.itemType}`);
+                });
+            } else {
+                sendNestedKeys(player, items[0]);
+            }
+        } else {
+            player.send(`No items found containing ${itemStr}!`);
+        }
+    },
+
+    /**
      * Get an item by its vNum.
      * 
      * @param {number} vNum - The vNum of the item.
@@ -303,6 +357,21 @@ const ItemModule = {
     getItemByVNum(vNum) {
         if (isNumber(vNum)) return ItemModule.itemsList.get(parseInt(vNum));
         return null;
+    },
+
+    /**
+     * Get items by their name.
+     * 
+     * @param {string} name - The name of the items to find.
+     * @returns {Array} The array of found items.
+     */
+    getItemByName(name) {
+        const items = [];
+        for (const item of ItemModule.itemsList.values()) {
+            if (!name || item.name.toLowerCase().includes(name.toLowerCase())) items.push(item);
+        }
+
+        return items;
     },
 
     /**
@@ -337,6 +406,12 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Load item rarities from the JSON file.
+     * 
+     * @param {Player} player - The player initiating the load.
+     * @param {boolean} [triggerEvent=true] - Whether to trigger the itemsLoaded event.
+     */
     loadItemRarities(player, triggerEvent = true) {
         try {
             const data = fs.readFileSync(ItemModule.ITEM_RARITIES_PATH, 'utf8');
@@ -415,7 +490,7 @@ const ItemModule = {
             const deleteForSure = await player.textEditor.showPrompt(`Delete ${item.name}? y/n`);
 
             if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
-                //ItemModule.itemsList.delete(parseInt(vNum));
+                // Mark the item as deleted instead of removing it from the list
                 item.delete = true;
                 player.send(`${item.name} deleted successfully.`);
             } else {
@@ -424,6 +499,12 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Remove an item rarity.
+     * 
+     * @param {Player} player - The player removing the item rarity.
+     * @param {Array} args - The arguments for the removal.
+     */
     async removeItemRarity(player, args) {
         const [rarityStr] = args;
 
@@ -438,7 +519,6 @@ const ItemModule = {
 
             if (deleteForSure.toLowerCase() == 'y' || deleteForSure.toLowerCase() == 'yes') {
                 Item.ItemRarities.get(rarity.name.toLowerCase()).delete = true;
-                //Item.ItemRarities.delete(rarity.name.toLowerCase());
                 player.send(`${rarity.name} deleted successfully.`);
             } else {
                 player.send(`${rarity.name} wasn't deleted.`);
@@ -464,6 +544,11 @@ const ItemModule = {
         }
     },
 
+    /**
+     * Save item rarities to the JSON file.
+     * 
+     * @param {Player} player - The player initiating the save.
+     */
     saveItemRarities(player) {
         try {
             const filteredRarities = Object.keys(Item.ItemRarities)
@@ -502,9 +587,15 @@ const ItemModule = {
                 itemsArray.push(itemData);
             }
         }
-        return itemsArray; // Pretty-print the JSON
+        return itemsArray;
     },
 
+    /**
+     * Show item rarity details.
+     * 
+     * @param {Player} player - The player requesting the details.
+     * @param {Array} args - The arguments for the request.
+     */
     showItemRarity(player, args) {
         const [rarityStr] = args;
 

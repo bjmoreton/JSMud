@@ -781,7 +781,7 @@ const InventoryModule = {
                         const itemTypeConstructor = Item.stringToItemType(item.itemType.toString());
                         if (itemTypeConstructor) {
                             item = itemTypeConstructor.sync(updatedItem, item);
-                            InventoryModule.mudServer.emit('syncedItem', item);
+                            InventoryModule.mudServer.emit('syncedItem', item, updatedItem);
                         }
 
                         // Check and recurse into the item's inventory if it exists

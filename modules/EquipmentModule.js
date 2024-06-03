@@ -338,7 +338,11 @@ const EquipmentModule = {
      * Event handler for hot boot after.
      */
     onHotBootAfter(player) {
-        // Placeholder for hot boot after event handling
+        EquipmentModule.mudServer.players.forEach(p => {
+            for(const slot in p.eqSlots) {
+                Object.setPrototypeOf(p.eqSlots[slot], EquipmentSlot.prototype);
+            }
+        });
     },
 
     /**
