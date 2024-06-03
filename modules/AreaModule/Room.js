@@ -56,7 +56,7 @@ class Room {
 
         if (!this.exits.has(strToExit)) {
             let [rX, rY, rZ] = this.calculateCoordinates(strToExit, x, y, z);
-            
+
             let toRoom = section.getRoomByCoordinates(rX, rY, rZ);
             if (!toRoom) {
                 toRoom = section.addRoom(player, area, section, rX, rY, rZ);
@@ -145,6 +145,13 @@ class Room {
                 console.error(error);
             }
         }
+    }
+
+    reset() {
+        this.flags = this.defaultState.flags;
+        this.exits.forEach(exit => {
+            exit.reset();
+        });
     }
 
     /**

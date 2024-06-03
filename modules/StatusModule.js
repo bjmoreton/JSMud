@@ -214,6 +214,9 @@ const StatusModule = {
     onHotBootAfter() {
         StatusModule.mudServer.players.forEach(p => {
             Object.setPrototypeOf(p.statuses, Statuses.prototype);
+            for(const status of p.statuses.values()) {
+                Object.setPrototypeOf(status, Status.prototype);
+            }
         });
     },
 

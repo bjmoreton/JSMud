@@ -101,14 +101,14 @@ class Section {
     reset() {
         if (this.resetEnabled) {
             this.rooms.forEach(room => {
-                room.flags = room.defaultState.flags;
+                room.reset();
                 global.mudServer.emit('roomReset', room);
                 // Reset other properties as needed
             });
 
             const messages = this.resetMessages;
             let message = 'You feel a sudden shift as the area resets.';
-            if (messages && Array.isArray(this.resetMessages) && this.resetMessages.length > 0) {
+            if (messages && Array.isArray(messages) && messages.length > 0) {
                 message = messages[Math.floor(Math.random() * messages.length)];
             }
 
