@@ -134,13 +134,13 @@ class Inventory extends Map {
     removeItem(targetItem) {
         const itemsByRarity = this.get(targetItem.vNum);
         if (itemsByRarity) {
-            const items = itemsByRarity.get(targetItem.rarity.name.toLowerCase());
+            const items = itemsByRarity.get(targetItem.rarity?.name?.toLowerCase());
             if (items && items.length > 0) {
                 const index = items.findIndex(item => item === targetItem);
                 if (index !== -1) {
                     items.splice(index, 1);  // Remove the item at the found index
                     if (items.length === 0) {
-                        itemsByRarity.delete(targetItem.rarity.name.toLowerCase());
+                        itemsByRarity.delete(targetItem.rarity?.name?.toLowerCase());
                         if (itemsByRarity.size === 0) {
                             this.delete(targetItem.vNum);  // If no items left, remove the key from the map
                         }

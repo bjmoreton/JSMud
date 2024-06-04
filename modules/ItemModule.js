@@ -118,6 +118,15 @@ const ItemModule = {
         }
     },
 
+    createItem(player, item, rarity) {
+        const itemCopy = item.copy();
+        if (!rarity) {
+            rarity = Item.getRandomRarity();
+        }
+        itemCopy.rarity = rarity;
+        return itemCopy;
+    },
+
     /**
      * Initialize the ItemModule.
      * 
@@ -614,9 +623,9 @@ const ItemModule = {
      * @param {Array} args - The arguments for the spawn.
      */
     spawnItem(player, args) {
-        const [vNum, weightOffset, ...rarityNames] = args;
+        const [vNum, ...rarityNames] = args;
         if (args.length === 0) {
-            player.send(`Usage: spawnItem [vNum] [weightOffset] [...Rarities]`);
+            player.send(`Usage: spawnItem [vNum] [...rarities]`);
             return;
         }
 
@@ -625,12 +634,7 @@ const ItemModule = {
             return;
         }
 
-        if (!isNumber(weightOffset)) {
-            player.send(`Invalid weightOffset enter 0 for none.`);
-            return;
-        }
-
-        const rarity = Item.getRandomRarity(parseInt(weightOffset), ...rarityNames);
+        const rarity = Item.getRandomRarity(...rarityNames);
         if (!rarity) {
             player.send(`No valid rarities found!`);
             return;
@@ -638,13 +642,9 @@ const ItemModule = {
 
         const item = ItemModule.getItemByVNum(vNum);
         if (item) {
-            const itemCopy = item.copy();
-            itemCopy.rarity = rarity;
-            ItemModule.mudServer.emit('createdItem', itemCopy, item);
-            player.send(`You create ${itemCopy.displayString} out of thin air!`);
-            player.inventory.addItem(itemCopy.vNum, itemCopy);
-            console.log('item', item);
-            console.log('itemCopy', itemCopy);
+            const newItem = ItemModule.createItem(player, item, rarity);
+            ItemModule.mudServer.emit('createdItem', player, newItem, item);
+            player.send(`You create ${newItem.displayString} out of thin air!`);
         } else {
             player.send(`Item vNum ${vNum} doesn't exist!`);
         }

@@ -148,7 +148,7 @@ const StatModule = {
      * @param {Item} item - The item being created.
      * @param {Item} updatedItem - The updated version of the item being created.
      */
-    onCreatedItem(item, updatedItem) {
+    onCreatedItem(player, item, updatedItem) {
         item.stats = {};
 
         if (updatedItem) {

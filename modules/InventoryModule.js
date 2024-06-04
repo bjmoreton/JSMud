@@ -335,6 +335,31 @@ const InventoryModule = {
     },
 
     /**
+     * Handles item creation by adjusting item stats based on rarity.
+     * 
+     * @param {Item} item - The item being created.
+     * @param {Item} updatedItem - The updated version of the item being created.
+     */
+    onCreatedItem(player, item, updatedItem) {
+        player.inventory.addItem(item.vNum, item, true);
+        if (item.inventory) {
+            InventoryModule.updateInventoryContents(player, item.inventory);
+        }
+    },
+
+    updateInventoryContents(player, inventory) {
+        for (const rarityMap of inventory.values()) {
+            for (const items of rarityMap.values()) {
+                for (let item of items) {
+                    inventory.addItem(item.vNum, global.ItemModule.createItem(player, item, item.rarity));
+                    inventory.removeItem(item);
+                    if (item.inventory) InventoryModule.updateInventoryContents(player, item.inventory);
+                }
+            }
+        }
+    },
+
+    /**
      * Handle the look command executed by a player.
      * 
      * @param {Player} player - The player executing the look command.
@@ -678,6 +703,7 @@ const InventoryModule = {
      * Register module events with the MUD server.
      */
     registerEvents() {
+        InventoryModule.mudServer.on('createdItem', InventoryModule.onCreatedItem);
         InventoryModule.mudServer.on('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.on('hotBootAfter', InventoryModule.onHotBootAfter);
         InventoryModule.mudServer.on('hotBootBefore', InventoryModule.onHotBootBefore);
@@ -698,6 +724,7 @@ const InventoryModule = {
      * Unregister module events from the MUD server.
      */
     removeEvents() {
+        InventoryModule.mudServer.off('createdItem', InventoryModule.onCreatedItem);
         InventoryModule.mudServer.off('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.off('hotBootAfter', InventoryModule.onHotBootAfter);
         InventoryModule.mudServer.off('hotBootBefore', InventoryModule.onHotBootBefore);
@@ -759,51 +786,99 @@ const InventoryModule = {
      * @param {Array} args - The arguments containing item and container names.
      */
     takeAllItems(player, args) {
-        if (args.length === 0) {
-            const takenItems = [];
-            player.currentRoom.inventory.forEach((rarityMap, vNum) => {
-                rarityMap.forEach((items, rarity) => {
-                    items.forEach(item => {
-                        takenItems.push(item);
-                    });
-                });
-            });
+        const indexPattern = /^(\d*)\.(.*)$/;
 
-            if (takenItems.length > 0) {
-                takenItems.forEach(item => {
-                    if (player.inventory.addItem(item.vNum, item)) {
-                        player.currentRoom.inventory.removeItem(item);
-                        player.send(`You took ${item.displayString} from the room.`);
-                    }
-                });
-            }
-            return;
+        let itemString = args[0];
+        let containerString = args[1];
+
+        let itemIndex = 0, itemName, containerIndex = 0, containerName;
+
+        let itemMatch = itemString.match(indexPattern);
+        if (itemMatch) {
+            itemIndex = itemMatch[1] ? parseInt(itemMatch[1], 10) : 0;
+            itemName = itemMatch[2];
+        } else {
+            itemName = itemString;
         }
 
-        let firstArg = args[0];
-        let secondArg = args[1];
-
-        let [firstIndex, firstName] = InventoryModule.parseArgument(firstArg);
-        let [secondIndex, secondName] = secondArg ? InventoryModule.parseArgument(secondArg) : [undefined, undefined];
-
-        if (secondArg) {
-            InventoryModule.handleTakeFromContainer(player, firstName, firstIndex, secondName, secondIndex);
-        } else {
-            let containerList = player.currentRoom.inventory.findAllContainersByName(firstName);
-            if (containerList.length > 0) {
-                InventoryModule.handleTakeFromContainer(player, undefined, undefined, firstName, firstIndex);
+        let container;
+        if (containerString) {
+            let containerMatch = containerString.match(indexPattern);
+            if (containerMatch) {
+                containerIndex = containerMatch[1] ? parseInt(containerMatch[1], 10) : 0;
+                containerName = containerMatch[2];
             } else {
-                let items = player.currentRoom.inventory.findAllItemsByName(firstName);
-                if (firstIndex !== undefined) {
-                    items = [items[firstIndex]];
-                }
+                containerName = containerString;
+            }
 
-                items.forEach(item => {
-                    if (player.inventory.addItem(item.vNum, item)) {
-                        player.currentRoom.inventory.removeItem(item);
-                        player.send(`You took ${item.displayString} from the room.`);
+            let containers = [...player.inventory.findAllContainersByName(containerName), ...player.currentRoom.inventory.findAllContainersByName(containerName)];
+            if (containers.length > containerIndex) {
+                container = containers[containerIndex];
+            } else {
+                player.send(`${containerName} not found.`);
+                return false;
+            }
+        } else {
+            // If no containerString is provided, treat itemString as a container name
+            containerName = itemString;
+            let containerMatch = containerName.match(indexPattern);
+            if (containerMatch) {
+                containerIndex = containerMatch[1] ? parseInt(containerMatch[1], 10) : 0;
+                containerName = containerMatch[2];
+            }
+
+            let containers = [...player.inventory.findAllContainersByName(containerName), ...player.currentRoom.inventory.findAllContainersByName(containerName)];
+            if (containers.length > containerIndex) {
+                container = containers[containerIndex];
+            } else {
+                player.send(`${containerName} not found.`);
+                return false;
+            }
+
+            itemName = null; // Reset itemName as we're treating itemString as a container
+        }
+
+        if (container) {
+            let items = itemName ? container.inventory.findAllItemsByName(itemName) : container.inventory.findAllItemsByName();
+            if (items.length > 0) {
+                for (let selectedItem of items) {
+                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                        container.inventory.removeItem(selectedItem);
+                        player.send(`You took ${selectedItem.displayString} from ${container.displayString}.`);
+                    } else {
+                        if (player.inventory.isFull) {
+                            player.send(`Inventory is full!`);
+                        } else {
+                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                        }
+                        return false;
                     }
-                });
+                }
+                return true;
+            } else {
+                player.send(`No items found in ${container.displayString}.`);
+                return false;
+            }
+        } else {
+            let items = player.currentRoom.inventory.findAllItemsByName(itemName);
+            if (items.length > 0) {
+                for (let selectedItem of items) {
+                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                        player.currentRoom.inventory.removeItem(selectedItem);
+                        player.send(`You took ${selectedItem.displayString} from the room.`);
+                    } else {
+                        if (player.inventory.isFull) {
+                            player.send(`Inventory is full!`);
+                        } else {
+                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                        }
+                        return false;
+                    }
+                }
+                return true;
+            } else {
+                player.send(`${itemName} not found in the room.`);
+                return false;
             }
         }
     },

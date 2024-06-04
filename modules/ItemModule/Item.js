@@ -131,16 +131,15 @@ class Item {
      * @returns {string} The display string of the item.
      */
     get displayString() {
-        return `${this.rarity.symbol} ${this.nameDisplay}`;
+        return `${this.rarity?.symbol} ${this.nameDisplay}`;
     }
 
     /**
      * Get a random rarity based on weights, with optional offsets specific to each rarity.
-     * @param {Object} weightOffsets - An object where keys are rarity names and values are weight offsets.
      * @param  {...string} rarityNames - The names of rarities to consider.
      * @returns {Object} - The selected rarity object.
      */
-    static getRandomRarity(weightOffsets = {}, ...rarityNames) {
+    static getRandomRarity(...rarityNames) {
         const allRarities = Object.values(Item.ItemRarities);
 
         const lowerCaseRarityNames = rarityNames.map(name => name.toLowerCase());
@@ -152,19 +151,16 @@ class Item {
         if (rarities.length === 0) return null;
 
         const totalWeight = rarities.reduce((acc, rarity) => {
-            const offset = weightOffsets[rarity.name.toLowerCase()] || 0;
-            return acc + (rarity.weight + offset);
+            return acc + rarity.weight;
         }, 0);
 
         let random = Math.random() * totalWeight;
 
         for (const rarity of rarities) {
-            const offset = weightOffsets[rarity.name.toLowerCase()] || 0;
-            const adjustedWeight = rarity.weight + offset;
-            if (random < adjustedWeight) {
+            if (random < rarity.weight) {
                 return rarity;
             }
-            random -= adjustedWeight;
+            random -= rarity.weight;
         }
 
         // Fallback in case of floating-point precision issues
