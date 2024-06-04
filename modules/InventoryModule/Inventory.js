@@ -32,7 +32,7 @@ class Inventory extends Map {
      */
     addItem(vNum, item, bypass = false) {
         const vNumParsed = parseInt(vNum);
-        const rarity = item.rarity.name?.toLowerCase();
+        const rarity = item.rarity?.name?.toLowerCase();
 
         if (isNumber(vNumParsed)) {
             if (this.actualSize() + 1 <= this.maxSize || bypass) {

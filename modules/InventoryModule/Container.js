@@ -15,12 +15,18 @@ class Container extends Item {
      * @param {number} [maxSize=10] - The maximum size of the container.
      */
     constructor(vNum, name, nameDisplay, itemType, maxSize = 10) {
-        super(vNum, name, nameDisplay, Item.ItemTypes.Container);
+        super(vNum, name, nameDisplay, itemType);
         /**
          * The inventory of the container.
          * @type {Inventory}
          */
         this.inventory = new Inventory(maxSize);
+    }
+
+    addItem(vNum, item, bypass = false) {
+        if (!this.allowedTypes || this.allowedTypes.length === 0 || this.allowedTypes.includes(item.itemType)) {
+            return this.inventory.addItem(vNum, item, bypass);
+        }
     }
 
     /**
@@ -32,6 +38,7 @@ class Container extends Item {
         const copiedItem = new Container(this.vNum, this.name, this.nameDisplay, this.itemType, this.inventory.maxSize);
         addMissingProperties(baseItem, copiedItem);
         if (this.inventory) copiedItem.inventory = this.inventory.copy();
+        if (this.allowedTypes) copiedItem.allowedTypes = this.allowedTypes;
         addMissingProperties(this, copiedItem);
         return copiedItem;
     }
@@ -40,6 +47,8 @@ class Container extends Item {
         destination = super.sync(source, destination);
         if (!destination.inventory) destination.inventory = new Inventory(source.inventory.maxSize);
         else if (source.inventory) destination.inventory.maxSize = source.inventory.maxSize;
+
+        if (source.allowedTypes) destination.allowedTypes = source.allowedTypes;
 
         return destination;
     }
@@ -52,6 +61,13 @@ class Container extends Item {
     static deserialize(vNum, data) {
         const baseItem = super.deserialize(vNum, data);
         const deserializedItem = new Container(vNum, data.name, data.nameDisplay, data.itemType, data.inventory.maxSize);
+        if (data.allowedTypes) {
+            deserializedItem.allowedTypes = [];
+            data.allowedTypes.forEach(type => {
+                const itemType = Item.stringToItemType(type);
+                if (itemType) deserializedItem.allowedTypes.push(itemType);
+            });
+        }
         addMissingProperties(baseItem, deserializedItem);
         if (data.inventory) deserializedItem.inventory = Inventory.deserialize(JSON.stringify(data.inventory), data.inventory.maxSize);
         return deserializedItem;
@@ -65,7 +81,8 @@ class Container extends Item {
         let serializedItem = super.serialize();
         serializedItem = {
             ...serializedItem,
-            inventory: this.inventory.serialize()
+            inventory: this.inventory.serialize(),
+            allowedTypes: this.allowedTypes.map(allowedType => allowedType.toString())
         };
         addMissingProperties(this, serializedItem);
         return serializedItem;

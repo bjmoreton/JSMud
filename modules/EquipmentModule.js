@@ -242,15 +242,15 @@ const EquipmentModule = {
      * @returns {boolean} - Indicates whether the action was handled successfully.
      */
     editItemLayer(player, item, eventObj) {
-        const [vNum, editWhat, action, ...data] = eventObj.args;
+        const [vNum, editWhat, layerStr] = eventObj.args;
 
-        if (!isNumber(action)) {
+        if (!isNumber(layerStr)) {
             eventObj.saved = false;
             player.send(`Usage: editItem ${vNum} layer [layer(number)]`);
             return false;
         }
 
-        const layer = parseInt(action);
+        const layer = parseInt(layerStr);
         item.layer = layer;
         return true;
     },
@@ -267,6 +267,7 @@ const EquipmentModule = {
         const [vNum, editWhat, action, ...data] = eventObj.args;
 
         if (!action) {
+            eventObj.saved = false;
             player.send(`Usage: edititem ${vNum} type <add | remove> [...type]`);
             return false;
         }

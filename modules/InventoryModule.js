@@ -3,10 +3,10 @@ const path = require('path');
 const Inventory = require('./InventoryModule/Inventory');
 const Container = require('./InventoryModule/Container');
 const Item = require('./ItemModule/Item');
+const { isNumber } = require('./Mud/Helpers');
 
 // Inventory module
 const InventoryModule = {
-    ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     name: "Inventory",
 
     /**
@@ -98,6 +98,151 @@ const InventoryModule = {
         }
     },
 
+    editItemInventory(player, item, eventObj) {
+        const [vNum, editWhat, action, ...data] = eventObj.args;
+        if (!action) {
+            eventObj.saved = false;
+            player.send(`Usage: edititem ${vNum} inventory <add | allowedtypes | remove | size> [value]`);
+            return;
+        }
+
+        switch (action.toLowerCase()) {
+            case 'add':
+                const [addVNum, addRarityStr] = data;
+                if (!isNumber(addVNum)) {
+                    eventObj.saved = false;
+                    player.send(`Item vNum needs to be a number!`);
+                    return;
+                }
+                const addItem = global.ItemModule.getItemByVNum(addVNum);
+
+                if (addItem) {
+                    if (addRarityStr) {
+                        const rarity = Item.getRarityByName(addRarityStr);
+                        if (rarity) addItem.rarity = rarity;
+                    }
+
+                    if (item.inventory) {
+                        if (item.addItem(addItem.vNum, addItem, true)) {
+                            player.send(`Added ${addItem.name} to ${item.name} successfully.`);
+                        } else {
+                            eventObj.saved = false;
+                            player.send(`Failed to add ${addItem.name} to ${item.name}!`);
+                            return;
+                        }
+                    } else {
+                        eventObj.saved = false;
+                        player.send(`Item doesn't have an inventory!`);
+                        return;
+                    }
+                } else {
+                    eventObj.saved = false;
+                    player.send(`Item not found with vNum ${addVNum}!`);
+                    return;
+                }
+                break;
+            case 'allowedtypes':
+                const [subAction, ...types] = data;
+                if (!subAction) {
+                    eventObj.saved = false;
+                    player.send(`Usage: edititem ${vNum} inventory allowedtypes <add | check | remove> [value]`);
+                    return;
+                }
+                switch (subAction.toLowerCase()) {
+                    case 'add':
+                        if (types.length > 0) {
+                            types.forEach(type => {
+                                const itemType = Item.stringToItemType(type);
+                                if (itemType) {
+                                    if (!item.allowedTypes) item.allowedTypes = [];
+                                    if (!item.allowedTypes.includes(itemType)) {
+                                        item.allowedTypes.push(itemType);
+                                    }
+                                }
+                            });
+                        } else {
+                            eventObj.saved = false;
+                            player.send(`Valid types:` + Item.getItemTypesArray());
+                            return;
+                        }
+                        break;
+                    case 'check':
+                        player.send(`Current allowedTypes for ${item.name}:`);
+                        player.send(`${item?.allowedTypes?.join(', ')}`);
+                        eventObj.saved = false;
+                        return;
+                    case 'remove':
+                        if (types.length > 0) {
+                            if (!item.allowedTypes) item.allowedTypes = [];
+                            types.forEach(type => {
+                                const itemType = Item.stringToItemType(type);
+                                if (itemType) {
+                                    const index = item.allowedTypes.indexOf(itemType);
+                                    if (index > -1) {
+                                        item.allowedTypes.splice(index, 1);
+                                    }
+                                }
+                            });
+                        } else {
+                            eventObj.saved = false;
+                            player.send(`Valid types:` + Item.getItemTypesArray());
+                            return;
+                        }
+                        break;
+                }
+                break;
+            case 'remove':
+                const [removeVNum, rarityStr] = data;
+                if (!isNumber(removeVNum)) {
+                    eventObj.saved = false;
+                    player.send(`Item vNum needs to be a number!`);
+                    return;
+                }
+                const removeItem = global.ItemModule.getItemByVNum(removeVNum);
+
+                if (removeItem) {
+                    if (rarityStr) {
+                        const rarity = Item.getRarityByName(rarityStr);
+                        if (rarity) removeItem.rarity = rarity;
+                    }
+
+                    if (item.inventory) {
+                        if (item.removeItem(removeItem)) {
+                            player.send(`Removed ${removeItem.name} from ${item.name} successfully.`);
+                        } else {
+                            eventObj.saved = false;
+                            player.send(`Failed to remove ${removeItem.name} from ${item.name}!`);
+                            return;
+                        }
+                    } else {
+                        eventObj.saved = false;
+                        player.send(`Item doesn't have an inventory!`);
+                        return;
+                    }
+                } else {
+                    eventObj.saved = false;
+                    player.send(`Item not found with vNum ${removeVNum}!`);
+                    return;
+                }
+                break;
+            case 'size':
+                if (item.inventory) {
+                    const [value] = data;
+                    if (!isNumber(value) || parseInt(value) < 0) {
+                        eventObj.saved = false;
+                        player.send(`Value needs to be a none negative number!`);
+                        return;
+                    }
+                    item.inventory.maxSize = parseInt(value);
+                } else {
+                    eventObj.saved = false;
+                    player.send(`Item doesn't have an inventory!`);
+                    return;
+                }
+                break;
+        }
+    },
+
     /**
      * Get the inventory of a room by matching coordinates.
      * 
@@ -183,6 +328,10 @@ const InventoryModule = {
         global.InventoryModule = this;
         this.mudServer = mudServer;
         this.registerEvents();
+    },
+
+    load() {
+        global.ItemModule.addEditItemAction('inventory', 'edititem [vNum] inventory <add | allowedtypes | remove | size> [value]', InventoryModule.editItemInventory);
     },
 
     /**
@@ -438,7 +587,7 @@ const InventoryModule = {
 
         let count = 0;
         items.forEach(item => {
-            if (item !== container && container.inventory.addItem(item.vNum, item)) {
+            if (item !== container && container.addItem(item.vNum, item)) {
                 player.inventory.removeItem(item);
                 count++;
             }
@@ -511,7 +660,7 @@ const InventoryModule = {
         }
 
         // Attempt to add the item to the container
-        if (container.inventory.addItem(item.vNum, item)) {
+        if (container.addItem(item.vNum, item)) {
             player.inventory.removeItem(item); // Remove from player's inventory if successfully added
             player.send(`You put ${item.displayString} into ${container.displayString}.`);
             return true;
@@ -753,10 +902,17 @@ const InventoryModule = {
         for (const invItems of inventory.values()) {
             invItems.forEach(items => {
                 items.forEach(item => {
+                    if (item.allowedTypes) {
+                        item.allowedTypes.forEach(type => {
+                            const itemType = Item.stringToItemType(type.toString());
+                            type = itemType;
+                        });
+                    }
                     // Set the prototype based on the itemType
                     const itemTypeConstructor = Item.stringToItemType(item.itemType.toString());
                     if (itemTypeConstructor) {
                         Object.setPrototypeOf(item, itemTypeConstructor.prototype);
+                        item.itemType = itemTypeConstructor;
                     }
 
                     // Check and recurse into the item's inventory if it exists
@@ -776,7 +932,6 @@ const InventoryModule = {
 
                 items.forEach(item => {
                     const updatedItem = global.ItemModule.getItemByVNum(item.vNum);
-                    updatedItem.rarity = Item.getRarityByName(item.rarity.name);
 
                     if (updatedItem) {
                         const itemTypeConstructor = Item.stringToItemType(item.itemType.toString());

@@ -95,7 +95,11 @@ class Item {
 
     static sync(source, destination) {
         destination.flags = source.flags;
-        destination.rarity = source.rarity;
+        if (!source.rarity) {
+            destination.rarity = Item.getRarityByName(destination.rarity.name);
+        } else {
+            destination.rarity = source.rarity;
+        }
         destination.groundDescription = source.groundDescription;
         destination.description = source.description;
 
@@ -114,7 +118,7 @@ class Item {
         const deserializedItem = new itemType(vNum, data.name, data.nameDisplay, data.itemType);
         deserializedItem.flags = data.flags;
         deserializedItem.rarity = Item.getRarityByName(data.rarity?.name);
-        if (!deserializedItem.rarity) deserializedItem.rarity = Item.ItemRarities.trash;
+        if (!deserializedItem.rarity) deserializedItem.rarity = undefined;
         deserializedItem.groundDescription = data.groundDescription;
         deserializedItem.description = data.description;
         deserializedItem.delete = stringToBoolean(data.delete);
@@ -164,7 +168,7 @@ class Item {
         }
 
         // Fallback in case of floating-point precision issues
-        return Item.ItemRarities.trash;
+        return undefined;
     }
 
     /**

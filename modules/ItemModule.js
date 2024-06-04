@@ -19,43 +19,6 @@ const ItemModule = {
     editItemRarityActions: new Map(),
 
     /**
-     * Add an edit action for items.
-     * 
-     * @param {string} name - The name of the action.
-     * @param {string} useCase - The use case description.
-     * @param {function} [action=()=>{}] - The action function.
-     */
-    addEditItemAction(name, useCase, action = () => { }) {
-        if (!ItemModule.editItemActions.has(name.toLowerCase())) {
-            ItemModule.editItemActions.set(name.toLowerCase(), { action, useCase });
-        }
-    },
-
-    /**
-     * Add an edit action for item rarities.
-     * 
-     * @param {string} name - The name of the action.
-     * @param {string} useCase - The use case description.
-     * @param {function} [action=()=>{}] - The action function.
-     */
-    addEditItemRarityAction(name, useCase, action = () => { }) {
-        if (!ItemModule.editItemRarityActions.has(name.toLowerCase())) {
-            ItemModule.editItemRarityActions.set(name.toLowerCase(), { action, useCase });
-        }
-    },
-
-    /**
-     * Initialize the ItemModule.
-     * 
-     * @param {Object} mudServer - The MUD server instance.
-     */
-    init: function (mudServer) {
-        global.ItemModule = this;
-        this.mudServer = mudServer;
-        this.registerEvents();
-    },
-
-    /**
      * Add a new item to the items list.
      * 
      * @param {Player} player - The player adding the item.
@@ -127,6 +90,43 @@ const ItemModule = {
         }
 
         player.send(`Item rarity ${name} added successfully!`);
+    },
+
+    /**
+     * Add an edit action for items.
+     * 
+     * @param {string} name - The name of the action.
+     * @param {string} useCase - The use case description.
+     * @param {function} [action=()=>{}] - The action function.
+     */
+    addEditItemAction(name, useCase, action = () => { }) {
+        if (!ItemModule.editItemActions.has(name.toLowerCase())) {
+            ItemModule.editItemActions.set(name.toLowerCase(), { action, useCase });
+        }
+    },
+
+    /**
+     * Add an edit action for item rarities.
+     * 
+     * @param {string} name - The name of the action.
+     * @param {string} useCase - The use case description.
+     * @param {function} [action=()=>{}] - The action function.
+     */
+    addEditItemRarityAction(name, useCase, action = () => { }) {
+        if (!ItemModule.editItemRarityActions.has(name.toLowerCase())) {
+            ItemModule.editItemRarityActions.set(name.toLowerCase(), { action, useCase });
+        }
+    },
+
+    /**
+     * Initialize the ItemModule.
+     * 
+     * @param {Object} mudServer - The MUD server instance.
+     */
+    init: function (mudServer) {
+        global.ItemModule = this;
+        this.mudServer = mudServer;
+        this.registerEvents();
     },
 
     /**
@@ -636,12 +636,15 @@ const ItemModule = {
             return;
         }
 
-        const item = ItemModule.getItemByVNum(vNum)?.copy();
+        const item = ItemModule.getItemByVNum(vNum);
         if (item) {
-            item.rarity = rarity;
-            ItemModule.mudServer.emit('createdItem', item);
-            player.send(`You create ${item.displayString} out of thin air!`);
-            player.inventory.addItem(item.vNum, item);
+            const itemCopy = item.copy();
+            itemCopy.rarity = rarity;
+            ItemModule.mudServer.emit('createdItem', itemCopy, item);
+            player.send(`You create ${itemCopy.displayString} out of thin air!`);
+            player.inventory.addItem(itemCopy.vNum, itemCopy);
+            console.log('item', item);
+            console.log('itemCopy', itemCopy);
         } else {
             player.send(`Item vNum ${vNum} doesn't exist!`);
         }

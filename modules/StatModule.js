@@ -149,21 +149,12 @@ const StatModule = {
      * @param {Item} updatedItem - The updated version of the item being created.
      */
     onCreatedItem(item, updatedItem) {
-        if (!item.stats) item.stats = {};
+        item.stats = {};
 
         if (updatedItem) {
-            const deletedStats = [];
             for (const statId in updatedItem.stats) {
                 item.stats[statId] = updatedItem.stats[statId].copy();
             }
-
-            for (const statId in item.stats) {
-                if (!updatedItem.stats[statId]) deletedStats.push(statId);
-            }
-
-            deletedStats.forEach(ds => {
-                delete item.stats[ds];
-            });
         }
 
         for (const statId in item.stats) {
