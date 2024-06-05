@@ -112,22 +112,19 @@ const EquipmentModule = {
      */
     editEquipmentSlot(player, args) {
         const [slot, editWhat, ...data] = args;
-
+        let slotObj;
         if (!slot) {
             player.send(`Usage: editequipmentslot [slot] <display | eqtype | layers | name> [value]`);
             return;
         }
 
         if (EquipmentModule.hasEquipmentSlot(slot)) {
-            const slotObj = EquipmentModule.equipmentSlots.get(slot.toLowerCase());
+            slotObj = EquipmentModule.equipmentSlots.get(slot.toLowerCase());
 
             switch (editWhat?.toLowerCase()) {
                 case 'display':
                     const value = data.join(' ');
                     slotObj.displayString = value;
-                    EquipmentModule.mudServer.players.forEach(p => {
-                        p.eqSlots[slotObj.name.toLowerCase()].displayString = value;
-                    });
                     break;
                 case 'eqtype':
                     const typeStr = data.join(' ');
@@ -172,8 +169,10 @@ const EquipmentModule = {
             return;
         }
 
-        slotObj.saved = false;
-        slotObj.delete = false;
+        if (slotObj) {
+            slotObj.saved = false;
+            slotObj.delete = false;
+        }
         player.send(`Equipment slot updated successfully.`);
     },
 

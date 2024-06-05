@@ -180,17 +180,24 @@ const ItemModule = {
                     break;
                 case "name":
                     if (value === undefined || value?.trim() == '') {
-                        player.send('Must specify an item name!');
+                        player.send('Must specify a new item name!');
                         return;
                     }
                     itemToEdit.name = value?.trim();
+                    break;
+                case "namedisplay":
+                    if (value === undefined || value?.trim() == '') {
+                        player.send('Must specify a new item name display!');
+                        return;
+                    }
+                    itemToEdit.nameDisplay = value?.trim();
                     break;
                 default:
                     if (ItemModule.editItemActions.has(editWhat?.toLowerCase())) {
                         const editAction = ItemModule.editItemActions.get(editWhat?.toLowerCase());
                         await editAction.action(player, itemToEdit, eventObj);
                     } else {
-                        player.send(`Usage: edititem [vNum] <description | flags | name>`);
+                        player.send(`Usage: edititem [vNum] <description | flags | name | namedisplay>`);
                         for (const action of ItemModule.editItemActions.values()) {
                             player.send(`Usage: ${action.useCase}`);
                         }
@@ -204,7 +211,7 @@ const ItemModule = {
                 player.send(`Item edited successfully!`);
             }
         } else {
-            player.send(`Usage: edititem [vNum] <description | flags | name>`);
+            player.send(`Usage: edititem [vNum] <description | flags | name | namedisplay>`);
             for (const action of ItemModule.editItemActions.values()) {
                 player.send(`Usage: ${action.useCase}`);
             }

@@ -1,4 +1,4 @@
-const { stringToBoolean } = require("../Mud/Helpers");
+const { stringToBoolean, addMissingProperties } = require("../Mud/Helpers");
 
 /**
  * Class representing an item.
@@ -102,6 +102,9 @@ class Item {
         }
         destination.groundDescription = source.groundDescription;
         destination.description = source.description;
+        destination.name = source.name;
+        destination.nameDisplay = source.nameDisplay;
+        addMissingProperties(source, destination);
 
         return destination;
     }
