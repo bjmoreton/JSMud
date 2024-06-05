@@ -786,11 +786,33 @@ const InventoryModule = {
      * @param {Array} args - The arguments containing item and container names.
      */
     takeAllItems(player, args) {
-        const indexPattern = /^(\d*)\.(.*)$/;
+        if (!args.length) {
+            // No arguments provided, take all items from the room
+            let items = player.currentRoom.inventory.findAllItemsByName();
+            if (items.length > 0) {
+                for (let selectedItem of items) {
+                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                        player.currentRoom.inventory.removeItem(selectedItem);
+                        player.send(`You took ${selectedItem.displayString} from the room.`);
+                    } else {
+                        if (player.inventory.isFull) {
+                            player.send(`Inventory is full!`);
+                        } else {
+                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                        }
+                        return false;
+                    }
+                }
+                return true;
+            } else {
+                player.send(`No items found in the room.`);
+                return false;
+            }
+        }
 
+        const indexPattern = /^(\d*)\.(.*)$/;
         let itemString = args[0];
         let containerString = args[1];
-
         let itemIndex = 0, itemName, containerIndex = 0, containerName;
 
         let itemMatch = itemString.match(indexPattern);
