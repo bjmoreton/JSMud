@@ -44,12 +44,19 @@ const InventoryModule = {
         }
 
         for (const foundItem of foundItems) {
-            if (player.currentRoom.inventory.addItem(foundItem.vNum, foundItem)) {
-                player.send(`Dropped ${foundItem.displayString} successfully.`);
-                player.inventory.removeItem(foundItem);
+            const drop = foundItem.flags.trigger('ondrop', player, foundItem);
+
+            if (!drop.includes(false)) {
+                if (player.currentRoom.inventory.addItem(foundItem.vNum, foundItem)) {
+                    player.send(`Dropped ${foundItem.displayString} successfully.`);
+                    player.inventory.removeItem(foundItem);
+                    foundItem.flags.trigger('ondropped', player, foundItem);
+                } else {
+                    player.send(`Failed to drop ${foundItem.displayString}!`);
+                    return false;
+                }
             } else {
-                player.send(`Failed to drop ${foundItem.displayString}!`);
-                return false;
+                player.send(`Can't drop ${foundItem.displayString}!`);
             }
         }
         return true;
@@ -83,14 +90,21 @@ const InventoryModule = {
 
         if (itemIndex >= 0 && itemIndex < foundItems.length) {
             const foundItem = foundItems[itemIndex];
+            const drop = foundItem.flags.trigger('ondrop', player, foundItem);
 
-            if (!player.currentRoom.inventory.addItem(foundItem.vNum, foundItem)) {
-                player.send(`Failed to drop ${foundItem.displayString}!`);
-                return false;
+            if (!drop.includes(false)) {
+                if (!player.currentRoom.inventory.addItem(foundItem.vNum, foundItem)) {
+                    player.send(`Failed to drop ${foundItem.displayString}!`);
+                    return false;
+                } else {
+                    player.send(`Dropped ${foundItem.displayString} successfully.`);
+                    player.inventory.removeItem(foundItem);
+                    foundItem.flags.trigger('ondropped', player, foundItem);
+                    return true;
+                }
             } else {
-                player.send(`Dropped ${foundItem.displayString} successfully.`);
-                player.inventory.removeItem(foundItem);
-                return true;
+                player.send(`Can't drop ${foundItem.displayString}!`);
+                return false;
             }
         } else {
             player.send(`Index ${itemIndex} out of bounds for ${itemString}!`);
@@ -102,27 +116,25 @@ const InventoryModule = {
         const [vNum, editWhat, action, ...data] = eventObj.args;
         if (!action) {
             eventObj.saved = false;
-            player.send(`Usage: edititem ${vNum} inventory <add | allowedtypes | remove | size> [value]`);
+            player.send(`Usage: edititem ${vNum} inventory <add | allowedtypes | check | remove | size> [value]`);
             return;
         }
-
-        switch (action.toLowerCase()) {
-            case 'add':
-                const [addVNum, addRarityStr] = data;
-                if (!isNumber(addVNum)) {
-                    eventObj.saved = false;
-                    player.send(`Item vNum needs to be a number!`);
-                    return;
-                }
-                const addItem = global.ItemModule.getItemByVNum(addVNum);
-
-                if (addItem) {
-                    if (addRarityStr) {
-                        const rarity = Item.getRarityByName(addRarityStr);
-                        if (rarity) addItem.rarity = rarity;
+        if (item.inventory) {
+            switch (action.toLowerCase()) {
+                case 'add':
+                    const [addVNum, addRarityStr] = data;
+                    if (!isNumber(addVNum)) {
+                        eventObj.saved = false;
+                        player.send(`Item vNum needs to be a number!`);
+                        return;
                     }
+                    const addItem = global.ItemModule.getItemByVNum(addVNum);
 
-                    if (item.inventory) {
+                    if (addItem) {
+                        if (addRarityStr) {
+                            const rarity = Item.getRarityByName(addRarityStr);
+                            if (rarity) addItem.rarity = rarity;
+                        }
                         if (item.addItem(addItem.vNum, addItem, true)) {
                             player.send(`Added ${addItem.name} to ${item.name} successfully.`);
                         } else {
@@ -132,114 +144,130 @@ const InventoryModule = {
                         }
                     } else {
                         eventObj.saved = false;
-                        player.send(`Item doesn't have an inventory!`);
+                        player.send(`Item not found with vNum ${addVNum}!`);
                         return;
                     }
-                } else {
-                    eventObj.saved = false;
-                    player.send(`Item not found with vNum ${addVNum}!`);
-                    return;
-                }
-                break;
-            case 'allowedtypes':
-                const [subAction, ...types] = data;
-                if (!subAction) {
-                    eventObj.saved = false;
-                    player.send(`Usage: edititem ${vNum} inventory allowedtypes <add | check | remove> [value]`);
-                    return;
-                }
-                switch (subAction.toLowerCase()) {
-                    case 'add':
-                        if (types.length > 0) {
-                            types.forEach(type => {
-                                const itemType = Item.stringToItemType(type);
-                                if (itemType) {
-                                    if (!item.allowedTypes) item.allowedTypes = [];
-                                    if (!item.allowedTypes.includes(itemType)) {
-                                        item.allowedTypes.push(itemType);
-                                    }
-                                }
-                            });
-                        } else {
-                            eventObj.saved = false;
-                            player.send(`Valid types:` + Item.getItemTypesArray());
-                            return;
-                        }
-                        break;
-                    case 'check':
-                        player.send(`Current allowedTypes for ${item.name}:`);
-                        player.send(`${item?.allowedTypes?.join(', ')}`);
+                    break;
+                case 'allowedtypes':
+                    const [subAction, ...types] = data;
+                    if (!subAction) {
                         eventObj.saved = false;
+                        player.send(`Usage: edititem ${vNum} inventory allowedtypes <add | check | remove> [value]`);
                         return;
-                    case 'remove':
-                        if (types.length > 0) {
-                            if (!item.allowedTypes) item.allowedTypes = [];
-                            types.forEach(type => {
-                                const itemType = Item.stringToItemType(type);
-                                if (itemType) {
-                                    const index = item.allowedTypes.indexOf(itemType);
-                                    if (index > -1) {
-                                        item.allowedTypes.splice(index, 1);
-                                    }
-                                }
-                            });
-                        } else {
-                            eventObj.saved = false;
-                            player.send(`Valid types:` + Item.getItemTypesArray());
-                            return;
-                        }
-                        break;
-                }
-                break;
-            case 'remove':
-                const [removeVNum, rarityStr] = data;
-                if (!isNumber(removeVNum)) {
-                    eventObj.saved = false;
-                    player.send(`Item vNum needs to be a number!`);
-                    return;
-                }
-                const removeItem = global.ItemModule.getItemByVNum(removeVNum);
-
-                if (removeItem) {
-                    if (rarityStr) {
-                        const rarity = Item.getRarityByName(rarityStr);
-                        if (rarity) removeItem.rarity = rarity;
                     }
-
-                    if (item.inventory) {
-                        if (item.removeItem(removeItem)) {
-                            player.send(`Removed ${removeItem.name} from ${item.name} successfully.`);
-                        } else {
+                    switch (subAction.toLowerCase()) {
+                        case 'add':
+                            if (types.length > 0) {
+                                types.forEach(type => {
+                                    const itemType = Item.stringToItemType(type);
+                                    if (itemType) {
+                                        if (!item.allowedTypes) item.allowedTypes = [];
+                                        if (!item.allowedTypes.includes(itemType)) {
+                                            item.allowedTypes.push(itemType);
+                                        }
+                                    } else player.send(`Item type ${type} doesn't exist!`);
+                                });
+                            } else {
+                                eventObj.saved = false;
+                                player.send(`Valid types:` + Item.getItemTypesArray());
+                                return;
+                            }
+                            break;
+                        case 'check':
+                            player.send(`Current allowedTypes for ${item.name}:`);
+                            player.send(`${item?.allowedTypes?.join(', ')}`);
                             eventObj.saved = false;
-                            player.send(`Failed to remove ${removeItem.name} from ${item.name}!`);
+                            return;
+                        case 'remove':
+                            if (types.length > 0) {
+                                if (!item.allowedTypes) item.allowedTypes = [];
+                                types.forEach(type => {
+                                    const itemType = Item.stringToItemType(type);
+                                    if (itemType) {
+                                        const index = item.allowedTypes.indexOf(itemType);
+                                        if (index > -1) {
+                                            item.allowedTypes.splice(index, 1);
+                                        }
+                                    } else player.send(`Item type ${type} doesn't exist!`);
+                                });
+                            } else {
+                                eventObj.saved = false;
+                                player.send(`Valid types:` + Item.getItemTypesArray());
+                                return;
+                            }
+                            break;
+                    }
+                    break;
+                case 'check':
+                    player.send(`Items inside ${item.name}:`);
+                    player.send(`[vNum] (Qty) Rarity Itemname`);
+                    item.inventory.forEach((details) => {
+                        for (const items of details.values()) {
+                            player.send(`[${items[0].vNum}] (${items.length}) ${items[0].displayString}`);
+                        }
+                    });
+                    eventObj.saved = false;
+                    return;
+                case 'remove':
+                    const [removeVNum, rarityStr] = data;
+                    if (!isNumber(removeVNum)) {
+                        eventObj.saved = false;
+                        player.send(`Item vNum needs to be a number!`);
+                        return;
+                    }
+                    const removeItem = global.ItemModule.getItemByVNum(removeVNum);
+
+                    if (removeItem) {
+                        let rarity;
+                        if (rarityStr) rarity = Item.getRarityByName(rarityStr);
+                        const foundItem = item.inventory.getItem(removeItem, rarity);
+                        if (!foundItem) {
+                            eventObj.saved = false;
+                            player.send(`${removeItem.name} doesn't exist in ${item.name}!`);
                             return;
                         }
+
+                        if (item.inventory.removeItem(foundItem)) {
+                            player.send(`Removed ${foundItem.displayString} from ${item.name} successfully.`);
+                        } else {
+                            eventObj.saved = false;
+                            player.send(`Failed to remove ${foundItem.displayString} from ${item.name}!`);
+                            return;
+                        }
+                    } else {
+                        eventObj.saved = false;
+                        player.send(`Item not found with vNum ${removeVNum}!`);
+                        return;
+                    }
+                    break;
+                case 'size':
+                    if (item.inventory) {
+                        const [value] = data;
+                        if (!value) {
+                            eventObj.saved = false;
+                            player.send(`${item.displayString} current inventory size is ${item.inventory.maxSize}.`);
+                            return;
+                        }
+                        if (!isNumber(value) || parseInt(value) < 0) {
+                            eventObj.saved = false;
+                            player.send(`Value needs to be a none negative number!`);
+                            return;
+                        }
+                        item.inventory.maxSize = parseInt(value);
                     } else {
                         eventObj.saved = false;
                         player.send(`Item doesn't have an inventory!`);
                         return;
                     }
-                } else {
+                    break;
+                default:
                     eventObj.saved = false;
-                    player.send(`Item not found with vNum ${removeVNum}!`);
                     return;
-                }
-                break;
-            case 'size':
-                if (item.inventory) {
-                    const [value] = data;
-                    if (!isNumber(value) || parseInt(value) < 0) {
-                        eventObj.saved = false;
-                        player.send(`Value needs to be a none negative number!`);
-                        return;
-                    }
-                    item.inventory.maxSize = parseInt(value);
-                } else {
-                    eventObj.saved = false;
-                    player.send(`Item doesn't have an inventory!`);
-                    return;
-                }
-                break;
+            }
+        } else {
+            eventObj.saved = false;
+            player.send(`Item doesn't have an inventory!`);
+            return;
         }
     },
 
@@ -261,65 +289,6 @@ const InventoryModule = {
     },
 
     /**
-     * Handle taking items from a container.
-     * 
-     * @param {Player} player - The player taking the items.
-     * @param {string} itemName - The name of the item to take.
-     * @param {number} itemIndex - The index of the item to take.
-     * @param {string} containerName - The name of the container.
-     * @param {number} containerIndex - The index of the container.
-     */
-    handleTakeFromContainer(player, itemName, itemIndex, containerName, containerIndex) {
-        let containers = [
-            ...player.currentRoom.inventory.findAllContainersByName(containerName),
-            ...player.inventory.findAllContainersByName(containerName)
-        ];
-
-        if (containerIndex !== undefined && containers.length > containerIndex) {
-            containers = [containers[containerIndex]]; // Select specific container by index if within range
-        } else {
-            containers = [containers[0]];
-        }
-
-        containers.forEach(container => {
-            if (container === undefined) return;
-
-            let itemsArray = [];
-
-            if (itemName) {
-                // Collect items matching the type from the container's inventory
-                container.inventory.forEach(rarityMap => {
-                    rarityMap.forEach(items => {
-                        items.forEach(item => {
-                            if (item.name.toLowerCase().includes(itemName.toLowerCase())) {
-                                itemsArray.push(item);
-                            }
-                        });
-                    });
-                });
-            } else {
-                // Flatten all items if no specific type is provided
-                container.inventory.forEach(rarityMap => {
-                    rarityMap.forEach(items => {
-                        itemsArray.push(...items);
-                    });
-                });
-            }
-
-            if (itemIndex !== undefined && itemsArray.length > itemIndex) {
-                itemsArray = [itemsArray[itemIndex]]; // Select specific item by index if within range
-            }
-
-            itemsArray.forEach(item => {
-                if (player.inventory.addItem(item.vNum, item)) {
-                    container.inventory.removeItem(item); // Remove the item from the container inventory
-                    player.send(`You took ${item.displayString} from ${container.displayString}.`);
-                }
-            });
-        });
-    },
-
-    /**
      * Initialize the Inventory module.
      * 
      * @param {MudServer} mudServer - The mud server instance.
@@ -331,7 +300,7 @@ const InventoryModule = {
     },
 
     load() {
-        global.ItemModule.addEditItemAction('inventory', 'edititem [vNum] inventory <add | allowedtypes | remove | size> [value]', InventoryModule.editItemInventory);
+        global.ItemModule.addEditItemAction('inventory', 'edititem [vNum] inventory <add | allowedtypes | check | remove | size> [value]', InventoryModule.editItemInventory);
     },
 
     /**
@@ -351,9 +320,10 @@ const InventoryModule = {
         for (const rarityMap of inventory.values()) {
             for (const items of rarityMap.values()) {
                 for (let item of items) {
-                    inventory.addItem(item.vNum, global.ItemModule.createItem(player, item, item.rarity));
-                    inventory.removeItem(item);
-                    if (item.inventory) InventoryModule.updateInventoryContents(player, item.inventory);
+                    if (inventory.addItem(item.vNum, global.ItemModule.createItem(player, item, item.rarity))) {
+                        inventory.removeItem(item);
+                        if (item.inventory) InventoryModule.updateInventoryContents(player, item.inventory);
+                    }
                 }
             }
         }
@@ -366,7 +336,7 @@ const InventoryModule = {
      * @param {Array} args - The arguments for the look command.
      * @param {Object} eventObj - The event object.
      */
-    onExecutedLook(player, args, eventObj) {
+    lookIn(player, args, eventObj) {
         eventObj.handled = true;
         const parsePattern = /^(\d+)\.(.*)$/;
         let [itemString] = args;
@@ -413,6 +383,10 @@ const InventoryModule = {
         InventoryModule.mudServer.players.forEach(player => {
             InventoryModule.updateInventoryReferences(player.inventory);
         });
+
+        global.ItemModule.itemsList.forEach(item => {
+            if (item.inventory) InventoryModule.updateInventoryReferences(item.inventory);
+        });
     },
 
     /**
@@ -422,6 +396,22 @@ const InventoryModule = {
         InventoryModule.removeEvents();
     },
 
+    onItemEditted(item) {
+        if (item.inventory) {
+            item.inventory.forEach((details) => {
+                const itemsList = details.values();
+
+                for (const items of itemsList) {
+                    items.forEach(oldItem => {
+                        const updatedItem = global.ItemModule.getItemByVNum(oldItem.vNum);
+                        Item.sync(updatedItem, oldItem);
+                        if (oldItem.inventory) InventoryModule.onItemEditted(oldItem);
+                    });
+                }
+            });
+        }
+    },
+
     /**
      * Handle item loading event.
      * 
@@ -429,7 +419,7 @@ const InventoryModule = {
      */
     onItemsLoading(player) {
         Item.addItemType(Container);
-        Item.addItemFlag('groundrot', 'hidden', 'notake');
+        //Item.addItemFlag('groundrot', 'hidden', 'notake');
     },
 
     onItemsSaved() {
@@ -480,7 +470,7 @@ const InventoryModule = {
             if (player.currentRoom.inventory.size > 0) {
                 player.currentRoom.inventory.forEach((details) => {
                     for (const items of details.values()) {
-                        player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
+                        player.send(`(${items.length}) ${items[0].displayString}: ${items[0].groundDescription}`);
                     }
                 });
             }
@@ -612,14 +602,19 @@ const InventoryModule = {
 
         let count = 0;
         items.forEach(item => {
-            if (item !== container && container.addItem(item.vNum, item)) {
-                player.inventory.removeItem(item);
-                count++;
-            }
+            const place = item.flags.trigger('onplace', player, item, container);
+
+            if (!place.includes(false)) {
+                if (item !== container && container.addItem(item.vNum, item)) {
+                    player.inventory.removeItem(item);
+                    player.send(`You put ${item.displayString} into ${container.displayString}.`);
+                    item.flags.trigger('onplaced', player, item, container);
+                    count++;
+                }
+            } else player.send(`Could not put ${item.displayString} into ${container.displayString}!`);
         });
 
         if (count > 0) {
-            player.send(`You put ${count} item(s) into ${container.displayString}.`);
             return true;
         } else {
             if (container.inventory.isFull) {
@@ -685,16 +680,24 @@ const InventoryModule = {
         }
 
         // Attempt to add the item to the container
-        if (container.addItem(item.vNum, item)) {
-            player.inventory.removeItem(item); // Remove from player's inventory if successfully added
-            player.send(`You put ${item.displayString} into ${container.displayString}.`);
-            return true;
-        } else {
-            if (container.inventory.isFull) {
-                player.send(`${container.displayString} is full!`);
+        const place = item.flags.trigger('onplace', player, item, container);
+
+        if (!place.includes(false)) {
+            if (container.addItem(item.vNum, item)) {
+                player.inventory.removeItem(item); // Remove from player's inventory if successfully added
+                player.send(`You put ${item.displayString} into ${container.displayString}.`);
+                item.flags.trigger('onplaced', player, item, container);
+                return true;
             } else {
-                player.send(`Could not put ${item.displayString} into ${container.displayString}.`);
+                if (container.inventory.isFull) {
+                    player.send(`${container.displayString} is full!`);
+                } else {
+                    player.send(`Could not put ${item.displayString} into ${container.displayString}.`);
+                }
+                return false;
             }
+        } else {
+            player.send(`Could not put ${item.displayString} into ${container.displayString}!`);
             return false;
         }
     },
@@ -704,9 +707,9 @@ const InventoryModule = {
      */
     registerEvents() {
         InventoryModule.mudServer.on('createdItem', InventoryModule.onCreatedItem);
-        InventoryModule.mudServer.on('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.on('hotBootAfter', InventoryModule.onHotBootAfter);
         InventoryModule.mudServer.on('hotBootBefore', InventoryModule.onHotBootBefore);
+        InventoryModule.mudServer.on('itemEditted', InventoryModule.onItemEditted);
         InventoryModule.mudServer.on('itemsLoaded', InventoryModule.onItemsSaved);
         InventoryModule.mudServer.on('itemsLoading', InventoryModule.onItemsLoading);
         InventoryModule.mudServer.on('itemsSaved', InventoryModule.onItemsSaved);
@@ -725,9 +728,9 @@ const InventoryModule = {
      */
     removeEvents() {
         InventoryModule.mudServer.off('createdItem', InventoryModule.onCreatedItem);
-        InventoryModule.mudServer.off('executedLook', InventoryModule.onExecutedLook);
         InventoryModule.mudServer.off('hotBootAfter', InventoryModule.onHotBootAfter);
         InventoryModule.mudServer.off('hotBootBefore', InventoryModule.onHotBootBefore);
+        InventoryModule.mudServer.off('itemEditted', InventoryModule.onItemEditted);
         InventoryModule.mudServer.off('itemsLoaded', InventoryModule.onItemsSaved);
         InventoryModule.mudServer.off('itemsLoading', InventoryModule.onItemsLoading);
         InventoryModule.mudServer.off('itemsSaved', InventoryModule.onItemsSaved);
@@ -791,15 +794,22 @@ const InventoryModule = {
             let items = player.currentRoom.inventory.findAllItemsByName();
             if (items.length > 0) {
                 for (let selectedItem of items) {
-                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
-                        player.currentRoom.inventory.removeItem(selectedItem);
-                        player.send(`You took ${selectedItem.displayString} from the room.`);
-                    } else {
-                        if (player.inventory.isFull) {
-                            player.send(`Inventory is full!`);
+                    const take = selectedItem.flags.trigger('ontake', player, selectedItem);
+                    if (!take.includes(false)) {
+                        if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                            player.currentRoom.inventory.removeItem(selectedItem);
+                            player.send(`You took ${selectedItem.displayString} from the room.`);
+                            selectedItem.flags.trigger('ontaken', player, selectedItem);
                         } else {
-                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                            if (player.inventory.isFull) {
+                                player.send(`Inventory is full!`);
+                            } else {
+                                player.send(`Failed to take ${selectedItem.displayString}.`);
+                            }
+                            return false;
                         }
+                    } else {
+                        player.send(`You can't take that!`);
                         return false;
                     }
                 }
@@ -864,15 +874,22 @@ const InventoryModule = {
             let items = itemName ? container.inventory.findAllItemsByName(itemName) : container.inventory.findAllItemsByName();
             if (items.length > 0) {
                 for (let selectedItem of items) {
-                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
-                        container.inventory.removeItem(selectedItem);
-                        player.send(`You took ${selectedItem.displayString} from ${container.displayString}.`);
-                    } else {
-                        if (player.inventory.isFull) {
-                            player.send(`Inventory is full!`);
+                    const take = selectedItem.flags.trigger('ontake', player, selectedItem, container);
+                    if (!take.includes(false)) {
+                        if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                            container.inventory.removeItem(selectedItem);
+                            player.send(`You took ${selectedItem.displayString} from ${container.displayString}.`);
+                            selectedItem.flags.trigger('ontaken', player, selectedItem, container);
                         } else {
-                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                            if (player.inventory.isFull) {
+                                player.send(`Inventory is full!`);
+                            } else {
+                                player.send(`Failed to take ${selectedItem.displayString}.`);
+                            }
+                            return false;
                         }
+                    } else {
+                        player.send(`You can't take that!`);
                         return false;
                     }
                 }
@@ -885,15 +902,22 @@ const InventoryModule = {
             let items = player.currentRoom.inventory.findAllItemsByName(itemName);
             if (items.length > 0) {
                 for (let selectedItem of items) {
-                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
-                        player.currentRoom.inventory.removeItem(selectedItem);
-                        player.send(`You took ${selectedItem.displayString} from the room.`);
-                    } else {
-                        if (player.inventory.isFull) {
-                            player.send(`Inventory is full!`);
+                    const take = selectedItem.flags.trigger('ontake', player, selectedItem);
+                    if (!take.includes(false)) {
+                        if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                            player.currentRoom.inventory.removeItem(selectedItem);
+                            player.send(`You took ${selectedItem.displayString} from the room.`);
+                            selectedItem.flags.trigger('ontaken', player, selectedItem);
                         } else {
-                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                            if (player.inventory.isFull) {
+                                player.send(`Inventory is full!`);
+                            } else {
+                                player.send(`Failed to take ${selectedItem.displayString}.`);
+                            }
+                            return false;
                         }
+                    } else {
+                        player.send(`You can't take that!`);
                         return false;
                     }
                 }
@@ -950,16 +974,23 @@ const InventoryModule = {
             let items = container.inventory.findAllItemsByName(itemName);
             if (items.length > itemIndex) {
                 let selectedItem = items[itemIndex];
-                if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
-                    container.inventory.removeItem(selectedItem);
-                    player.send(`You took ${selectedItem.displayString} from ${container.displayString}.`);
-                    return true;
-                } else {
-                    if (player.inventory.isFull) {
-                        player.send(`Inventory is full!`);
+                const take = selectedItem.flags.trigger('ontake', player, selectedItem, container);
+                if (!take.includes(false)) {
+                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                        container.inventory.removeItem(selectedItem);
+                        player.send(`You took ${selectedItem.displayString} from ${container.displayString}.`);
+                        selectedItem.flags.trigger('ontaken', player, selectedItem, container);
+                        return true;
                     } else {
-                        player.send(`Failed to take ${selectedItem.displayString}.`);
+                        if (player.inventory.isFull) {
+                            player.send(`Inventory is full!`);
+                        } else {
+                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                        }
+                        return false;
                     }
+                } else {
+                    player.send(`You can't take that!`);
                     return false;
                 }
             } else {
@@ -970,16 +1001,24 @@ const InventoryModule = {
             let items = player.currentRoom.inventory.findAllItemsByName(itemName);
             if (items.length > itemIndex) {
                 let selectedItem = items[itemIndex];
-                if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
-                    player.currentRoom.inventory.removeItem(selectedItem);
-                    player.send(`You took ${selectedItem.displayString} from the room.`);
-                    return true;
-                } else {
-                    if (player.inventory.isFull) {
-                        player.send(`Inventory is full!`);
+                const take = selectedItem.flags.trigger('ontake', player, selectedItem);
+                
+                if (!take.includes(false)) {
+                    if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
+                        player.currentRoom.inventory.removeItem(selectedItem);
+                        player.send(`You took ${selectedItem.displayString} from the room.`);
+                        selectedItem.flags.trigger('ontaken', player, selectedItem);
+                        return true;
                     } else {
-                        player.send(`Failed to take ${selectedItem.displayString}.`);
+                        if (player.inventory.isFull) {
+                            player.send(`Inventory is full!`);
+                        } else {
+                            player.send(`Failed to take ${selectedItem.displayString}.`);
+                        }
+                        return false;
                     }
+                } else {
+                    player.send(`You can't take that!`);
                     return false;
                 }
             } else {

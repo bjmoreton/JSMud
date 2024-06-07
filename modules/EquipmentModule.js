@@ -16,7 +16,7 @@ const EquipmentModule = {
     name: "Equipment",
 
     // Path to the equipment slots JSON file
-    EQ_SLOTS_PATH: path.join(__dirname, '../system', 'eqslots.json'),
+    EQ_SLOTS_PATH: path.join(__dirname, '../system', 'eqSlots.json'),
 
     // Map to store equipment slots
     equipmentSlots: new Map(),
@@ -210,7 +210,6 @@ const EquipmentModule = {
         global.ItemModule.addEditItemAction('layer', 'edititem [vNum] layer [layer(number)]', EquipmentModule.editItemLayer);
         global.ItemModule.addEditItemAction('type', 'edititem [vNum] type <add | remove> [...type]', EquipmentModule.editItemType);
         global.ItemModule.addEditItemAction('wearable', 'edititem [vNum] wearable [true/false]', EquipmentModule.editItemWearable);
-        global.ItemModule.addEditItemRarityAction('statbonus', 'edititem [rarity] statbonus [value]', EquipmentModule.editItemRarityStatBonus);
     },
 
     loadEquipmentSlots(player) {
@@ -312,27 +311,6 @@ const EquipmentModule = {
             default:
                 return false;
         }
-    },
-
-    /**
-     * Edits the stat addition of an item rarity.
-     * 
-     * @param {Player} player - The player executing the command.
-     * @param {Object} rarity - The rarity being edited.
-     * @param {Object} eventObj - The event object containing command arguments.
-     * @returns {boolean} - Indicates whether the action was handled successfully.
-     */
-    editItemRarityStatBonus(player, rarity, eventObj) {
-        const [rarityStr, editWhat, value, ...data] = eventObj.args;
-
-        if (!value || !isNumber(value)) {
-            player.send(`Value needs to be a valid number!`);
-            eventObj.saved = false;
-            return false;
-        }
-
-        rarity.statBonus = Number(value);
-        return true;
     },
 
     /**
@@ -481,14 +459,22 @@ const EquipmentModule = {
             if (highestLayeredItem && mapKeyToRemove !== null) {
                 const unequipped = player.eqSlots[slotName].unequip(highestLayeredItem);
                 if (unequipped === true) {
-                    if (player.inventory.addItem(highestLayeredItem.vNum, highestLayeredItem)) { // Add item back to inventory
-                        player.send(`You remove ${highestLayeredItem.displayString} from your ${slotName} slot and put it back in your inventory.`);
-                        return true;
+                    const remove = highestLayeredItem.flags.trigger('onremove', player, highestLayeredItem, player.eqSlots[slotName]);
+
+                    if (!remove.includes(false)) {
+                        if (player.inventory.addItem(highestLayeredItem.vNum, highestLayeredItem)) { // Add item back to inventory
+                            player.send(`You stop using ${highestLayeredItem.displayString}.`);
+                            highestLayeredItem.flags.trigger('onremoved', player, highestLayeredItem, player.eqSlots[slotName]);
+                            return true;
+                        } else {
+                            if (player.inventory.isFull) {
+                                player.send(`Inventory full!`);
+                            } else player.send(`Failed to remove ${highestLayeredItem.displayString}!`);
+                            player.eqSlots[slotName].equip(highestLayeredItem);
+                            return false;
+                        }
                     } else {
-                        if (player.inventory.isFull) {
-                            player.send(`Inventory full!`);
-                        } else player.send(`Failed to remove ${highestLayeredItem.displayString}!`);
-                        player.eqSlots[slotName].equip(highestLayeredItem);
+                        player.send(`You cannot remove ${highestLayeredItem.displayString}!`);
                         return false;
                     }
                 } else {
@@ -521,15 +507,23 @@ const EquipmentModule = {
         let { item, key, mapKey } = foundItems[itemIndex];
         const unequipped = player.eqSlots[key].unequip(item);
         if (unequipped === true) {
-            if (player.inventory.addItem(item.vNum, item)) { // Add item back to inventory
-                player.send(`You remove ${item.displayString} from your ${key} slot and put it back in your inventory.`);
-                return true;
-            } else {
-                if (player.inventory.isFull) {
-                    player.send(`Inventory full!`);
+            const remove = highestLayeredItem.flags.trigger('onremove', player, highestLayeredItem, player.eqSlots[slotName]);
+
+            if (!remove.includes(false)) {
+                if (player.inventory.addItem(item.vNum, item)) { // Add item back to inventory
+                    player.send(`You stop using ${item.displayString}.`);
+                    highestLayeredItem.flags.trigger('onremoved', player, highestLayeredItem, player.eqSlots[slotName]);
+                    return true;
+                } else {
+                    if (player.inventory.isFull) {
+                        player.send(`Inventory full!`);
+                    }
+                    player.send(`Failed to remove ${item.displayString}!`);
+                    player.eqSlots[key].equip(item);
+                    return false;
                 }
-                player.send(`Failed to remove ${item.displayString}!`);
-                player.eqSlots[key].equip(item);
+            } else {
+                player.send(`You cannot remove ${highestLayeredItem.displayString}!`);
                 return false;
             }
         } else {
@@ -551,14 +545,22 @@ const EquipmentModule = {
                 for (let item of itemsToRemove) {
                     const unequipped = player.eqSlots[slot].unequip(item);
                     if (unequipped === true) {
-                        if (!player.inventory.addItem(item.vNum, item)) {
-                            if (player.inventory.isFull) {
-                                player.send(`Inventory full! Could not remove all items.`);
-                            } else player.send(`Failed to remove ${item.displayString} from your ${slot} slot.`);
-                            player.eqSlots[slot].equip(item);
+                        const remove = item.flags.trigger('onremove', player, item, player.eqSlots[slotName]);
+
+                        if (!remove.includes(false)) {
+                            if (!player.inventory.addItem(item.vNum, item)) {
+                                if (player.inventory.isFull) {
+                                    player.send(`Inventory full! Could not remove all items.`);
+                                } else player.send(`Failed to remove ${item.displayString} from your ${slot} slot.`);
+                                player.eqSlots[slot].equip(item);
+                                return false;
+                            }
+                            player.send(`You stop using ${item.displayString}.`);
+                            item.flags.trigger('onremoved', player, item, player.eqSlots[slotName]);
+                        } else {
+                            player.send(`You cannot remove ${player.displayString}!`);
                             return false;
                         }
-                        player.send(`You remove ${item.displayString} from your ${slot} slot and put it back in your inventory.`);
                     } else {
                         player.send(`${unequipped}`);
                         return false;
@@ -814,12 +816,21 @@ const EquipmentModule = {
         }
 
         // Equip the item
-        const equippedItem = slot.equip(item);
-        if (equippedItem === true) {
-            player.inventory.removeItem(item); // Remove the item from inventory
-            player.send(`You start using ${item.displayString}.`);
+        const wear = item.flags.trigger('onwear', player, item, slot);
+
+        if (!wear.includes(false)) {
+            const equippedItem = slot.equip(item);
+            if (equippedItem === true) {
+                player.inventory.removeItem(item); // Remove the item from inventory
+                player.send(`You start using ${item.displayString}.`);
+                item.flags.trigger('onworn', player, item, slot);
+            } else {
+                player.send(`${equippedItem}`);
+                return;
+            }
         } else {
-            player.send(`${equippedItem}`);
+            player.send(`Cannot wear ${item.displayString}!`);
+            return;
         }
     },
 
@@ -851,13 +862,18 @@ const EquipmentModule = {
 
             const slot = player.eqSlots[slotName];
             if (slot) {
-                const equippedItem = slot.equip(item);
-                if (equippedItem === true) {
-                    player.inventory.removeItem(item); // Remove the item from inventory
-                    player.send(`You start using ${item.displayString}.`);
-                    wornItemsCount++;
-                } else {
-                    player.send(`${equippedItem}`);
+                const wear = item.flags.trigger('onwear', player, item, slot);
+
+                if (!wear.includes(false)) {
+                    const equippedItem = slot.equip(item);
+                    if (equippedItem === true) {
+                        player.inventory.removeItem(item); // Remove the item from inventory
+                        player.send(`You start using ${item.displayString}.`);
+                        item.flags.trigger('onworn', player, item, slot);
+                        wornItemsCount++;
+                    } else {
+                        player.send(`${equippedItem}`);
+                    }
                 }
             } else {
                 player.send(`You can't wear a ${item.displayString} because you don't have the ${slotName} slot.`);

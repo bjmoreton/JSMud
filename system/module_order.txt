@@ -4,6 +4,7 @@ Mud/ServerCommand
 Mud/StoppableInterval
 StatModule/Stat
 StatModule
+ItemModule/ItemFlags
 ItemModule/Item
 ItemModule/Key
 ItemModule

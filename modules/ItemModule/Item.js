@@ -1,15 +1,11 @@
 const { stringToBoolean, addMissingProperties } = require("../Mud/Helpers");
-
+const ItemFlags = require("../ItemModule/ItemFlags");
 /**
  * Class representing an item.
  */
 class Item {
-    static ItemFlags = {};
     static ItemTypes = {};
-    static ItemRarities = {
-        // quest: { name: "quest", symbol: "&P[&YQ&O]&~", weight: 3 },
-        // trash: { name: "trash", symbol: "&O[&zT&O]&~", weight: 9 }
-    };
+    static ItemRarities = {};
 
     /**
      * Create an Item.
@@ -26,34 +22,6 @@ class Item {
         this.itemType = Item.stringToItemType(itemType);
         this.saved = false;
         this.delete = false;
-    }
-
-    /**
-     * Add flags to the item.
-     * @param {...string} flags - The flags to add.
-     */
-    addFlag(...flags) {
-        if (!this.flags) this.flags = [];
-
-        flags.forEach(flag => {
-            flag = flag?.toLowerCase();
-            const flagValue = Item.ItemFlags[flag];
-
-            if (flagValue && !this.hasFlag(flag)) {
-                this.flags.push(flagValue);
-            }
-        });
-    }
-
-    /**
-     * Add item flags.
-     * @static
-     * @param {...string} flags - The flags to add.
-     */
-    static addItemFlag(...flags) {
-        flags.forEach(flag => {
-            Item.ItemFlags[flag.toLowerCase()] = flag.toLowerCase();
-        });
     }
 
     /**
@@ -84,8 +52,8 @@ class Item {
      */
     copy() {
         const copiedItem = new Item(this.vNum, this.name, this.nameDisplay, this.itemType);
-        copiedItem.flags = this.flags;
-        copiedItem.rarity = this.rarity;
+        copiedItem.flags = this.flags.copy();
+        copiedItem.rarity = { ...this.rarity };
         copiedItem.groundDescription = this.groundDescription;
         copiedItem.description = this.description;
         copiedItem.delete = false;
@@ -94,11 +62,11 @@ class Item {
     }
 
     static sync(source, destination) {
-        destination.flags = source.flags;
+        destination.flags = source.flags.copy();
         if (!source.rarity) {
-            destination.rarity = Item.getRarityByName(destination.rarity.name);
+            destination.rarity = { ...Item.getRarityByName(destination.rarity?.name) };
         } else {
-            destination.rarity = source.rarity;
+            destination.rarity = { ...source.rarity };
         }
         destination.groundDescription = source.groundDescription;
         destination.description = source.description;
@@ -119,7 +87,12 @@ class Item {
     static deserialize(vNum, data) {
         const itemType = Item.stringToItemType(data.itemType);
         const deserializedItem = new itemType(vNum, data.name, data.nameDisplay, data.itemType);
-        deserializedItem.flags = data.flags;
+        if (data.flags) {
+            if (!deserializedItem.flags) deserializedItem.flags = new ItemFlags();
+            data.flags.forEach(flag => {
+                deserializedItem.flags.add(flag);
+            });
+        }
         deserializedItem.rarity = Item.getRarityByName(data.rarity?.name);
         if (!deserializedItem.rarity) deserializedItem.rarity = undefined;
         deserializedItem.groundDescription = data.groundDescription;
@@ -134,7 +107,7 @@ class Item {
      * @returns {string} The display string of the item.
      */
     get displayString() {
-        return `${this.rarity?.symbol} ${this.nameDisplay}`;
+        return `${this.rarity?.symbol ? this.rarity.symbol : ''} ${this.nameDisplay}`;
     }
 
     /**
@@ -148,10 +121,10 @@ class Item {
         const lowerCaseRarityNames = rarityNames.map(name => name.toLowerCase());
 
         const rarities = lowerCaseRarityNames.length > 0
-            ? allRarities.filter(r => lowerCaseRarityNames.includes(r.name.toLowerCase()))
-            : allRarities;
+            ? allRarities.filter(r => lowerCaseRarityNames.includes(r.name.toLowerCase()) && r.randomSpawn)
+            : allRarities.filter(r => r.randomSpawn);
 
-        if (rarities.length === 0) return null;
+        if (rarities.length === 0) return undefined;
 
         const totalWeight = rarities.reduce((acc, rarity) => {
             return acc + rarity.weight;
@@ -168,38 +141,6 @@ class Item {
 
         // Fallback in case of floating-point precision issues
         return undefined;
-    }
-
-    /**
-     * Check if the item has specified flags.
-     * @param {...string} flags - The flags to check.
-     * @returns {boolean} True if the item has all specified flags, otherwise false.
-     */
-    hasFlag(...flags) {
-        if (!this.flags) return false;
-
-        for (let flag of flags) {
-            flag = flag?.toLowerCase();
-            const flagValue = Item.ItemFlags[flag];
-            if (!flagValue) {
-                return false;
-            }
-            const index = this.flags.indexOf(flagValue);
-            if (index === -1) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Get a comma-separated string of item flags in lowercase.
-     * @static
-     * @returns {string[]} An array of item flags in lowercase.
-     */
-    static getItemFlagsArray() {
-        return Object.values(Item.ItemFlags)
-            .map(flag => flag.toLowerCase());
     }
 
     /**
@@ -238,25 +179,6 @@ class Item {
     }
 
     /**
-     * Remove specified flags from the item.
-     * @param {...string} flags - The flags to remove.
-     */
-    removeFlag(...flags) {
-        if (!this.flags) this.flags = [];
-
-        flags.forEach(flag => {
-            flag = flag?.toLowerCase();
-            const flagValue = Item.ItemFlags[flag];
-            if (flagValue && this.hasFlag(flag)) {
-                const index = this.flags.indexOf(flagValue);
-                if (index !== -1) {
-                    this.flags.splice(index, 1);
-                }
-            }
-        });
-    }
-
-    /**
      * Serialize the item.
      * @returns {Object} The serialized data of the item.
      */
@@ -268,7 +190,7 @@ class Item {
             nameDisplay: this.nameDisplay,
             description: this.description,
             groundDescription: this.groundDescription,
-            flags: this.flags,
+            flags: this.flags.serialize(),
             itemType: this.itemType.toString(),
             rarity: this.rarity,
             delete: this.delete,

@@ -114,6 +114,14 @@ class Inventory extends Map {
         return foundItems;
     }
 
+    getItem(item, rarity) {
+        if(!rarity) rarity = item.rarity;
+
+        const rarityMap = this.get(item.vNum).get(rarity?.name);
+        if (rarityMap && rarityMap.length > 0) return rarityMap[0];
+        else return undefined;
+    }
+
     /**
      * Checks if the player has all the specified items.
      *

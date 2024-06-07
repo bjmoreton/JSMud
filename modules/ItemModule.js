@@ -2,8 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 const Item = require('./ItemModule/Item');
-const { isNumber, sendNestedKeys } = require('./Mud/Helpers');
+const { isNumber, sendNestedKeys, isEmptyObj, stringToBoolean } = require('./Mud/Helpers');
 const Key = require('./ItemModule/Key');
+const ItemFlags = require('./ItemModule/ItemFlags');
 
 /**
  * Inventory module for handling items in the MUD server.
@@ -13,6 +14,7 @@ const Key = require('./ItemModule/Key');
 const ItemModule = {
     ITEMS_PATH: path.join(__dirname, '../system', 'items.json'),
     ITEM_RARITIES_PATH: path.join(__dirname, '../system', 'rarities.json'),
+    ITEM_FLAGS_PATH: path.join(__dirname, '../system', 'itemFlags.json'),
     name: "Item",
     itemsList: new Map(),
     editItemActions: new Map(),
@@ -57,6 +59,24 @@ const ItemModule = {
         player.send(`Item added: vNum: ${vNumInt} ${newItem.name} (Type: ${newItem.itemType})`);
     },
 
+    addItemFlag(player, args) {
+        const [flagName] = args;
+
+        if (!flagName) {
+            player.send(`Usage: additemflag [value]`);
+            return;
+        }
+
+        if (!ItemFlags.hasFlag(flagName)) {
+            ItemFlags.addFlag(flagName);
+        } else {
+            player.send(`Flag ${flagName} already exist!`);
+            return;
+        }
+
+        player.send(`Item flag ${flagName} added successfully.`);
+    },
+
     /**
      * Add a new item rarity.
      * 
@@ -64,32 +84,38 @@ const ItemModule = {
      * @param {Array} args - Arguments for the item rarity.
      */
     addItemRarity(player, args) {
-        const [name, symbol, weight] = args;
+        const [name, symbol, weight, randomSpawn] = args;
 
         if (!name) {
-            player.send(`Usage: additemrarity [name] [symbol] [weight]`);
+            player.send(`Usage: additemrarity [name] [symbol] [weight] [randomspawn]`);
             return;
         }
 
         if (!symbol) {
-            player.send(`A symbol is needed.`);
+            player.send(`A symbol is needed!`);
             return;
         }
 
         if (!isNumber(weight)) {
-            player.send(`Weight needs to be a number.`);
+            player.send(`Weight needs to be a number!`);
+            return;
+        }
+
+        if (!randomSpawn) {
+            player.send(`Random spawn needs to be true or false!`);
             return;
         }
 
         const rarity = Item.getRarityByName(name);
+        const boolValue = stringToBoolean(randomSpawn);
         if (!rarity) {
-            Item.addItemRarities({ name: name, symbol: symbol, weight: weight });
+            Item.addItemRarities({ name: name, randomSpawn: boolValue, symbol: symbol, weight: weight });
         } else {
-            player.send(`Rarity ${rarity.name} already exists!`);
+            player.send(`Rarity ${rarity.symbol} ${rarity.name} already exists!`);
             return;
         }
 
-        player.send(`Item rarity ${name} added successfully!`);
+        player.send(`Item rarity ${symbol} ${name} added successfully!`);
     },
 
     /**
@@ -120,7 +146,7 @@ const ItemModule = {
 
     createItem(player, item, rarity) {
         const itemCopy = item.copy();
-        if (!rarity) {
+        if (!rarity || isEmptyObj(rarity)) {
             rarity = Item.getRandomRarity();
         }
         itemCopy.rarity = rarity;
@@ -208,6 +234,7 @@ const ItemModule = {
             if (eventObj.saved) {
                 itemToEdit.saved = false;
                 itemToEdit.delete = false;
+                ItemModule.mudServer.emit('itemEditted', itemToEdit);
                 player.send(`Item edited successfully!`);
             }
         } else {
@@ -242,12 +269,18 @@ const ItemModule = {
                         rarityToEdit.name = value.trim();
                         Item.ItemRarities[rarityToEdit.name] = rarityToEdit;
                         break;
+                    case "randomspawn":
+                        const boolValue = stringToBoolean(value);
+                        rarityToEdit.randomSpawn = boolValue;
+                        player.send(`Random spawn set to ${rarityToEdit.randomSpawn}.`);
+                        break;
                     case "symbol":
                         if (value === undefined || value?.trim() == '') {
                             player.send('Must specify a new item rarity symbol!');
                             return;
                         }
                         rarityToEdit.symbol = value.trim();
+                        player.send(`New Symbol: ${rarityToEdit.symbol}.`);
                         break;
                     case "weight":
                         if (!isNumber(value)) {
@@ -286,6 +319,34 @@ const ItemModule = {
         }
     },
 
+    async editItemFlag(player, args) {
+        const [flagName, eventName] = args;
+        if (!flagName) {
+            player.send(`Usage: edititemflag [flag] [event]`);
+            return;
+        }
+
+        if (!eventName) {
+            player.send(`Usage: edititemflag ${flagName} [event]`);
+            return;
+        }
+
+        const flag = ItemFlags.getFlag(flagName);
+        if (!flag) {
+            player.send(`Flag ${flagName} not found!`);
+            return;
+        }
+        const defaultText = flag.events[eventName.toLowerCase()]?.actionCode;
+        const actionCode = await player.textEditor.startEditing((defaultText ? defaultText : ''));
+
+        if (actionCode !== null) {
+            ItemFlags.addEvent(flag, eventName, actionCode);
+            player.send(`Updated ${flagName} successfully!`);
+        } else {
+            player.send(`Canceled edit of ${eventName} on item flag ${flagName}!`);
+        }
+    },
+
     /**
      * Edit the flags of an item.
      * 
@@ -298,16 +359,16 @@ const ItemModule = {
     editItemFlags(player, item, action, data) {
         switch (action?.toLowerCase()) {
             case "add":
-                item.addFlag(...data);
-                player.send(`New flags: ${item.flags}`);
+                item.flags.add(...data);
+                player.send(`New flags: ${item.flags.map(map => map.name)}`);
                 break;
             case "remove":
-                item.removeFlag(...data);
-                player.send(`New flags: ${item.flags}`);
+                item.flags.remove(...data);
+                player.send(`New flags: ${item.flags.map(map => map.name)}`);
                 break;
             default:
                 player.send(`Usage: editItem vNum flags <add | remove>`);
-                player.send(`Valid flags: ${Item.getItemFlagsArray()}`);
+                player.send(`Valid flags: ${ItemFlags.getFlagsArray()}`);
                 return false;
         }
 
@@ -397,6 +458,7 @@ const ItemModule = {
      */
     load(player) {
         try {
+            ItemModule.loadItemFlags(player, false);
             ItemModule.loadItemRarities(player, false);
 
             const data = fs.readFileSync(ItemModule.ITEMS_PATH, 'utf8');
@@ -419,6 +481,28 @@ const ItemModule = {
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load items.");
+        }
+    },
+
+    /**
+     * Load item flags from the JSON file.
+     * 
+     * @param {Player} player - The player initiating the load.
+     * @param {boolean} [triggerEvent=true] - Whether to trigger the itemsLoaded event.
+     */
+    loadItemFlags(player, triggerEvent = true) {
+        try {
+            const data = fs.readFileSync(ItemModule.ITEM_FLAGS_PATH, 'utf8');
+            const flagsData = JSON.parse(data);
+
+            ItemFlags.deserialize(flagsData);
+
+            if (triggerEvent) ItemModule.mudServer.emit('itemsLoaded');
+            console.log("Item flags loaded successfully.");
+            if (player) player.send("Item flags loaded successfully.");
+        } catch (error) {
+            console.error("Failed to loaded item flags:", error);
+            if (player) player.send("Failed to loaded item flags.");
         }
     },
 
@@ -565,6 +649,24 @@ const ItemModule = {
      * 
      * @param {Player} player - The player initiating the save.
      */
+    saveItemFlags(player) {
+        try {
+            fs.writeFileSync(ItemModule.ITEM_FLAGS_PATH, ItemFlags.serialize(), 'utf8');
+            ItemModule.mudServer.emit('itemsSaved');
+            console.log("Item flags saved successfully.");
+            if (player) player.send("Item flags saved successfully.");
+        } catch (error) {
+            console.error("Failed to save item flags:", error);
+            if (player) player.send("Failed to save item flags.");
+        }
+    },
+
+
+    /**
+     * Save item rarities to the JSON file.
+     * 
+     * @param {Player} player - The player initiating the save.
+     */
     saveItemRarities(player) {
         try {
             const filteredRarities = Object.keys(Item.ItemRarities)
@@ -599,6 +701,7 @@ const ItemModule = {
                     ...item.serialize()
                 }
             };
+
             if (!itemData.data.delete) {
                 itemsArray.push(itemData);
             }

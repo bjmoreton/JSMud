@@ -44,6 +44,27 @@ const StatModule = {
     },
 
     /**
+     * Edits the stat addition of an item rarity.
+     * 
+     * @param {Player} player - The player executing the command.
+     * @param {Object} rarity - The rarity being edited.
+     * @param {Object} eventObj - The event object containing command arguments.
+     * @returns {boolean} - Indicates whether the action was handled successfully.
+     */
+    editItemRarityStatBonus(player, rarity, eventObj) {
+        const [rarityStr, editWhat, value, ...data] = eventObj.args;
+
+        if (!value || !isNumber(value)) {
+            player.send(`Value needs to be a valid number!`);
+            eventObj.saved = false;
+            return false;
+        }
+
+        rarity.statBonus = Number(value);
+        return true;
+    },
+
+    /**
      * Retrieves a stat by its name or short name.
      * 
      * @param {string|object} statName - Stat name or stat object.
@@ -128,6 +149,7 @@ const StatModule = {
             if (player) player.send("Stats loaded successfully.");
 
             global.ItemModule.addEditItemAction('stats', [`edititem [vNum] stats <add | edit | remove> [stat] [value]`], StatModule.editStats);
+            global.ItemModule.addEditItemRarityAction('statbonus', 'edititemrarity [rarity] statbonus [value]', StatModule.editItemRarityStatBonus);
         } catch (err) {
             console.error('Error reading or parsing JSON file:', err);
             if (player) player.send("Failed to load stats.");

@@ -108,6 +108,10 @@ function inRange(value, low, high) {
     return value > low && value < high;
 }
 
+function isEmptyObj(obj) {
+    return Object.keys(obj).length === 0 && obj.constructor === Object;
+}
+
 /**
  * Determines if a variable is strictly a number and not NaN.
  * @param {any} value - The value to check.
@@ -277,6 +281,7 @@ module.exports = {
     gitPull,
     hashPassword,
     inRange,
+    isEmptyObj,
     isNumber,
     isValidString,
     sendNestedKeys,
