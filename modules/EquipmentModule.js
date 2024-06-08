@@ -507,12 +507,12 @@ const EquipmentModule = {
         let { item, key, mapKey } = foundItems[itemIndex];
         const unequipped = player.eqSlots[key].unequip(item);
         if (unequipped === true) {
-            const remove = highestLayeredItem.flags.trigger('onremove', player, highestLayeredItem, player.eqSlots[slotName]);
+            const remove = item.flags.trigger('onremove', player, item, player.eqSlots[slotName]);
 
             if (!remove.includes(false)) {
                 if (player.inventory.addItem(item.vNum, item)) { // Add item back to inventory
                     player.send(`You stop using ${item.displayString}.`);
-                    highestLayeredItem.flags.trigger('onremoved', player, highestLayeredItem, player.eqSlots[slotName]);
+                    item.flags.trigger('onremoved', player, item, player.eqSlots[slotName]);
                     return true;
                 } else {
                     if (player.inventory.isFull) {
@@ -523,7 +523,7 @@ const EquipmentModule = {
                     return false;
                 }
             } else {
-                player.send(`You cannot remove ${highestLayeredItem.displayString}!`);
+                player.send(`You cannot remove ${item.displayString}!`);
                 return false;
             }
         } else {
@@ -681,7 +681,9 @@ const EquipmentModule = {
             let position = initialPosition;
 
             for (const item of equipmentSlot.items.values()) {
-                let itemName = item.displayString;
+                const flagDescriptors = item.flags.trigger('ondescriptor', player, item)
+                const flagDescriptorStr = flagDescriptors.join('');
+                let itemName = flagDescriptorStr + item.displayString;
                 if (itemName.length > maxLineLength - tabLength) {
                     itemName = itemName.slice(0, maxLineLength - tabLength - 3) + '...';
                 }
