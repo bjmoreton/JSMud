@@ -112,6 +112,13 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Edit the inventory of an item.
+     * 
+     * @param {Player} player - The player editing the item.
+     * @param {Item} item - The item being edited.
+     * @param {Object} eventObj - The event object containing the arguments.
+     */
     editItemInventory(player, item, eventObj) {
         const [vNum, editWhat, action, ...data] = eventObj.args;
         if (!action) {
@@ -316,6 +323,12 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Recursively update the contents of an inventory.
+     * 
+     * @param {Player} player - The player owning the inventory.
+     * @param {Inventory} inventory - The inventory to update.
+     */
     updateInventoryContents(player, inventory) {
         for (const rarityMap of inventory.values()) {
             for (const items of rarityMap.values()) {
@@ -330,14 +343,12 @@ const InventoryModule = {
     },
 
     /**
-     * Handle the look command executed by a player.
+     * Handle the look in command executed by a player.
      * 
-     * @param {Player} player - The player executing the look command.
-     * @param {Array} args - The arguments for the look command.
-     * @param {Object} eventObj - The event object.
+     * @param {Player} player - The player executing the look in command.
+     * @param {Array} args - The arguments for the look in command.
      */
-    lookIn(player, args, eventObj) {
-        eventObj.handled = true;
+    lookIn(player, args) {
         const parsePattern = /^(\d+)\.(.*)$/;
         let [itemString] = args;
         let itemMatch = itemString.match(parsePattern);
@@ -351,14 +362,12 @@ const InventoryModule = {
         ];
 
         if (combinedItems.length === 0) {
-            eventObj.handled = false;
             player.send(`No items named ${itemName} found.`);
             return;
         }
 
         let item = itemIndex >= 0 && itemIndex < combinedItems.length ? combinedItems[itemIndex] : combinedItems[0]; // Take indexed item or first if no index provided
         if (!item) {
-            eventObj.handled = false;
             player.send(`No items found at index ${itemIndex} for ${itemName}.`);
             return;
         }
@@ -368,11 +377,14 @@ const InventoryModule = {
             player.send(`Looking in ${item.displayString} it contains:`);
             item.inventory.forEach((details) => {
                 for (const items of details.values()) {
-                    player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
+                    const item = items[0];
+                    const flagDescriptors = item.flags.trigger('ondescriptor', player, item)
+                    const flagDescriptorStr = flagDescriptors.join('');
+                    player.send(`(${items.length}) ${flagDescriptorStr}${item.displayString}`);
                 }
             });
         } else {
-            player.send(`Looking at ${item.displayString}: ${item.description}`);
+            player.send(`Can't look in ${item.displayString}!`);
         }
     },
 
@@ -396,6 +408,11 @@ const InventoryModule = {
         InventoryModule.removeEvents();
     },
 
+    /**
+     * Handle item edited event.
+     * 
+     * @param {Item} item - The item that was edited.
+     */
     onItemEditted(item) {
         if (item.inventory) {
             item.inventory.forEach((details) => {
@@ -422,6 +439,9 @@ const InventoryModule = {
         //Item.addItemFlag('groundrot', 'hidden', 'notake');
     },
 
+    /**
+     * Handle items saved event.
+     */
     onItemsSaved() {
         InventoryModule.mudServer.players.forEach(p => {
             InventoryModule.updatePlayerInventory(p.inventory);
@@ -513,6 +533,11 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Handle room reset event.
+     * 
+     * @param {Room} room - The room being reset.
+     */
     onRoomReset(room) {
         room.inventory = room.defaultState.inventory.copy();
     },
@@ -763,15 +788,21 @@ const InventoryModule = {
         if (searchTerm === undefined) {
             player.inventory.forEach((details) => {
                 for (const items of details.values()) {
-                    player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
+                    const item = items[0];
+                    const flagDescriptors = item.flags.trigger('ondescriptor', player, item)
+                    const flagDescriptorStr = flagDescriptors.join('');
+                    player.send(`(${items.length}) ${flagDescriptorStr}${item.displayString}`);
                 }
             });
         } else {
             let found = false;
             player.inventory.forEach((details) => {
                 for (const items of details.values()) {
-                    if (items[0].name.toLowerCase().includes(searchTerm.toLowerCase())) {
-                        player.send(`(${items.length}) ${items[0].displayString}: ${items[0].description}`);
+                    const item = items[0];
+                    if (item.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        const flagDescriptors = item.flags.trigger('ondescriptor', player, item)
+                        const flagDescriptorStr = flagDescriptors.join('');
+                        player.send(`(${items.length}) ${flagDescriptorStr}${item.displayString}`);
                         found = true;
                     }
                 }
@@ -1002,7 +1033,7 @@ const InventoryModule = {
             if (items.length > itemIndex) {
                 let selectedItem = items[itemIndex];
                 const take = selectedItem.flags.trigger('ontake', player, selectedItem);
-                
+
                 if (!take.includes(false)) {
                     if (player.inventory.addItem(selectedItem.vNum, selectedItem)) {
                         player.currentRoom.inventory.removeItem(selectedItem);
@@ -1061,6 +1092,11 @@ const InventoryModule = {
         }
     },
 
+    /**
+     * Update player inventory.
+     * 
+     * @param {Inventory} inventory - The player's inventory to update.
+     */
     updatePlayerInventory(inventory) {
         for (const invItems of inventory.values()) {
             invItems.forEach(items => {
