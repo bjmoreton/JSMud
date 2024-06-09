@@ -40,7 +40,6 @@ function formatTime(date) {
 
 /**
  * Generates a random number between low and high inclusive.
- *
  * @param {number} low - The lower bound (inclusive).
  * @param {number} high - The upper bound (inclusive).
  * @returns {number} A random number between low and high inclusive.
@@ -64,6 +63,10 @@ function generateRandomString(length) {
     return result;
 }
 
+/**
+ * Executes a `git pull` command.
+ * @returns {Promise<string>} A promise that resolves with the stdout of the git pull command.
+ */
 async function gitPull() {
     return new Promise((resolve, reject) => {
         execFile('git', ['pull'], (error, stdout, stderr) => {
@@ -108,12 +111,17 @@ function inRange(value, low, high) {
     return value > low && value < high;
 }
 
+/**
+ * Checks if an object is empty.
+ * @param {Object} obj - The object to check.
+ * @returns {boolean} True if the object is empty, false otherwise.
+ */
 function isEmptyObj(obj) {
     return Object.keys(obj).length === 0 && obj.constructor === Object;
 }
 
 /**
- * Determines if a variable is strictly a number and not NaN.
+ * Determines if a value is strictly a number and not NaN.
  * @param {any} value - The value to check.
  * @returns {boolean} True if the value is a number and not NaN, false otherwise.
  */
@@ -250,6 +258,11 @@ function stringToBoolean(str) {
     }
 }
 
+/**
+ * Strips ANSI codes from a string.
+ * @param {string} str - The string to strip ANSI codes from.
+ * @returns {string} The string without ANSI codes.
+ */
 function stripAnsiCodes(str) {
     let output = str.replace(/&./g, '');
     output = output.replace(/}(\d+)/g, '');

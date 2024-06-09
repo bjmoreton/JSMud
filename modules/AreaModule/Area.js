@@ -107,7 +107,7 @@ class Area {
                             progs: room.progs,
                             symbol: room.symbol,
                             defaultState: {
-                                flags: room.defaultState.flags
+                                flags: room.defaultState.flags.serialize()
                             },
                             exits: Array.from(room.exits.values()).map(exit => {
                                 const exitData = {

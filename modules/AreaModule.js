@@ -6,6 +6,7 @@ const Exit = require('./AreaModule/Exit.js');
 const Room = require('./AreaModule/Room.js');
 const Section = require('./AreaModule/Section.js');
 const RoomState = require('./AreaModule/RoomState.js');
+const RoomFlags = require('./AreaModule/RoomFlags.js');
 
 // Constants
 const AREAS_DIR = path.join(__dirname, '../areas');
@@ -19,6 +20,7 @@ const MUD_MAP_SIZE_X = 7; // Grid X size
  */
 const AreaModule = {
     name: "Area",
+    ROOM_FLAGS_PATH: path.join(__dirname, '../system', 'roomFlags.json'),
     areaList: new Map(),
     roomTemplate: [],
     startArea: 'Start',
@@ -26,6 +28,129 @@ const AreaModule = {
     startX: 0,
     startY: 0,
     startZ: 0,
+
+    addRoomFlag(player, args) {
+        const [flagName] = args;
+
+        if (!flagName) {
+            player.send(`Usage: addroomflag [value]`);
+            return;
+        }
+
+        if (!RoomFlags.hasFlag(flagName)) {
+            RoomFlags.addFlag(flagName);
+        } else {
+            player.send(`Flag ${flagName} already exist!`);
+            return;
+        }
+
+        player.send(`Item flag ${flagName} added successfully.`);
+    },
+
+    async editRoomFlag(player, args) {
+        const [flagName, eventName] = args;
+        if (!flagName) {
+            player.send(`Usage: editroomflag [flag] [event]`);
+            return;
+        }
+
+        if (!eventName) {
+            player.send(`Usage: editroomflag ${flagName} [event]`);
+            return;
+        }
+
+        const flag = RoomFlags.getFlag(flagName);
+        if (!flag) {
+            player.send(`Flag ${flagName} not found!`);
+            return;
+        }
+        const defaultText = flag.events[eventName.toLowerCase()]?.actionCode;
+        const actionCode = await player.textEditor.startEditing((defaultText ? defaultText : ''));
+
+        if (actionCode !== null) {
+            RoomFlags.addEvent(flag, eventName, actionCode);
+            player.send(`Updated ${flagName} successfully!`);
+        } else {
+            player.send(`Canceled edit of ${eventName} on room flag ${flagName}!`);
+        }
+    },
+
+    removeRoomFlag(player, args) {
+        const [flag] = args;
+        if (!flag) {
+            player.send(`Usage: removeroomflag [flag]`);
+            return;
+        }
+
+        RoomFlags.removeFlag(flag);
+        player.send(`Room flag deleted successfully.`);
+    },
+
+    /**
+     * Save item rarities to the JSON file.
+     * 
+     * @param {Player} player - The player initiating the save.
+     */
+    saveRoomFlags(player) {
+        try {
+            fs.writeFileSync(AreaModule.ROOM_FLAGS_PATH, RoomFlags.serialize(), 'utf8');
+            AreaModule.areaList.forEach(area => {
+                area.sections.forEach(section => {
+                    section.rooms.forEach(room => {
+                        const removeCSFlags = [];
+                        const removeDSFlags = [];
+                        room.currentState.flags.forEach(flag => {
+                            const existingFlag = RoomFlags.getFlag(flag.name);
+                            if (!existingFlag) {
+                                removeCSFlags.push(flag);
+                            }
+                        });
+                        room.defaultState.flags.forEach(flag => {
+                            const existingFlag = RoomFlags.getFlag(flag.name);
+                            if (!existingFlag) {
+                                removeDSFlags.push(flag);
+                            }
+                        });
+                        removeCSFlags.forEach(flag => {
+                            room.currentState.flags.remove(flag.name);
+                        });
+                        removeDSFlags.forEach(flag => {
+                            room.defaultState.flags.remove(flag.name);
+                        });
+                    });
+                });
+
+                area.save(player, AREAS_DIR);
+            });
+            AreaModule.mudServer.emit('roomFlagsSaved');
+            console.log("Room flags saved successfully.");
+            if (player) player.send("Room flags saved successfully.");
+        } catch (error) {
+            console.error("Failed to save room flags:", error);
+            if (player) player.send("Failed to save room flags.");
+        }
+    },
+
+    /**
+     * Load room flags from the JSON file.
+     * 
+     * @param {Player} player - The player initiating the load.
+     * @param {boolean} [triggerEvent=true] - Whether to trigger the roomFlagsLoaded event.
+     */
+    loadRoomFlags(player) {
+        try {
+            const data = fs.readFileSync(AreaModule.ROOM_FLAGS_PATH, 'utf8');
+            const flagsData = JSON.parse(data);
+
+            RoomFlags.deserialize(flagsData);
+
+            console.log("Room flags loaded successfully.");
+            if (player) player.send("Room flags loaded successfully.");
+        } catch (error) {
+            console.error("Failed to loaded room flags:", error);
+            if (player) player.send("Failed to loaded room flags.");
+        }
+    },
 
     /**
      * Get area by name.
@@ -108,6 +233,7 @@ const AreaModule = {
      * Load areas from the directory.
      */
     load() {
+        AreaModule.loadRoomFlags();
         AreaModule.loadRoomTemplate();
 
         try {
@@ -281,7 +407,14 @@ const AreaModule = {
                 section.startResetTimer();
                 section.rooms.forEach(room => {
                     Object.setPrototypeOf(room, Room.prototype);
-                    if (room.defaultState) Object.setPrototypeOf(room.defaultState, RoomState.prototype);
+                    if (room.currentState) {
+                        Object.setPrototypeOf(room.currentState, RoomState.prototype);
+                        Object.setPrototypeOf(room.currentState.flags, RoomFlags.prototype);
+                    }
+                    if (room.defaultState) {
+                        Object.setPrototypeOf(room.defaultState, RoomState.prototype);
+                        Object.setPrototypeOf(room.defaultStateState.flags, RoomFlags.prototype);
+                    }
                     room.exits.forEach(exit => {
                         Object.setPrototypeOf(exit, Exit.prototype);
                     });
@@ -1479,23 +1612,23 @@ const AreaModule = {
                     switch (action.toLowerCase()) {
                         case "add":
                             if (flags.length > 0) {
-                                room.currentState.addFlag(...flags);
+                                room.currentState.flags.add(...flags);
                             } else {
                                 player.send(`Valid flags:`);
-                                player.send(RoomState.getFlagsString());
+                                player.send(RoomFlags.getFlagsArray().join(', '));
                                 return;
                             }
                             break;
                         case "check":
                             player.send(`Current room flags:`);
-                            player.send(room.currentState.getCurrentFlagsString());
+                            player.send(room.currentState.flags.current);
                             return;
                         case "defaults":
                             player.send(`Default room flags:`);
-                            player.send(room.defaultState.getCurrentFlagsString());
+                            player.send(room.defaultState.flags.current);
                             return;
                         case "remove":
-                            room.currentState.removeFlag(...flags);
+                            room.currentState.flags.remove(...flags);
                             break;
                     }
                     break;

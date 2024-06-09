@@ -30,7 +30,7 @@ class Room {
         this.progs = progs;
         this.symbol = symbol;
         this.defaultState = new RoomState(defaultState);
-        this.currentState = this.defaultState;
+        this.currentState = this.defaultState.copy();
 
         this.exits = new Map();
         this.players = new Map();

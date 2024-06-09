@@ -58,6 +58,13 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Analyze an item in the player's inventory.
+     * 
+     * @param {Player} player - The player analyzing the item.
+     * @param {Array} args - The arguments for analyzing the item.
+     * @returns {boolean} - Indicates whether the analysis was successful.
+     */
     analyzeItem(player, args) {
         let [itemStr] = args;
 
@@ -212,6 +219,11 @@ const EquipmentModule = {
         global.ItemModule.addEditItemAction('wearable', 'edititem [vNum] wearable [true/false]', EquipmentModule.editItemWearable);
     },
 
+    /**
+     * Load equipment slots from the JSON file.
+     * 
+     * @param {Player} [player] - The player (optional).
+     */
     loadEquipmentSlots(player) {
         try {
             const data = fs.readFileSync(EquipmentModule.EQ_SLOTS_PATH, 'utf8');
@@ -701,6 +713,12 @@ const EquipmentModule = {
         }
     },
 
+    /**
+     * Show the details of a specific equipment slot.
+     * 
+     * @param {Player} player - The player viewing the equipment slot.
+     * @param {Array} args - The arguments for showing the equipment slot.
+     */
     showEquipmentSlot(player, args) {
         const [slot] = args;
 
@@ -876,6 +894,8 @@ const EquipmentModule = {
                     } else {
                         player.send(`${equippedItem}`);
                     }
+                } else {
+                    player.send(`Cannot wear ${item.displayString}!`);
                 }
             } else {
                 player.send(`You can't wear a ${item.displayString} because you don't have the ${slotName} slot.`);

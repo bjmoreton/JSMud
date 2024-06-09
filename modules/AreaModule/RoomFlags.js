@@ -1,4 +1,4 @@
-class ItemFlags extends Array {
+class RoomFlags extends Array {
     static Flags = {};
 
     /**
@@ -8,8 +8,8 @@ class ItemFlags extends Array {
      * @returns {Object} The added flag object.
      */
     static addFlag(flag) {
-        ItemFlags.Flags[flag.toLowerCase()] = { name: flag, events: {} };
-        return ItemFlags.Flags[flag.toLowerCase()];
+        RoomFlags.Flags[flag.toLowerCase()] = { name: flag, events: {} };
+        return RoomFlags.Flags[flag.toLowerCase()];
     }
 
     /**
@@ -19,7 +19,7 @@ class ItemFlags extends Array {
     add(...flags) {
         flags.forEach(flag => {
             flag = flag?.toLowerCase();
-            const flagValue = ItemFlags.Flags[flag];
+            const flagValue = RoomFlags.Flags[flag];
 
             if (flagValue && !this.has(flag)) {
                 this.push(flagValue);
@@ -46,15 +46,19 @@ class ItemFlags extends Array {
     }
 
     /**
-     * Create a deep copy of the current ItemFlags instance.
-     * @returns {ItemFlags} A new ItemFlags instance with copied flags.
+     * Create a deep copy of the current RoomFlags instance.
+     * @returns {RoomFlags} A new RoomFlags instance with copied flags.
      */
     copy() {
-        const newFlags = new ItemFlags();
+        const newFlags = new RoomFlags();
         this.forEach(flag => {
             newFlags.push({ ...flag });
         });
         return newFlags;
+    }
+
+    get current() {
+        return this.map(map => map.name).join(', ');
     }
 
     /**
@@ -79,7 +83,7 @@ class ItemFlags extends Array {
      * @returns {Object} The flag object.
      */
     static getFlag(flag) {
-        return ItemFlags.Flags[flag.toLowerCase()];
+        return RoomFlags.Flags[flag.toLowerCase()];
     }
 
     /**
@@ -88,7 +92,7 @@ class ItemFlags extends Array {
      * @returns {string[]} An array of item flags in lowercase.
      */
     static getFlagsArray() {
-        return Object.values(ItemFlags.Flags)
+        return Object.values(RoomFlags.Flags)
             .map(flag => flag.name);
     }
 
@@ -100,7 +104,7 @@ class ItemFlags extends Array {
     has(...flags) {
         for (let flag of flags) {
             flag = flag?.toLowerCase();
-            const flagValue = ItemFlags.Flags[flag];
+            const flagValue = RoomFlags.Flags[flag];
             if (!flagValue) {
                 return false;
             }
@@ -119,17 +123,17 @@ class ItemFlags extends Array {
      * @returns {boolean} True if the flag exists, otherwise false.
      */
     static hasFlag(flag) {
-        return ItemFlags.Flags[flag.toLowerCase()];
+        return RoomFlags.Flags[flag.toLowerCase()];
     }
 
     /**
-     * Remove specified flags from the item.
+     * Remove specified flags from the room.
      * @param {...string} flags - The flags to remove.
      */
     remove(...flags) {
         flags.forEach(flag => {
             flag = flag?.toLowerCase();
-            const flagValue = ItemFlags.Flags[flag];
+            const flagValue = RoomFlags.Flags[flag];
             if (flagValue && this.has(flag)) {
                 const index = this.findIndex(f => f.name.toLowerCase() === flagValue.name.toLowerCase())
                 if (index !== -1) {
@@ -145,8 +149,8 @@ class ItemFlags extends Array {
      * @param {string} flag - The flag name.
      */
     static removeFlag(flag) {
-        ItemFlags.Flags[flag.toLowerCase()].deleted = true;
-        //delete ItemFlags.Flags[flag.toLowerCase()];
+        RoomFlags.Flags[flag.toLowerCase()].delete = true;
+        //delete RoomFlags.Flags[flag.toLowerCase()];
     }
 
     /**
@@ -158,23 +162,22 @@ class ItemFlags extends Array {
     }
 
     /**
-     * Serialize all flags to JSON where deleted is false.
-     * Marks all ItemFlags.Flags[flag].saved as true before serialization.
+     * Serialize all flags to JSON.
      * @static
-     * @returns {string} The JSON string of all flags where deleted is false.
+     * @returns {string} The JSON string of all flags.
      */
     static serialize() {
         // Iterate through all flags and set saved to true
-        for (const flag in ItemFlags.Flags) {
-            ItemFlags.Flags[flag.toLowerCase()].saved = true;
+        for (const flag in RoomFlags.Flags) {
+            RoomFlags.Flags[flag.toLowerCase()].saved = true;
         }
 
         // Filter flags where deleted is false
         const filteredFlags = Object.fromEntries(
-            Object.entries(ItemFlags.Flags).filter(([flag, value]) => !value.deleted)
+            Object.entries(RoomFlags.Flags).filter(([flag, value]) => !value.deleted)
         );
 
-        ItemFlags.Flags = filteredFlags;
+        RoomFlags.Flags = filteredFlags;
         // Serialize to JSON
         return JSON.stringify(filteredFlags, null, 2);
     }
@@ -204,4 +207,4 @@ class ItemFlags extends Array {
     }
 }
 
-module.exports = ItemFlags;
+module.exports = RoomFlags;

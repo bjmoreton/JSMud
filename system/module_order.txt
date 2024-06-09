@@ -16,8 +16,9 @@ EquipmentModule/EquipmentSlot
 EquipmentModule
 AreaModule/Area
 AreaModule/Exit
-AreaModule/Room
+AreaModule/RoomFlags
 AreaModule/RoomState
+AreaModule/Room
 AreaModule/Section
 AreaModule
 HelpfileModule/Helpfile

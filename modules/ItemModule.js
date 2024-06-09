@@ -67,14 +67,15 @@ const ItemModule = {
             return;
         }
 
+        let flag;
         if (!ItemFlags.hasFlag(flagName)) {
-            ItemFlags.addFlag(flagName);
+            flag = ItemFlags.addFlag(flagName);
         } else {
             player.send(`Flag ${flagName} already exist!`);
             return;
         }
-
-        player.send(`Item flag ${flagName} added successfully.`);
+        flag.saved = false;
+        player.send(`Item flag ${flag.name} added successfully.`);
     },
 
     /**
@@ -340,6 +341,7 @@ const ItemModule = {
         const actionCode = await player.textEditor.startEditing((defaultText ? defaultText : ''));
 
         if (actionCode !== null) {
+            flag.saved = false;
             ItemFlags.addEvent(flag, eventName, actionCode);
             player.send(`Updated ${flagName} successfully!`);
         } else {
@@ -599,6 +601,17 @@ const ItemModule = {
         }
     },
 
+    removeItemFlag(player, args) {
+        const [flag] = args;
+        if (!flag) {
+            player.send(`Usage: removeitemflag [flag]`);
+            return;
+        }
+
+        ItemFlags.removeFlag(flag);
+        player.send(`Item flag deleted successfully.`);
+    },
+
     /**
      * Remove an item rarity.
      * 
@@ -645,16 +658,30 @@ const ItemModule = {
     },
 
     /**
-     * Save item rarities to the JSON file.
+     * Save item flags to the JSON file.
      * 
      * @param {Player} player - The player initiating the save.
      */
     saveItemFlags(player) {
         try {
             fs.writeFileSync(ItemModule.ITEM_FLAGS_PATH, ItemFlags.serialize(), 'utf8');
-            ItemModule.mudServer.emit('itemsSaved');
+
+            ItemModule.itemsList.forEach(item => {
+                const removeFlags = [];
+                item.flags.forEach(flag => {
+                    const existingFlag = ItemFlags.getFlag(flag.name);
+                    if (!existingFlag) {
+                        removeFlags.push(flag);
+                    }
+                });
+                removeFlags.forEach(flag => {
+                    item.flags.remove(flag.name);
+                });
+            });
+
             console.log("Item flags saved successfully.");
             if (player) player.send("Item flags saved successfully.");
+            ItemModule.save(player);
         } catch (error) {
             console.error("Failed to save item flags:", error);
             if (player) player.send("Failed to save item flags.");
@@ -677,9 +704,9 @@ const ItemModule = {
                 }, {});
             const jsonString = JSON.stringify(filteredRarities, null, 2);
             fs.writeFileSync(ItemModule.ITEM_RARITIES_PATH, jsonString, 'utf8');
-            ItemModule.mudServer.emit('itemsSaved');
             console.log("Item rarities saved successfully.");
             if (player) player.send("Item rarities saved successfully.");
+            ItemModule.save(player);
         } catch (error) {
             console.error("Failed to save item rarities:", error);
             if (player) player.send("Failed to save item rarities.");
