@@ -413,7 +413,7 @@ const AreaModule = {
                     }
                     if (room.defaultState) {
                         Object.setPrototypeOf(room.defaultState, RoomState.prototype);
-                        Object.setPrototypeOf(room.defaultStateState.flags, RoomFlags.prototype);
+                        Object.setPrototypeOf(room.defaultState.flags, RoomFlags.prototype);
                     }
                     room.exits.forEach(exit => {
                         Object.setPrototypeOf(exit, Exit.prototype);
