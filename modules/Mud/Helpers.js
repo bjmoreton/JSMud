@@ -9,7 +9,11 @@ const { execFile } = require('child_process');
 function addMissingProperties(source, destination) {
     for (const key in source) {
         if (!(key in destination)) {
-            destination[key] = source[key];
+            let value = source[key];
+            if(value && typeof value.serialize === 'function') {
+                value = value.serialize();
+            }
+            destination[key] = value;
         }
     }
 }

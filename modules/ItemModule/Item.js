@@ -99,6 +99,7 @@ class Item {
         deserializedItem.description = data.description;
         deserializedItem.delete = stringToBoolean(data.delete);
         deserializedItem.saved = stringToBoolean(data.saved);
+        addMissingProperties(data, deserializedItem);
         return deserializedItem;
     }
 

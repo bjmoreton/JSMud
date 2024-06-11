@@ -409,11 +409,11 @@ const AreaModule = {
                     Object.setPrototypeOf(room, Room.prototype);
                     if (room.currentState) {
                         Object.setPrototypeOf(room.currentState, RoomState.prototype);
-                        Object.setPrototypeOf(room.currentState.flags, RoomFlags.prototype);
+                        if (room.currentState.flags) Object.setPrototypeOf(room.currentState.flags, RoomFlags.prototype);
                     }
                     if (room.defaultState) {
                         Object.setPrototypeOf(room.defaultState, RoomState.prototype);
-                        Object.setPrototypeOf(room.defaultState.flags, RoomFlags.prototype);
+                        if (room.defaultState.flags) Object.setPrototypeOf(room.defaultState.flags, RoomFlags.prototype);
                     }
                     room.exits.forEach(exit => {
                         Object.setPrototypeOf(exit, Exit.prototype);
@@ -426,7 +426,7 @@ const AreaModule = {
             AreaModule.addPlayerMethods(player);
             player.currentArea = AreaModule.getAreaByName(player.currentArea);
             player.currentSection = player.currentArea?.getSectionByName(player.currentSection);
-            player.currentRoom = AreaModule.getRoomAt(player.currentArea, player.currentSection, player.currentX, player.currentY, player.currentZ);
+            player.currentRoom = AreaModule.getRoomAt(player.currentArea.name, player.currentSection.name, player.currentX, player.currentY, player.currentZ);
             player.workingArea = AreaModule.getAreaByName(player.workingArea);
             player.workingSection = player.workingArea?.getSectionByName(player.workingSection);
 
@@ -570,6 +570,9 @@ const AreaModule = {
                 const { newX, newY, newZ } = AreaModule.getNewCoordinates(x, y, z, exitDirection);
                 if (!roomMap.has(newZ) || !roomMap.get(newZ).has(newX) || !roomMap.get(newZ).get(newX).has(newY)) {
                     const exitRoom = AreaModule.exitToRoom(exit);
+                    if(exit.isLocked() || exit.isClosed()) {
+                        xLayer.set(newY, '&Y*&~');
+                    }
                     if (exit.teleport || (exitRoom.area.name == player.currentArea.name && exitRoom.section.name == player.currentSection.name)) {
                         queue.push({ room: exitRoom, x: newX, y: newY, z: newZ });
                     }

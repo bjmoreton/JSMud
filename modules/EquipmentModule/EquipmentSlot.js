@@ -60,19 +60,23 @@ class EquipmentSlot {
      * @returns {string|boolean} A message indicating the result of the equip action, or true if successful.
      */
     equip(item) {
-        if (this.items.size <= this.layers) {
-            if (!this.items.has(item.vNum)) {
-                for (let equippedItem of this.items.values()) {
-                    if (equippedItem.layer > item.layer) {
-                        return `Must remove ${equippedItem.name} (layer ${equippedItem.layer}) first!`;
+        if (item.types.includes(this.name.toLowerCase())) {
+            if (this.items.size <= this.layers) {
+                if (!this.items.has(item.vNum)) {
+                    for (let equippedItem of this.items.values()) {
+                        if (equippedItem.layer > item.layer) {
+                            return `Must remove ${equippedItem.name} (layer ${equippedItem.layer}) first!`;
+                        }
                     }
+                    this.items.set(item.vNum, item);
+                    return true;
                 }
-                this.items.set(item.vNum, item);
-                return true;
+                return `Already wearing ${item.name}!`;
+            } else {
+                return `Can't wear anything else there.`;
             }
-            return `Already wearing ${item.name}!`;
         } else {
-            return `Can't wear anything else there.`;
+            return `Can't wear ${item.name} in slot ${this.name}`;
         }
     }
 

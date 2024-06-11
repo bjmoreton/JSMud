@@ -425,7 +425,7 @@ const EquipmentModule = {
      * Register events for the Equipment module.
      */
     registerEvents() {
-        EquipmentModule.mudServer.on('hotBootBefore', EquipmentModule.onHotBootAfter);
+        EquipmentModule.mudServer.on('hotBootAfter', EquipmentModule.onHotBootAfter);
         EquipmentModule.mudServer.on('hotBootBefore', EquipmentModule.onHotBootBefore);
         EquipmentModule.mudServer.on('itemsLoading', EquipmentModule.onItemsLoading);
         EquipmentModule.mudServer.on('playerLoaded', EquipmentModule.onPlayerLoaded);
@@ -548,40 +548,58 @@ const EquipmentModule = {
      * Remove all items from equipment slots.
      * 
      * @param {Player} player - The player removing all items.
+     * @param {Array} args - The arguments for removal.
      * @returns {boolean} - True if all items were removed successfully, false otherwise.
      */
-    removeAll(player) {
-        for (let slot in player.eqSlots) {
-            if (player.eqSlots[slot].items instanceof Map) {
-                let itemsToRemove = Array.from(player.eqSlots[slot].items.values());
-                for (let item of itemsToRemove) {
-                    const unequipped = player.eqSlots[slot].unequip(item);
-                    if (unequipped === true) {
-                        const remove = item.flags.trigger('onremove', player, item, player.eqSlots[slotName]);
+    removeAll(player, args) {
+        const [slotToRemoveFrom] = args;
 
-                        if (!remove.includes(false)) {
-                            if (!player.inventory.addItem(item.vNum, item)) {
-                                if (player.inventory.isFull) {
-                                    player.send(`Inventory full! Could not remove all items.`);
-                                } else player.send(`Failed to remove ${item.displayString} from your ${slot} slot.`);
-                                player.eqSlots[slot].equip(item);
-                                return false;
-                            }
-                            player.send(`You stop using ${item.displayString}.`);
-                            item.flags.trigger('onremoved', player, item, player.eqSlots[slotName]);
-                        } else {
-                            player.send(`You cannot remove ${player.displayString}!`);
+        if (!slotToRemoveFrom) {
+            for (let slot in player.eqSlots) {
+                EquipmentModule.removeAllFromSlot(player, player.eqSlots[slot]);
+            }
+            player.send(`All items have been removed from your equipment slots and put back in your inventory.`);
+            return true;
+        } else {
+            const slot = player.eqSlots[slotToRemoveFrom.toLowerCase()];
+            if(slot) {
+                EquipmentModule.removeAllFromSlot(player, slot);
+                player.send(`All items have been removed from your ${slot.name} slot and put back in your inventory.`);
+            } else {
+                player.send(`Slot ${slotToRemoveFrom} not found!`);
+                return false;
+            }
+        }
+    },
+
+    removeAllFromSlot(player, eqSlot) {
+        if (eqSlot.items instanceof Map) {
+            let itemsToRemove = Array.from(eqSlot.items.values());
+            for (let item of itemsToRemove) {
+                const unequipped = eqSlot.unequip(item);
+                if (unequipped === true) {
+                    const remove = item.flags.trigger('onremove', player, item, eqSlot);
+
+                    if (!remove.includes(false)) {
+                        if (!player.inventory.addItem(item.vNum, item)) {
+                            if (player.inventory.isFull) {
+                                player.send(`Inventory full! Could not remove all items.`);
+                            } else player.send(`Failed to remove ${item.displayString} from your ${slot} slot.`);
+                            eqSlot.equip(item);
                             return false;
                         }
+                        player.send(`You stop using ${item.displayString}.`);
+                        item.flags.trigger('onremoved', player, item, eqSlot);
                     } else {
-                        player.send(`${unequipped}`);
+                        player.send(`You cannot remove ${player.displayString}!`);
                         return false;
                     }
+                } else {
+                    player.send(`${unequipped}`);
+                    return false;
                 }
             }
         }
-        player.send(`All items have been removed from your equipment slots and put back in your inventory.`);
-        return true;
     },
 
     /**
@@ -617,7 +635,7 @@ const EquipmentModule = {
      * Remove registered events.
      */
     removeEvents() {
-        EquipmentModule.mudServer.off('hotBootBefore', EquipmentModule.onHotBootAfter);
+        EquipmentModule.mudServer.off('hotBootAfter', EquipmentModule.onHotBootAfter);
         EquipmentModule.mudServer.off('hotBootBefore', EquipmentModule.onHotBootBefore);
         EquipmentModule.mudServer.off('itemsLoading', EquipmentModule.onItemsLoading);
         EquipmentModule.mudServer.off('playerLoaded', EquipmentModule.onPlayerLoaded);
@@ -824,6 +842,7 @@ const EquipmentModule = {
         if (Array.isArray(item.types)) {
             slotName = item.types[0].toLowerCase();
         }
+
         if (wearSlot) {
             slotName = wearSlot.toLowerCase();
         }
