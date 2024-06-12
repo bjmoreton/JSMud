@@ -10,8 +10,8 @@ function addMissingProperties(source, destination) {
     for (const key in source) {
         if (!(key in destination)) {
             let value = source[key];
-            if(value && typeof value.serialize === 'function') {
-                value = value.serialize();
+            if(value && typeof value.copy === 'function') {
+                value = value.copy();
             }
             destination[key] = value;
         }

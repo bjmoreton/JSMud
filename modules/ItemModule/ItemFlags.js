@@ -146,7 +146,6 @@ class ItemFlags extends Array {
      */
     static removeFlag(flag) {
         ItemFlags.Flags[flag.toLowerCase()].deleted = true;
-        //delete ItemFlags.Flags[flag.toLowerCase()];
     }
 
     /**
@@ -188,7 +187,7 @@ class ItemFlags extends Array {
     trigger(flagEvent, ...args) {
         const results = [];
         this.forEach(flag => {
-            if (flag.events[flagEvent]) {
+            if (flag.events && flag.events[flagEvent]) {
                 const event = flag.events[flagEvent].action;
                 if (event) {
                     try {
