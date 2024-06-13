@@ -64,7 +64,15 @@ class EquipmentSlot {
             if (this.items.size <= this.layers) {
                 if (!this.items.has(item.vNum)) {
                     for (let equippedItem of this.items.values()) {
-                        if (equippedItem.layer > item.layer) {
+                        if (equippedItem.layer >= item.layer) {
+                            return `Must remove ${equippedItem.name} (layer ${equippedItem.layer}) first!`;
+                        }
+                        // New condition: Prevent equipping if the current item layer is undefined or less than zero
+                        if ((equippedItem.layer === undefined || equippedItem.layer < 0) && (item.layer >= 0)) {
+                            return `Must remove ${equippedItem.name} first!`;
+                        }
+                        // New condition: Prevent equipping if the new item layer is undefined or less than zero
+                        if ((item.layer === undefined || item.layer < 0) && (equippedItem.layer >= 0)) {
                             return `Must remove ${equippedItem.name} (layer ${equippedItem.layer}) first!`;
                         }
                     }

@@ -374,6 +374,14 @@ const EquipmentModule = {
         // Add weapon item type, etc.
         Item.addItemType(Equipment);
     },
+    /**
+     * Handle items saved event.
+     */
+    onItemsSaved() {
+        EquipmentModule.mudServer.players.forEach(p => {
+            EquipmentModule.updatePlayerEquipment(p.eqSlots);
+        });
+    },
 
     /**
      * Event handler for player loaded.
@@ -404,6 +412,7 @@ const EquipmentModule = {
         }
 
         EquipmentModule.updatePlayerSlots(player, false);
+        EquipmentModule.updatePlayerEquipment(player.eqSlots);
     },
 
     /**
@@ -428,6 +437,7 @@ const EquipmentModule = {
         EquipmentModule.mudServer.on('hotBootAfter', EquipmentModule.onHotBootAfter);
         EquipmentModule.mudServer.on('hotBootBefore', EquipmentModule.onHotBootBefore);
         EquipmentModule.mudServer.on('itemsLoading', EquipmentModule.onItemsLoading);
+        EquipmentModule.mudServer.on('itemsSaved', EquipmentModule.onItemsSaved);
         EquipmentModule.mudServer.on('playerLoaded', EquipmentModule.onPlayerLoaded);
         EquipmentModule.mudServer.on('playerSaved', EquipmentModule.onPlayerSaved);
     },
@@ -461,7 +471,7 @@ const EquipmentModule = {
             let mapKeyToRemove = null;
 
             player.eqSlots[slotName].items.forEach((item, mapKey) => {
-                if (item.layer > highestLayer) {
+                if (item.layer > highestLayer || !item.layer) {
                     highestLayeredItem = item;
                     highestLayer = item.layer;
                     mapKeyToRemove = mapKey;
@@ -562,7 +572,7 @@ const EquipmentModule = {
             return true;
         } else {
             const slot = player.eqSlots[slotToRemoveFrom.toLowerCase()];
-            if(slot) {
+            if (slot) {
                 EquipmentModule.removeAllFromSlot(player, slot);
                 player.send(`All items have been removed from your ${slot.name} slot and put back in your inventory.`);
             } else {
@@ -575,6 +585,7 @@ const EquipmentModule = {
     removeAllFromSlot(player, eqSlot) {
         if (eqSlot.items instanceof Map) {
             let itemsToRemove = Array.from(eqSlot.items.values());
+            itemsToRemove.sort((a, b) => b.layer - a.layer);
             for (let item of itemsToRemove) {
                 const unequipped = eqSlot.unequip(item);
                 if (unequipped === true) {
@@ -638,6 +649,7 @@ const EquipmentModule = {
         EquipmentModule.mudServer.off('hotBootAfter', EquipmentModule.onHotBootAfter);
         EquipmentModule.mudServer.off('hotBootBefore', EquipmentModule.onHotBootBefore);
         EquipmentModule.mudServer.off('itemsLoading', EquipmentModule.onItemsLoading);
+        EquipmentModule.mudServer.off('itemsSaved', EquipmentModule.onItemsSaved);
         EquipmentModule.mudServer.off('playerLoaded', EquipmentModule.onPlayerLoaded);
         EquipmentModule.mudServer.off('playerSaved', EquipmentModule.onPlayerSaved);
     },
@@ -750,6 +762,33 @@ const EquipmentModule = {
             sendNestedKeys(player, foundSlot);
         } else {
             player.send(`Slot ${slot} doesn't exist!`);
+        }
+    },
+
+    /**
+     * Update player equipment.
+     * 
+     * @param {Object} eqSlots - The player's equipment slots to update.
+     */
+    updatePlayerEquipment(eqSlots) {
+        for (const slotName in eqSlots) {
+            const eqSlot = eqSlots[slotName];
+            const deletedItems = [];
+            for (let eqItem of eqSlot.items.values()) {
+                const updatedItem = global.ItemModule.getItemByVNum(eqItem.vNum);
+
+                if (updatedItem) {
+                    const itemTypeConstructor = Item.stringToItemType(eqItem.itemType.toString());
+                    if (itemTypeConstructor) {
+                        eqItem = itemTypeConstructor.sync(updatedItem, eqItem);
+                        EquipmentModule.mudServer.emit('syncedItem', eqItem, updatedItem);
+                    }
+                } else deletedItems.push(eqItem);
+            }
+
+            deletedItems.forEach(deletedItem => {
+                eqSlot.items.delete(deletedItem);
+            });
         }
     },
 

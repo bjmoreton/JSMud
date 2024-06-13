@@ -22,6 +22,7 @@ class Item {
         this.itemType = Item.stringToItemType(itemType);
         this.saved = false;
         this.delete = false;
+        this.flags = new ItemFlags();
     }
 
     /**
@@ -88,7 +89,6 @@ class Item {
         const itemType = Item.stringToItemType(data.itemType);
         const deserializedItem = new itemType(vNum, data.name, data.nameDisplay, data.itemType);
         if (data.flags) {
-            if (!deserializedItem.flags) deserializedItem.flags = new ItemFlags();
             data.flags.forEach(flag => {
                 deserializedItem.flags.add(flag);
             });
