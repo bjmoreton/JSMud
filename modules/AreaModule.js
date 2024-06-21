@@ -590,8 +590,6 @@ const AreaModule = {
                 xLayer.set(y, { exits: new Map(), symbol });
             }
 
-            console.log(room);
-            console.log(room.exits);
             if (room && room.exits) {
                 room?.exits?.forEach((exit, exitDirection) => {
                     const { newX, newY, newZ } = AreaModule.getNewCoordinates(x, y, z, exitDirection);
