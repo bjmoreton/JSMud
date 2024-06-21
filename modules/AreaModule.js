@@ -313,7 +313,7 @@ const AreaModule = {
      */
     onEnteredRoom(player, enterDirection, room) {
         let message = '';
-        if (player.inRoom(room)) {
+        if (room && player.inRoom(room)) {
             room.addPlayer(player);
             if (enterDirection && enterDirection != Exit.ExitDirections.None) message = `${player.username} entered the room from the ${enterDirection}.`;
             else message = `${player.username} entered the room.`;
@@ -365,11 +365,16 @@ const AreaModule = {
             player.currentSection = player.currentArea.getSectionByName(player.currentSection);
             if (player.currentSection) {
                 player.currentRoom = player.currentSection.getRoomByCoordinates(player.currentX, player.currentY, player.currentZ);
-
-                if (player.workingArea) player.workingArea = AreaModule.getAreaByName(player.workingArea);
-                if (player.workingSection) player.workingSection = player.workingArea.getSectionByName(player.workingSection);
+            } else {
+                player.currentRoom = undefined;
             }
+        } else {
+            player.currentSection = undefined;
+            player.currentRoom = undefined;
         }
+
+        if (player.workingArea) player.workingArea = AreaModule.getAreaByName(player.workingArea);
+        if (player.workingSection) player.workingSection = player.workingArea.getSectionByName(player.workingSection);
 
         AreaModule.mudServer.emit('enteredRoom', player, Exit.ExitDirections.None, player.currentRoom);
         AreaModule.executeLook(player);
@@ -435,12 +440,23 @@ const AreaModule = {
         AreaModule.mudServer.players.forEach(player => {
             AreaModule.addPlayerMethods(player);
             player.currentArea = AreaModule.getAreaByName(player.currentArea);
-            player.currentSection = player.currentArea?.getSectionByName(player.currentSection);
-            player.currentRoom = AreaModule.getRoomAt(player.currentArea.name, player.currentSection.name, player.currentX, player.currentY, player.currentZ);
+            if (player.currentArea) {
+                player.currentSection = player.currentArea?.getSectionByName(player.currentSection);
+                if (player.currentSection) {
+                    player.currentRoom = AreaModule.getRoomAt(player.currentArea.name, player.currentSection.name, player.currentX, player.currentY, player.currentZ);
+
+                    player.currentRoom?.addPlayer(player);
+                } else {
+                    player.currentRoom = undefined;
+                }
+            } else {
+                player.currentSection = undefined;
+                player.currentRoom = undefined;
+            }
+
             player.workingArea = AreaModule.getAreaByName(player.workingArea);
             player.workingSection = player.workingArea?.getSectionByName(player.workingSection);
 
-            player.currentRoom?.addPlayer(player);
         });
     },
 
@@ -574,17 +590,21 @@ const AreaModule = {
                 xLayer.set(y, { exits: new Map(), symbol });
             }
 
-            room?.exits?.forEach((exit, exitDirection) => {
-                const { newX, newY, newZ } = AreaModule.getNewCoordinates(x, y, z, exitDirection);
-                if (!roomMap.has(newZ) || !roomMap.get(newZ).has(newX) || !roomMap.get(newZ).get(newX).has(newY)) {
-                    const exitRoom = exit.toRoom();
-                    if ((exit.teleport || (exitRoom.area.name == player.currentArea.name && exitRoom.section.name == player.currentSection.name)) && !exit.isClosed()) {
-                        queue.push({ room: exitRoom, x: newX, y: newY, z: newZ });
+            console.log(room);
+            console.log(room.exits);
+            if (room && room.exits) {
+                room?.exits?.forEach((exit, exitDirection) => {
+                    const { newX, newY, newZ } = AreaModule.getNewCoordinates(x, y, z, exitDirection);
+                    if (!roomMap.has(newZ) || !roomMap.get(newZ).has(newX) || !roomMap.get(newZ).get(newX).has(newY)) {
+                        const exitRoom = exit.toRoom();
+                        if ((exit.teleport || (exitRoom.area.name == player.currentArea.name && exitRoom.section.name == player.currentSection.name)) && !exit.isClosed()) {
+                            queue.push({ room: exitRoom, x: newX, y: newY, z: newZ });
+                        }
                     }
-                }
 
-                xLayer.get(y).exits.set(exitDirection.toLowerCase(), exit);
-            });
+                    xLayer.get(y).exits.set(exitDirection.toLowerCase(), exit);
+                });
+            }
         }
         return AreaModule.generateMapString(roomMap, player, area);
     },
