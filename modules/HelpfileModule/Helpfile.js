@@ -65,7 +65,7 @@ class Helpfile {
         const filePath = path.join(dir, this.title + '.json');
 
         try {
-            // Write player data to file in JSON format
+            // Write helpfile data to file in JSON format
             fs.writeFileSync(filePath, JSON.stringify(this, null, 2));
             if (showOutput) player.send(`Helpfile ${this.title} saved!`);
         } catch (error) {

@@ -1,4 +1,5 @@
-const { getAllFunctionProperties } = require("../Mud/Helpers");
+const { getAllFunctionProperties, stringToBoolean } = require("../Mud/Helpers");
+const Room = require("./Room");
 
 /**
  * Class representing an Exit.
@@ -71,7 +72,7 @@ class Exit {
      * @param {boolean} [teleport=false] - Whether the exit is a teleport.
      * @param {string} [initialState=Exit.ExitStates.Opened] - The initial state of the exit.
      */
-    constructor(area, section, x, y, z, direction, progs, teleport = false, initialState = Exit.ExitStates.Opened) {
+    constructor(area, section, x, y, z, direction, progs, fromRoom, teleport = false, initialState = Exit.ExitStates.Opened) {
         this.area = area;
         this.section = section;
         this.x = x;
@@ -82,23 +83,7 @@ class Exit {
         this.currentState = this.initialState;
         this.progs = progs;
         this.teleport = teleport;
-    }
-
-    /**
-     * Adds or edits a reverse script.
-     * @param {string} event - The event name.
-     * @param {string} script - The script to be executed.
-     */
-    addEditReverseScript(event, script) {
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
-
-        if (revExit) {
-            if (!revExit.progs) {
-                revExit.progs = {};  // Initialize progs if it doesn't exist
-            }
-            revExit.progs[event] = script;
-        }
+        this.fromRoom = fromRoom;
     }
 
     /**
@@ -106,20 +91,17 @@ class Exit {
      * @param {string|string[]} states - The states to be added.
      */
     addState(states) {
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
-
         const stateList = Array.isArray(states) ? states : states.toString().split(',').map(s => s.trim());
 
-        stateList.forEach(state => {
-            const resolvedState = Exit.stringToExitState(state);
-            if (resolvedState && !this.currentState.includes(resolvedState) && this.validExitState(resolvedState)) {
-                this.currentState.push(resolvedState);
-            }
-        });
-
-        if (revExit && !revExit.hasState(states)) {
-            revExit.addState(states);
+        if (!this.hasState(states)) {
+            stateList.forEach(state => {
+                const resolvedState = Exit.stringToExitState(state);
+                if (resolvedState && !this.currentState.includes(resolvedState) && this.validExitState(resolvedState)) {
+                    this.currentState.push(resolvedState);
+                    const revExit = this.toRoom().getExitByDirection(Exit.oppositeExit(this.direction));
+                    revExit.addState(states);
+                }
+            });
         }
     }
 
@@ -144,7 +126,7 @@ class Exit {
      * @param {Object} player - The player requesting the action.
      * @param {Array} args - The arguments for the action.
      */
-    async close(player, args) {
+    async close(player, args = []) {
         try {
             if (this.canClose()) {
                 if (this.isClosed()) {
@@ -167,22 +149,6 @@ class Exit {
             }
         } catch (error) {
             console.error(error);
-        }
-    }
-
-    /**
-     * Deletes a reverse script.
-     * @param {string} event - The event name.
-     */
-    deleteReverseScript(event) {
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
-
-        if (revExit) {
-            if (!revExit.progs) {
-                revExit.progs = {};  // Initialize progs if it doesn't exist
-            }
-            delete revExit.progs[event];
         }
     }
 
@@ -267,7 +233,7 @@ class Exit {
      * @param {Object} player - The player requesting the action.
      * @param {Array} args - The arguments for the action.
      */
-    async lock(player, args) {
+    async lock(player, args = []) {
         try {
             if (!this.isLocked()) {
                 if (this.canLock()) {
@@ -300,11 +266,16 @@ class Exit {
      * @param {Array} args - The arguments for the action.
      * @returns {boolean} True if the door was opened, otherwise false.
      */
-    async open(player, args) {
+    async open(player, args = []) {
+        const [output] = args;
+        let bOutput;
+        if (!output) bOutput = true;
+        else bOutput = stringToBoolean(output);
+
         try {
             if (!(this.isLocked())) {
                 if (this.isOpened()) {
-                    player.send(`The door is already opened!`);
+                    if (bOutput) player.send(`The door is already opened!`);
                     return false;
                 }
 
@@ -316,13 +287,13 @@ class Exit {
                 if (opened) {
                     this.addState(Exit.ExitStates.Opened);
                     this.removeState(Exit.ExitStates.Closed);
-                    player.send(`You open the door.`);
+                    if (bOutput) player.send(`You open the door.`);
                     return true;
                 } else {
-                    player.send(`You couldn't open the door!`);
+                    if (bOutput) player.send(`You couldn't open the door!`);
                 }
             } else {
-                player.send(`The door is locked!`);
+                if (bOutput) player.send(`The door is locked!`);
             }
         } catch (error) {
             console.error(error);
@@ -360,17 +331,15 @@ class Exit {
     removeState(states) {
         const stateList = Array.isArray(states) ? states : states.toString().split(',').map(item => item.trim());
 
-        stateList.forEach(state => {
-            const resolvedState = Exit.stringToExitState(state);
-            if (this.currentState.includes(resolvedState)) {
-                this.currentState = this.currentState.filter(s => s !== resolvedState);
-            }
-        });
-
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom && revRoom.exits.get(Exit.oppositeExit(this.direction));
-        if (revExit && revExit.hasState(states)) {
-            revExit.removeState(states);
+        if (this.hasState(states)) {
+            stateList.forEach(state => {
+                const resolvedState = Exit.stringToExitState(state);
+                if (this.currentState.includes(resolvedState)) {
+                    this.currentState = this.currentState.filter(s => s !== resolvedState);
+                    const revExit = this.toRoom().getExitByDirection(Exit.oppositeExit(this.direction));
+                    revExit.removeState(states);
+                }
+            });
         }
     }
 
@@ -402,39 +371,23 @@ class Exit {
      * Resets the exit to its initial state.
      */
     reset() {
-        if (this.currentState === this.initialState) return;
         this.currentState = this.initialState;
-
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
-
-        if (revExit && revExit.currentState !== revExit.initialState) {
-            revExit.reset();
-        }
     }
 
     /**
      * Saves the current state as the initial state.
      */
     saveState() {
-        if (this.initialState === this.currentState) return;
-
         this.initialState = this.currentState;
-
-        const revRoom = this.section.getRoomByCoordinates(this.x, this.y, this.z);
-        const revExit = revRoom.exits.get(Exit.oppositeExit(this.direction));
-
-        if (revExit && revExit.initialState !== revExit.currentState) {
-            revExit.saveState();
-        }
     }
 
     /**
      * Sends a message to the exit.
      * @param {Object} player - The player sending the message.
-     * @param {string} message - The message to send.
+     * @param {string} messagePlain - The plain message to send to the exits.
+     * @param {Room} room - The room sending the message.
      */
-    async sendToExit(player, message) {
+    async sendToExit(player, message, output) {
         if (this.progs !== undefined && this.progs['onmessage'] && this.requiresPassword()) {
             try {
                 await eval(this.progs['onmessage']);
@@ -449,7 +402,7 @@ class Exit {
      * @param {Object} player - The player sending the emote.
      * @param {string} emote - The emote to send.
      */
-    async sendToExitEmote(player, emote) {
+    async sendToExitEmote(player, emote, output) {
         if (this.progs !== undefined && this.progs['onemote'] && this.requiresEmote()) {
             try {
                 await eval(this.progs['onemote']);
@@ -478,7 +431,7 @@ class Exit {
      * @returns {string|null} The exit direction, or null if not found.
      */
     static stringToExit(exitString) {
-        const normalizedInput = exitString.toLowerCase();
+        const normalizedInput = exitString?.toLowerCase();
         if (Exit.DirectionAbbreviations[normalizedInput]) {
             return Exit.DirectionAbbreviations[normalizedInput];
         }
@@ -507,13 +460,24 @@ class Exit {
     }
 
     /**
+     * Convert an exit to a room.
+     * @returns {Room|null} - The room object if found, null otherwise.
+     */
+    toRoom() {
+        return this.section.getRoomByCoordinates(this.x, this.y, this.z) || null;
+    }
+
+    /**
      * Unlocks the exit.
      * @param {Object} player - The player requesting the action.
      * @param {Array} args - The arguments for the action.
      * @returns {boolean} True if the door was unlocked, otherwise false.
      */
-    async unlock(player, args) {
-        const [bypass] = args;
+    async unlock(player, args = []) {
+        const [bypass, output] = args;
+        let bOutput;
+        if (!output) bOutput = true;
+        else bOutput = stringToBoolean(output);
         try {
             if (this.isLocked()) {
                 let unlocked = true;
@@ -528,13 +492,13 @@ class Exit {
                 if (unlocked) {
                     this.addState(Exit.ExitStates.Unlocked);
                     this.removeState(Exit.ExitStates.Locked);
-                    player.send(`You unlock the door.`);
+                    if (bOutput) player.send(`You unlock the door.`);
                     return true;
                 } else {
-                    player.send(`You couldn't seem to unlock the door!`);
+                    if (bOutput) player.send(`You couldn't seem to unlock the door!`);
                 }
             } else {
-                player.send(`The door isn't locked!`);
+                if (bOutput) player.send(`The door isn't locked!`);
             }
         } catch (error) {
             console.error(error);

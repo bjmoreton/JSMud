@@ -169,7 +169,7 @@ const StatusModule = {
     },
 
     onLooked(player) {
-        player.currentRoom?.players.forEach(p => {
+        player.currentRoom?.players?.forEach(p => {
             if (p === player) return;
             player.send(`You see ${p.username}.`);
             for (const [name, status] of p.statuses) {

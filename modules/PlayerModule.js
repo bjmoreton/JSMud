@@ -4,6 +4,7 @@ const path = require('path');
 const { formatTime, isNumber } = require('./Mud/Helpers.js');
 const Player = require('./PlayerModule/Player.js');
 const TextEditor = require('./PlayerModule/TextEditor.js');
+const { parseColors } = require('./Mud/Color.js');
 
 /**
  * Player module for MUD server.
@@ -25,7 +26,7 @@ const PlayerModule = {
         const message = input;
         const currentDate = new Date();
 
-        PlayerModule.mudServer.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${message}`);
+        PlayerModule.mudServer.emit('sendToAll', player, `[${formatTime(currentDate)}] ${player.username}: ${parseColors(message)}`);
     },
 
     /**
@@ -37,8 +38,8 @@ const PlayerModule = {
     executeSay(player, args, input) {
         const message = input;
 
-        player.send(`You say "${message}"`);
-        PlayerModule.mudServer.emit('sendToRoom', player, `${player.username} says "${message}"`, [player.username], message);
+        player.send(`You say "${parseColors(message)}"`);
+        PlayerModule.mudServer.emit('sendToRoom', player, `${player.username} says "${parseColors(message)}"`, [player.username], message);
     },
 
     fadedTimeout(player) {

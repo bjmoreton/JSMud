@@ -6,6 +6,9 @@ const RoomState = require("./RoomState");
  * Class representing a Room.
  */
 class Room {
+    static exitsActual = new Map();
+    static exitMap = new Map();
+
     /**
      * Create a Room.
      * @param {Object} area - The area to which the room belongs.
@@ -19,7 +22,7 @@ class Room {
      * @param {string} [symbol='#'] - The symbol representing the room.
      * @param {Object} defaultState - The default state of the room.
      */
-    constructor(area, section, name, description, x, y, z, progs, symbol = '#', defaultState) {
+    constructor(area, section, name, description, x, y, z, progs, symbol = '&YO&~', defaultState) {
         this.area = area;
         this.section = section;
         this.name = name;
@@ -49,30 +52,61 @@ class Room {
      */
     addExit(player, area, section, direction, x, y, z, teleport = false) {
         const strToExit = Exit.stringToExit(direction);
+        let existingExit = undefined;
         if (!strToExit) {
             player.send('Invalid exit direction!');
             return;
         }
+        let [aX, aY, aZ] = Room.calculateCoordinates(strToExit, this);
+
+        if (Room.exitsActual.has(`${area.name},${section.name},${aX},${aY},${aZ}`)) {
+            existingExit = Room.exitsActual.get(`${area.name},${section.name},${aX},${aY},${aZ}`);
+        }
 
         if (!this.exits.has(strToExit)) {
-            let [rX, rY, rZ] = this.calculateCoordinates(strToExit, x, y, z);
-
-            let toRoom = section.getRoomByCoordinates(rX, rY, rZ);
-            if (!toRoom) {
-                toRoom = section.addRoom(player, area, section, rX, rY, rZ);
+            let [rX, rY, rZ] = Room.calculateCoordinates(strToExit, this, x, y, z);
+            let toRoom;
+            if (!existingExit) {
+                toRoom = section.getRoomByCoordinates(rX, rY, rZ);
                 if (!toRoom) {
-                    player.send(`Room doesn't exist!`);
-                    return;
+                    toRoom = section.addRoom(player, area, section, rX, rY, rZ);
+                    if (!toRoom) {
+                        player.send(`Room doesn't exist!`);
+                        return;
+                    }
                 }
+            } else {
+                area = existingExit.area;
+                section = existingExit.section;
+                rX = existingExit.x;
+                rY = existingExit.y;
+                rZ = existingExit.z;
+                teleport = existingExit.teleport;
+                toRoom = existingExit.toRoom();
             }
 
-            this.exits.set(strToExit, new Exit(area, section, rX, rY, rZ, direction, {}, teleport));
-            toRoom.exits.set(Exit.oppositeExit(direction), new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString(), {}, teleport));
+            const exit = new Exit(area, section, rX, rY, rZ, direction, (existingExit ? existingExit.progs : {}), this, teleport);
+            const revExit = new Exit(this.area, this.section, this.x, this.y, this.z, Exit.oppositeExit(direction).toString(), (existingExit ? existingExit.progs : {}), toRoom, teleport);
+            if (existingExit) {
+                exit.initialState = existingExit.initialState;
+                exit.currentState = existingExit.currentState;
+                revExit.initialState = existingExit.initialState;
+                revExit.currentState = existingExit.currentState;
+            }
+            this.exits.set(strToExit, exit);
+            toRoom.exits.set(Exit.oppositeExit(direction), revExit);
+            Room.addExitActual(exit, this);
+            Room.addExitActual(revExit, toRoom);
 
             player.send(`Exit added successfully!`);
         } else {
             player.send(`Exit already exists in ${strToExit} direction!`);
         }
+    }
+
+    static addExitActual(exit, room) {
+        const [x, y, z] = Room.calculateCoordinates(exit.direction, room);
+        Room.exitsActual.set(`${room.area.name},${room.section.name},${x},${y},${z}`, exit);
     }
 
     /**
@@ -83,8 +117,8 @@ class Room {
      * @param {number} z - The z-coordinate override.
      * @returns {Array<number>} The calculated coordinates [x, y, z].
      */
-    calculateCoordinates(direction, x, y, z) {
-        let [rX, rY, rZ] = [this.x, this.y, this.z];
+    static calculateCoordinates(direction, room, x, y, z) {
+        let [rX, rY, rZ] = [room.x, room.y, room.z];
 
         switch (direction) {
             case Exit.ExitDirections.Down: rZ--; break;
@@ -122,7 +156,7 @@ class Room {
             }
         }
     }
-
+    
     /**
      * Gets an exit by direction.
      * @param {string} exitDirection - The direction of the exit.
@@ -130,6 +164,10 @@ class Room {
      */
     getExitByDirection(exitDirection) {
         return this.exits.get(exitDirection);
+    }
+
+    get longName() {
+        return `[${this.area.name}] ${this.section.name} - {${this.x}, ${this.y}, ${this.z}}`;
     }
 
     /**
@@ -167,6 +205,7 @@ class Room {
                 console.error(error);
             }
         }
+
         this.exits.forEach(exit => {
             exit.sendToExitEmote(player, emote);
         });
@@ -179,7 +218,7 @@ class Room {
      * @param {Array<string>} excludedPlayers - The players to exclude from the message.
      * @param {string} messagePlain - The plain message to send to the exits.
      */
-    async sendToRoom(player, message, excludedPlayers, messagePlain) {
+    async sendToRoom(player, message, excludedPlayers, messagePlain, sendOn = true) {
         if (this.progs !== undefined && this.progs['onmessage']) {
             try {
                 await eval(this.progs['onmessage']);
@@ -187,11 +226,13 @@ class Room {
                 console.error(error);
             }
         }
+
         this.players.forEach(p => {
             if (!excludedPlayers.includes(p.username)) {
                 p.send(message);
             }
         });
+
         this.exits.forEach(exit => {
             exit.sendToExit(player, messagePlain);
         });
@@ -200,22 +241,16 @@ class Room {
     /**
      * Removes an exit from the room.
      * @param {Object} player - The player requesting the removal.
-     * @param {Object} section - The section of the room.
      * @param {string} direction - The direction of the exit to remove.
-     * @param {Object} toArea - The target area.
-     * @param {Object} toSection - The target section.
-     * @param {number} x - The x-coordinate of the exit.
-     * @param {number} y - The y-coordinate of the exit.
-     * @param {number} z - The z-coordinate of the exit.
+     * @param {Exit} exit - The Exit to remove.
      */
-    removeExit(player, section, direction, toArea, toSection, x, y, z) {
+    removeExit(player, direction, exit) {
         const strToExit = Exit.oppositeExit(Exit.stringToExit(direction));
-        let [rX, rY, rZ] = this.calculateCoordinates(strToExit, x, y, z);
+        const toRoom = exit.section.getRoomByCoordinates(exit.x, exit.y, exit.z);
 
-        const toRoom = section.getRoomByCoordinates(rX, rY, rZ);
         if (toRoom) {
-            this.exits.delete(strToExit);
-            toRoom.exits.delete(Exit.oppositeExit(strToExit));
+            this.exits.delete(Exit.oppositeExit(strToExit));
+            toRoom.exits.delete(strToExit);
 
             player.send(`Exit removed successfully!`);
         } else {

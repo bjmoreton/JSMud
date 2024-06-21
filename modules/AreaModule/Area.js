@@ -119,7 +119,14 @@ class Area {
                                     y: parseInt(exit.y),
                                     z: parseInt(exit.z),
                                     progs: exit.progs,
-                                    teleport: exit.teleport ?? false
+                                    teleport: exit.teleport ?? false,
+                                    fromRoom: {
+                                        area: exit.fromRoom.area.name,
+                                        section: exit.fromRoom.section.name,
+                                        x: exit.fromRoom.x,
+                                        y: exit.fromRoom.y,
+                                        z: exit.fromRoom.z,
+                                    }
                                 };
 
                                 // Emit an event after serializing each exit
@@ -148,7 +155,7 @@ class Area {
                 lastUpdate: this.lastUpdate,
                 sections: sectionsObj
             };
-            
+
             global.mudServer.emit('areaSaved', player, this, data);
 
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
