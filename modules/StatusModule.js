@@ -84,7 +84,7 @@ const StatusModule = {
             return;
         }
 
-        const statusToAdd = Statuses.stringToStatus(statusName).copy();
+        const statusToAdd = Statuses.stringToStatus(statusName)?.copy();
         if (!statusToAdd) {
             player.send(`Status ${statusName} doesn't exist!`);
             return;
